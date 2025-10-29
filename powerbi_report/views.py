@@ -397,7 +397,7 @@ def edit_powerbi_report_description(request, report_id):
             cache.delete(cache_key)
             
             messages.success(request, "Report description updated successfully!")
-            log_history(request.user, f"Updated description for report {info["name"]} ID: {report_id}  path {info["path"]} to '{new_description}'")
+            # log_history(request.user, f"Updated description for report {info["name"]} ID: {report_id}  path {info["path"]} to '{new_description}'")
             
             # Notify admin users
             admin_users = CustomUser.objects.filter(is_superuser=True)
@@ -1021,7 +1021,7 @@ def add_refresh_plan(request, report_id):
                 for admin in admin_users:
                     Notification.objects.create(
                         user=admin,
-                        message=f"A new refresh plan for report {info["name"]}  (ID: {report_id} , path: {info["path"]}) with description '{description}' was added by {request.user.username}."
+                        message=f"A new refresh plan for reportn '{description}' was added by {request.user.username}."
                     )
             else:
                 messages.error(request, f"Failed to add refresh plan: {response.text}")

@@ -101,13 +101,16 @@ def login_view(request):
         password = request.POST.get('password')
 
         response = requests.post(LDAP_API_URL, auth=HTTPBasicAuth(username, password))
-        
+
         if response.status_code == 200:
             data = response.json()
+            print(data)
             if data.get("authenticated"):
                 userinfo = data.get("userinfo", {})
                 email = userinfo.get("mail", "")
                 ad2000 = userinfo.get("ad2000", "")
+
+                print('HERE')
 
                 user = (CustomUser.objects.filter(username=username).first() or
                         CustomUser.objects.filter(email=email).first() or
@@ -121,8 +124,8 @@ def login_view(request):
                     user.status = "Active"
 
                 else:
-                    # Check if the username is sanaa.senouci@groupe-hasnaoui.com
-                    if username == "sanaa.senouci@groupe-hasnaoui.com":
+                    # Check if the username is mohammed.benslimane@groupe-hasnaoui.com
+                    if username == "mohammed.benslimane@groupe-hasnaoui.com":
                         role, created = Role.objects.get_or_create(name="admin")
                         if created:
                             # Assign all permissions to the admin role
