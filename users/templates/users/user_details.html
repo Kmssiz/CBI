@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}User Details{% endblock %}
+{% block content %}
+
+<div class="pc-container">
+  <div class="pc-content">
+    <!-- [ Breadcrumb ] start -->
+    <div class="page-header">
+      <div class="page-block">
+        <div class="row align-items-center">
+          <div class="col-md-12">
+            <div class="page-header-title">
+              <h5 class="mb-0">User Details</h5>
+            </div>
+          </div>
+          <div class="col-md-12">
+            <ul class="breadcrumb mb-0">
+              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'users_view' %}">User Management</a></li>
+              <li class="breadcrumb-item active" aria-current="page">User Details</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- [ Breadcrumb ] end -->
+
+    <!-- [ Profile Section ] start -->
+    <div class="row">
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-body text-center">
+            {% if user_detail.profile_image %}
+              <img src="{{ user_detail.profile_image.url }}" alt="User Avatar" class="rounded-circle" style="width: 150px; height: 150px;" id="profileImage">
+            {% else %}
+              <img src="{% static 'assets/images/user/avatar.jpg' %}" alt="User Avatar" class="rounded-circle" style="width: 150px; height: 150px;" id="profileImage">
+            {% endif %}
+            <h5 class="mt-3">{{ user_detail.get_full_name|default:user_detail.username }}</h5>
+            <p class="text-muted">{{ user_detail.email }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-header">
+            <h5>User Information</h5>
+          </div>
+          <div class="card-body">
+            <ul class="list-group">
+                <li class="list-group-item">
+                    <strong>Full Name:</strong> {{ user_detail.get_full_name|default:user_detail.username }}
+                </li>
+                <li class="list-group-item">
+                    <strong>Role:</strong> 
+                    {% if user_detail.role %} 
+                        {{ user_detail.role.name|title }} 
+                    {% else %}
+                        <span class="text-muted">No Role Assigned</span>
+                    {% endif %}
+                </li>
+                <li class="list-group-item">
+                    <strong>Status:</strong> 
+                    {% if user_detail.status == "Active" %}
+                        <span class="text-success">{{ user_detail.status }}</span>
+                    {% elif user_detail.status == "Inactive" %}
+                        <span class="text-danger">{{ user_detail.status }}</span>
+                    {% else %}
+                        <span class="text-warning">{{ user_detail.status|default:"Unknown" }}</span>
+                    {% endif %}
+                </li>
+                <li class="list-group-item">
+                    <strong>Joined:</strong> {{ user_detail.date_joined|date:"F j, Y" }}
+                </li>
+                <li class="list-group-item">
+                    <strong>Last Login:</strong> 
+                    {% if user_detail.last_login %}
+                        {{ user_detail.last_login|date:"F j, Y, g:i a" }}
+                    {% else %}
+                        <span class="text-muted">Never logged in</span>
+                    {% endif %}
+                </li>
+            </ul>
+        </div>
+        
+        </div>
+      </div>
+    </div>
+    <!-- [ Profile Section ] end -->
+
+    <div class="row mt-3">
+        <div class="col-md-12">
+          <button onclick="window.history.back()" class="btn btn-outline-secondary">
+            <i class="feather icon-arrow-left"></i> Back
+          </button>
+        </div>
+      </div>
+      
+
+  </div>
+</div>
+
+{% endblock %}

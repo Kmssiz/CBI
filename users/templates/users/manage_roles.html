@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Role Management{% endblock %}
+{% block content %}
+
+<div class="pc-container">
+  <div class="pc-content">
+    <!-- Breadcrumb -->
+    <div class="page-header">
+      <div class="page-block">
+        <div class="row align-items-center">
+          <div class="col-md-12">
+            <div class="page-header-title">
+              <h5 class="mb-0">
+                Role Management <i class="feather icon-sync"></i>
+              </h5>
+            </div>
+          </div>
+          <div class="col-md-12">
+            <ul class="breadcrumb mb-0">
+              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+              <li class="breadcrumb-item active"><a href="{% url 'users_view' %}">User Management</a></li>
+              <li class="breadcrumb-item active" aria-current="page">Role Management</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- [ Breadcrumb ] end -->
+
+    <!-- Display messages -->
+    {% if messages %}
+    <div class="mt-3">
+      {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
+        <i class="feather icon-check-circle"></i>
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="row mb-4">
+      <div class="col-md-12 d-flex justify-content-between align-items-center">
+        <a href="{% url 'users_view' %}" class="btn btn-outline-secondary"><i class="feather icon-arrow-left"></i> Back</a>
+        <div class="input-group w-50">
+          <input type="text" class="form-control" id="searchInput" placeholder="Search roles by name or description..." aria-label="Search roles">
+         
+        </div>
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createRoleModal">
+          <i class="feather icon-plus"></i> Create Role
+        </button>
+      </div>
+    </div>
+
+    <!-- [ Role Management Section ] start -->
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-header">
+            <h5>Roles and Permissions</h5>
+          </div>
+          <div class="card-body px-0 py-3">
+            <div class="table-responsive">
+              <table class="table table-hover" id="roleTable">
+                <thead>
+                  <tr>
+                    <th>Role</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for role in roles %}
+                  <tr>
+                    <td>{{ role.name }}</td>
+                    <td>{{ role.description }}</td>
+                    <td>
+                      {% if role.name|lower != 'admin' %}
+
+                      <a class="btn btn-outline-primary btn-sm" href="{% url 'permissions_list' role.id %}">Manage Permissions</a>
+                      <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editRoleModal{{ role.id }}">
+                        <i class="feather icon-edit"></i> Edit
+                      </button>
+                      <form method="POST" action="{% url 'remove_role' role.id %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                          <i class="feather icon-trash"></i> Remove
+                        </button>
+                      </form>
+                      {% else %}
+                      <span class="text-muted">Role not editable</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- [ Role Management Section ] end -->
+
+    <!-- Create Role Modal -->
+    <div class="modal fade" id="createRoleModal" tabindex="-1" aria-labelledby="createRoleModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createRoleModalLabel">Create New Role</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form method="POST" action="{% url 'create_role' %}">
+            {% csrf_token %}
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="role_name" class="form-label">Role Name</label>
+                <input type="text" class="form-control" id="role_name" name="role_name" required>
+              </div>
+              <div class="mb-3">
+                <label for="role_description" class="form-label">Role Description</label>
+                <textarea class="form-control" id="role_description" name="role_description" rows="4"></textarea>
+              </div>
+              <div class="mb-3">
+                <label for="permissions" class="form-label">Assign Default Permissions</label>
+                <select class="form-select" id="permissions" name="permissions" multiple>
+                  {% for permission in all_permissions %}
+                    <option value="{{ permission.id }}">{{ permission.name }}</option>
+                  {% endfor %}
+                </select>
+                <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple permissions.</small>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-primary">Create Role</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Role Modal -->
+    {% for role in roles %}
+    <div class="modal fade" id="editRoleModal{{ role.id }}" tabindex="-1" aria-labelledby="editRoleModalLabel{{ role.id }}" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editRoleModalLabel{{ role.id }}">Edit Role: {{ role.name }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form method="POST" action="{% url 'edit_role' role.id %}">
+            {% csrf_token %}
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="role_name" class="form-label">Role Name</label>
+                <input type="text" class="form-control" id="role_name" name="role_name" value="{{ role.name }}" {% if role.name|lower == 'admin' %}readonly{% endif %} required>
+              </div>
+              <div class="mb-3">
+                <label for="role_description" class="form-label">Role Description</label>
+                <textarea class="form-control" id="role_description" name="role_description" rows="4" {% if role.name|lower == 'admin' %}readonly{% endif %}>{{ role.description }}</textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              {% if role.name|lower != 'admin' %}
+              <button type="submit" class="btn btn-primary">Update Role</button>
+              {% else %}
+              <span class="text-muted">Role not editable</span>
+              {% endif %}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Select all alert elements
+    const alerts = document.querySelectorAll('.alert');
+    
+    // Loop through each alert
+    alerts.forEach(alert => {
+        // Set timeout to hide alert after 3 seconds (3000ms)
+        setTimeout(() => {
+            // Use jQuery to close the alert
+            $(alert).alert('close');
+        }, 3000);
+    });
+
+    // Search bar functionality
+    const searchInput = document.getElementById('searchInput');
+    const table = document.getElementById('roleTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    searchInput.addEventListener('input', function() {
+      const filter = searchInput.value.toLowerCase();
+
+      for (let i = 0; i < rows.length; i++) {
+        const roleName = rows[i].getElementsByTagName('td')[0].textContent.toLowerCase();
+        const description = rows[i].getElementsByTagName('td')[1].textContent.toLowerCase();
+        
+        if (roleName.includes(filter) || description.includes(filter)) {
+          rows[i].style.display = '';
+        } else {
+          rows[i].style.display = 'none';
+        }
+      }
+    });
+  });
+</script>
+<style>
+  .btn-outline-permission {
+    color: #e83e8c;
+    border-color: #e83e8c;
+  }
+  .btn-outline-permission:hover {
+    background-color: #e83e8c;
+    color: #fff;
+  }
+</style>
+
+{% endblock %}

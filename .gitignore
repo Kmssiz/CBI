@@ -1,0 +1,41 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+
+# Django stuff
+*.log
+db.sqlite3
+*.sqlite3
+/media/
+*.pot
+*.pyc
+*.pyo
+
+# IDE settings
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Migrations (optional)
+*/migrations/__pycache__/
+*/migrations/*.pyc
+
+# Environment variables
+.env
+*.env
+
+# Static and media files (if using collectstatic)
+staticfiles/
+static/
+media/
+anomaly-detection/
+tasks/
+powerbi-report/
+# Celery beat schedule file
+celerybeat-schedule
+anomaly_detection/models/

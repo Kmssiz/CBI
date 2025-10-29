@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Extensions{% endblock %}
+{% block content %}
+<div class="pc-container">
+  <div class="pc-content">
+    <!-- [ Breadcrumb ] start -->
+    <div class="page-header">
+      <div class="page-block">
+        <div class="row align-items-center">
+          <div class="col-md-12">
+            <div class="page-header-title">
+              <h5 class="mb-0">Extensions</h5>
+            </div>
+          </div>
+          <div class="col-md-12">
+            <ul class="breadcrumb mb-0">
+              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+              <li class="breadcrumb-item active" aria-current="page">Extensions</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- [ Breadcrumb ] end -->
+
+    <!-- [ Search Bar ] start -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="flex-grow-1" style="max-width: 500px;">
+        <div class="input-group">
+          <input type="text" id="extensionSearch" class="form-control" placeholder="Search extensions by name...">
+        </div>
+      </div>
+    </div>
+    <!-- [ Search Bar ] end -->
+
+    <!-- [ Extensions Cards ] start -->
+    <div class="row" id="extensionsContainer">
+      {% if extensions %}
+        {% for extension in extensions %}
+          <div class="col-md-4 extension-card">
+            <div class="card mb-4">
+              <div class="card-body text-center">
+                <h5 class="card-title">{{ extension.Name }}</h5>
+                <p class="card-text">Type: {{extension.ExtensionType  }}</p>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+      <div class="d-flex flex-column align-items-center justify-content-center" style="height: 100%;">
+        <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs" type="module"></script>
+        <dotlottie-player 
+          src="https://lottie.host/32f49128-c968-4a1a-81ab-f1ea5dc06556/KFFsAaw2Fi.lottie" 
+          background="transparent" 
+          speed="1" 
+          style="width: 300px; height: 300px;" 
+          loop 
+          autoplay>
+        </dotlottie-player>
+        <p class="text-center">No extensions available.</p>
+      </div>
+      {% endif %}
+    </div>
+    <!-- [ Extensions Cards ] end -->
+  </div>
+</div>
+
+<script>
+  function filterExtensions() {
+    var input = document.getElementById('extensionSearch');
+    var filter = input.value.toLowerCase();
+    var cards = document.querySelectorAll('.extension-card');
+    
+    cards.forEach(function(card) {
+      var titleElement = card.querySelector('.card-title');
+      if (titleElement) {
+        var titleText = titleElement.textContent.toLowerCase();
+        card.style.display = (titleText.indexOf(filter) > -1) ? '' : 'none';
+      }
+    });
+  }
+  
+  document.getElementById('extensionSearch').addEventListener('keyup', filterExtensions);
+</script>
+{% endblock %}

@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Report Permissions{% endblock %}
+{% block content %}
+
+<div class="pc-container">
+  <div class="pc-content">
+    <!-- Breadcrumb -->
+    <div class="page-header">
+      <div class="page-block">
+        <div class="row align-items-center">
+          <div class="col-md-12">
+            <div class="page-header-title">
+              <h5 class="mb-0">Report Permissions for {{ report_name }}</h5>
+            </div>
+          </div>
+          <div class="col-md-12">
+            <ul class="breadcrumb mb-0">
+              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'powerbi_report:report_list' %}">Reports</a></li>
+              <li class="breadcrumb-item active" aria-current="page">Permissions for {{ report_name }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Breadcrumb end -->
+   <!-- Display messages -->
+    {% if messages %}
+    <div class="mt-3">
+      {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
+        <i class="feather icon-check-circle"></i>
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Back Button Row -->
+    <div class="row mb-3">
+      <div class="col-md-12">
+        <a href="{% url 'powerbi_report:report_list' %}" class="btn btn-outline-secondary">
+          <i class="feather icon-arrow-left"></i> Back
+        </a>
+      </div>
+    </div>
+
+    <!-- Header: Search Bar, Add Users & Remove All Permissions -->
+    <div class="row mb-3 align-items-center">
+      <div class="col-md-4">
+        <input type="text" class="form-control" placeholder="Search allowed users..." id="userSearch">
+      </div>
+      <div class="col-md-8 d-flex justify-content-end gap-2">
+        <a href="{% url 'powerbi_report:missing_users' report_id %}" class="btn btn-outline-primary">Add Users</a>
+         <button type="button" id="removeSelected" class="btn btn-outline-danger" style="display: none;">Remove Selected Users</button>
+      </div>
+    </div>
+
+    <!-- Permissions Table -->
+    <div class="card">
+      <div class="card-body">
+        {% if policies %}
+          <form method="post" action="{% url 'powerbi_report:remove_selected_users_from_report' report_id %}" id="permissionsForm">
+            {% csrf_token %}
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="selectAll"></th>
+                  <th>User</th>
+                  <th>AD2000</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for policy in policies %}
+                  <tr  style="display: none;" >
+                    <td style="display: none;"><input type="checkbox" class="user-checkbox" name="selected_users" value="{{ policy.UserName|default:policy.GroupUserName }}"></td>
+                    <td style="display: none;">{{ policy.FullName }}</td>
+
+                    <td style="display: none;">
+                      {% if policy.GroupUserName %}
+                        {{ policy.GroupUserName }}
+                      {% elif policy.UserName %}
+                        {{ policy.UserName }}
+                      {% else %}
+                        Unknown
+                      {% endif %}
+                    </td>
+                    <td style="display: none;">
+                      <form method="post" action="{% url 'powerbi_report:remove_user' report_id policy.UserName|default:policy.GroupUserName  %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                      </form>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox" class="user-checkbox" name="selected_users" value="{{ policy.UserName|default:policy.GroupUserName }}"></td>
+                    <td>{{ policy.FullName }}</td>
+
+                    <td>
+                      {% if policy.GroupUserName %}
+                        {{ policy.GroupUserName }}
+                      {% elif policy.UserName %}
+                        {{ policy.UserName }}
+                      {% else %}
+                        Unknown
+                      {% endif %}
+                    </td>
+                    <td>
+                      <form method="post" action="{% url 'powerbi_report:remove_user' report_id policy.UserName|default:policy.GroupUserName  %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+                
+              </tbody>
+            </table>
+          </form>
+        {% else %}
+          <p>No permissions defined.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Prompt -->
+<div id="loadingPrompt" class="loading-overlay">
+  <div class="loading-content">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p>Processing request... Please wait.</p>
+  </div>
+</div>
+<style>
+  .loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6); /* Softer dark overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+
+  .loading-content {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.9); /* Light background */
+    color: #007bff; /* Primary blue text */
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  }
+
+  
+  .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 10px;
+    color: #007bff !important; /* Blue spinner */
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Search filter for allowed users list
+    document.getElementById("userSearch").addEventListener("input", function () {
+      const searchValue = this.value.toLowerCase();
+      document.querySelectorAll(".table tbody tr").forEach((row) => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchValue) ? "" : "none";
+      });
+    });
+
+    // Handle checkbox selection
+    const selectAllCheckbox = document.getElementById("selectAll");
+    const userCheckboxes = document.querySelectorAll(".user-checkbox");
+    const removeSelectedButton = document.getElementById("removeSelected");
+    const permissionsForm = document.getElementById("permissionsForm");
+
+    function toggleRemoveButton() {
+      const anyChecked = document.querySelectorAll(".user-checkbox:checked").length > 0;
+      removeSelectedButton.style.display = anyChecked ? "inline-block" : "none";
+    }
+
+    if (selectAllCheckbox) {
+      selectAllCheckbox.addEventListener("change", function () {
+        userCheckboxes.forEach((checkbox) => {
+          checkbox.checked = this.checked;
+        });
+        toggleRemoveButton();
+      });
+    }
+
+    userCheckboxes.forEach((checkbox) => {
+      checkbox.addEventListener("change", toggleRemoveButton);
+    });
+
+    if (removeSelectedButton) {
+      removeSelectedButton.addEventListener("click", function () {
+        permissionsForm.submit();
+      });
+    }
+
+    // Loading logic remains unchanged
+    function showLoading() {
+      document.getElementById("loadingPrompt").style.display = "flex";
+    }
+
+    function hideLoading() {
+      document.getElementById("loadingPrompt").style.display = "none";
+    }
+
+    const actionButtons = document.querySelectorAll(".btn-action");
+    actionButtons.forEach((button) => {
+      button.addEventListener("click", showLoading);
+    });
+
+    setTimeout(hideLoading, 3000);
+  });
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Select all alert elements
+    const alerts = document.querySelectorAll('.alert');
+    
+    // Loop through each alert
+    alerts.forEach(alert => {
+        // Set timeout to hide alert after 3 seconds (3000ms)
+        setTimeout(() => {
+            // Use jQuery to close the alert
+            $(alert).alert('close');
+
+        }, 3000);
+
+    });
+});
+</script>
+
+{% endblock %}

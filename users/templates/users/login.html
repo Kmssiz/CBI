@@ -1,0 +1,104 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Login</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="author" content="Aid abderrahmane" />
+
+    <!-- [Favicon] -->
+    <link rel="icon" href="{% static 'assets/images/favicon.svg' %}"  />
+
+    <!-- [Fonts & Icons] -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'assets/fonts/tabler-icons.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'assets/fonts/feather.css' %}" />
+    <link rel="stylesheet" href="{% static 'assets/fonts/fontawesome.css' %}" />
+    <link rel="stylesheet" href="{% static 'assets/fonts/material.css' %}" />
+
+    <!-- [Template CSS] -->
+    <link rel="stylesheet" href="{% static 'assets/css/style.css' %}" id="main-style-link" />
+    <link rel="stylesheet" href="{% static 'assets/css/style-preset.css' %}" />
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-14K1GBX9FG"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-14K1GBX9FG');
+    </script>
+</head>
+
+<body data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" data-pc-theme="light">
+    <!-- [ Pre-loader ] start -->
+    <div class="loader-bg">
+        <div class="loader-track">
+            <div class="loader-fill"></div>
+        </div>
+    </div>
+    <!-- [ Pre-loader ] End -->
+
+    <div class="auth-main">
+        <div class="auth-wrapper v1">
+            <div class="auth-form">
+                <div class="position-relative my-5">
+                    <div class="auth-bg">
+                        <span class="r"></span>
+                        <span class="r s"></span>
+                        <span class="r s"></span>
+                        <span class="r"></span>
+                    </div>
+                    <div class="card mb-0">
+                        <div class="card-body">
+                            <div class="text-center">
+                                <a href="#"><img src="{% static 'assets/images/mlogo.gif' %}" alt="Logo" style="width: 200px; height: auto;" /></a>
+                            </div>
+                            <h4 class="text-center f-w-500 mt-4 mb-3">Login</h4>
+                            
+                            <!-- Error messages -->
+                            {% if messages %}
+                              {% for message in messages %}
+                                <div class="alert alert-danger" role="alert">
+                                  {{ message }}
+                                </div>
+                              {% endfor %}
+                            {% endif %}
+                            
+                            <form method="post" action="{% url 'login' %}"  onsubmit="showLoading(event)">
+                                {% csrf_token %}
+                                <div class="form-group mb-3">
+                                    <input type="text" name="username" class="form-control" placeholder="Username" required />
+                                </div>
+                                <div class="form-group mb-3">
+                                    <input type="password" name="password" class="form-control" placeholder="Password" required />
+                                </div>
+                                <div class="text-center mt-4">
+                                    <button type="submit" id="login-btn" class="btn btn-primary shadow px-sm-4">Login</button>
+                                    <div id="loading" class="mt-2" style="display: none;">Loading...</div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- [Required JS] -->
+    <script>
+        function showLoading(event) {
+            event.preventDefault();
+            document.getElementById('login-btn').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            event.target.submit(); 
+        }
+    </script>
+    <script src="{% static 'assets/js/plugins/popper.min.js' %}"></script>
+    <script src="{% static 'assets/js/plugins/bootstrap.min.js' %}"></script>
+    <script src="{% static 'assets/js/script.js' %}"></script>
+    <script src="{% static 'assets/js/theme.js' %}"></script>
+</body>
+</html>

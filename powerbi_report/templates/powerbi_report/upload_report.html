@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Upload Report{% endblock %}
+
+{% block content %}
+<div class="pc-container">
+  <div class="pc-content">
+    <div class="page-header">
+      <div class="page-block">
+        <div class="row align-items-center">
+          <div class="col-md-12">
+            <div class="page-header-title">
+              <h5 class="mb-0">Upload Power BI Report</h5>
+            </div>
+          </div>
+          <div class="col-md-12">
+            <ul class="breadcrumb mb-0">
+              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'powerbi_report:report_list_hierarchy' %}">Reports</a></li>
+              {% for breadcrumb in breadcrumbs %}
+                <li class="breadcrumb-item">
+                  <a href="{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=breadcrumb.url %}">
+                    {{ breadcrumb.name }}
+                  </a>
+                </li>
+              {% endfor %}
+              <li class="breadcrumb-item active">Upload Report</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <a href="{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=current_path|default:'' %}" class="btn btn-outline-secondary">
+        <i class="feather icon-arrow-left"></i> Back
+      </a>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Upload a Power BI Report</h5>
+            <form method="POST" enctype="multipart/form-data" action="{% url 'powerbi_report:upload_powerbi_report' %}?folder_path={{ current_path|urlencode }}">
+              {% csrf_token %}
+              <div class="form-group mb-3">
+                <label for="report_name">Report Name</label>
+                <input type="text" class="form-control" id="report_name" name="report_name" required>
+              </div>
+              <div class="form-group mb-3">
+                <label for="pbix_file">Select .pbix File</label>
+                <input type="file" class="form-control" id="pbix_file" name="pbix_file" accept=".pbix" required>
+              </div>
+              <input type="hidden" name="folder_path" value="{{ current_path }}">
+              <button type="submit" class="btn btn-primary">Upload Report</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .btn-outline-purple {
+    color: #6f42c1;
+    border-color: #6f42c1;
+    background-color: transparent;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  
+  .btn-outline-purple:hover {
+    color: #fff;
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+  }
+</style>
+{% endblock %}

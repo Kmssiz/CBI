@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}User History{% endblock %}
+{% block content %}
+
+<style>
+    .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+    }
+    .card:hover {
+        transform: translateY(-2px);
+    }
+    .card-header {
+        background: #f8f9fa;
+        border-bottom: 1px solid #e3e6f0;
+        padding: 1.25rem;
+    }
+    .card-header h5 {
+        color: #1a3c34;
+        font-weight: 600;
+    }
+    
+    .table tbody tr:hover {
+        background: #f1f8ff;
+    }
+    
+    .badge-secondary {
+        background: #17a2b8; /* Updated to a vibrant teal */
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+        transition: background 0.3s ease;
+    }
+    .badge-secondary:hover {
+        background: #138496; /* Slightly darker teal on hover for interactivity */
+    }
+    .no-history {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        color: #5a5c69;
+    }
+    .no-history p {
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+    /* Back to Top Button Styles */
+    .back-to-top {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        display: none;
+        background: #17a2b8;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        transition: opacity 0.3s ease, background 0.3s ease;
+        z-index: 1000;
+    }
+    .back-to-top:hover {
+        background: #138496;
+    }
+</style>
+
+<!-- [ Main Content ] start -->
+<div class="pc-container">
+    <div class="pc-content">
+      <!-- [ breadcrumb ] start -->
+        <div class="page-header">
+            <div class="page-block">
+                <div class="row align-items-center">
+                    <div class="col-md-12">
+                        <div class="page-header-title">
+                            <h5 class="mb-0">User History</h5>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <ul class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'users_view' %}">User Management</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">User History</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- [ breadcrumb ] end -->
+
+        <!-- [ History Section ] start -->
+        {% if history %}
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th style="width:200px;">Date</th>
+                                        <th>Action</th>
+                                        <th>Time Ago</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in history %}
+                                        <tr>
+                                            <td>{{ record.timestamp|date:"F j, Y, g:i A" }}</td>
+                                            <td>{{ record.action }}</td>
+                                            <td><span class="badge badge-secondary">{{ record.timestamp|timesince }} ago</span></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="row">    
+            <div class="col-md-12">
+                <br/>
+                <div class="col-12 no-history d-flex flex-column align-items-center justify-content-center">
+                    <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
+                    type="module"></script>
+                    <dotlottie-player
+                    src="https://lottie.host/592b34b7-dc64-4037-bba3-091de84d669c/uTncCsVnRH.lottie"
+                    background="transparent" speed="1" style="width: 300px; height: 300px"
+                    loop autoplay></dotlottie-player>
+                    <p class="mt-2 text-center">No history available.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        <!-- [ History Section ] end -->
+    </div>
+</div>
+<!-- [ Main Content ] end -->
+
+<!-- Back to Top Button -->
+<button class="back-to-top" onclick="scrollToTop()">↑</button>
+
+<script>
+    // Show/hide back-to-top button based on scroll position
+    window.addEventListener('scroll', function() {
+        const backToTopButton = document.querySelector('.back-to-top');
+        if (window.scrollY > 300) {
+            backToTopButton.style.display = 'block';
+        } else {
+            backToTopButton.style.display = 'none';
+        }
+    });
+
+    // Smooth scroll to top
+    function scrollToTop() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+</script>
+
+{% endblock %}
