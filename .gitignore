@@ -12,7 +12,7 @@ vcbi/
 *.log
 db.sqlite3
 *.sqlite3
-/media/
+#/media/
 *.pot
 *.pyc
 *.pyo
@@ -27,16 +27,16 @@ db.sqlite3
 */migrations/*.pyc
 
 # Environment variables
-.env
-*.env
+#.env
+#*.env
 
 # Static and media files (if using collectstatic)
-staticfiles/
-static/
-media/
-anomaly-detection/
-tasks/
-powerbi-report/
+#staticfiles/
+#static/
+#media/
+#anomaly-detection/
+#tasks/
+#powerbi-report/
 # Celery beat schedule file
-celerybeat-schedule
-anomaly_detection/models/
+#celerybeat-schedule
+#anomaly_detection/models/
