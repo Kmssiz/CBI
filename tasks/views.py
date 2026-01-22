@@ -6,36 +6,7 @@ from django.http import JsonResponse
 from notifications.models import Notification 
 from users.models import UserHistory
 from django.utils.timezone import now
-
-# Create your views here.
-
-def log_history(user, action):
-    UserHistory.objects.create(user=user, action=action, timestamp=now())
-
-def get_user_permissions(user):
-    all_permissions = [
-      
-        'add_permission', 'change_permission', 'delete_permission', 'view_permission',
-       
-        
-        'add_anomalyprediction', 'change_anomalyprediction', 'delete_anomalyprediction', 'view_anomalyprediction',
-        'add_notification', 'change_notification', 'delete_notification', 'view_notification',
-        'add_powerbireport', 'change_powerbireport', 'delete_powerbireport', 'view_powerbireport',
-        'add_report', 'change_report', 'delete_report', 'view_report',
-        'view_refresh',
-        'add_reportaccess', 'change_reportaccess', 'delete_reportaccess', 'view_reportaccess',
-        'add_task', 'change_task', 'delete_task', 'view_task',
-        'view_dashboard',
-         'add_customuser', 'change_customuser', 'delete_customuser', 'view_customuser',
-        'add_role', 'change_role', 'delete_role', 'view_role',
-        'add_userhistory', 'change_userhistory', 'delete_userhistory', 'view_userhistory',
-    ]
-    
-    user_permissions = user.user_permissions.values_list('codename', flat=True)
-    
-    permissions = {perm: perm in user_permissions for perm in all_permissions}
-    
-    return permissions
+from users.utils import log_history, get_user_permissions
 
 
 @login_required

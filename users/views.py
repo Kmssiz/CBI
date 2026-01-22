@@ -16,16 +16,8 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import Permission, Group
 
-from decouple import config
-
-LDAP_API_URL = config('LDAP_API_URL')
-LDAP_USERS_URL = config('LDAP_USERS_URL')
-
-#################################################################################################################
-#                    Logs user actions in the UserHistory model                                                 #
-#################################################################################################################
-def log_history(user, action):
-    UserHistory.objects.create(user=user, action=action, timestamp=now())
+from .ldap_utils import connexion_ad2000, get_ad_users
+from .utils import log_history, get_user_permissions
 
 #################################################################################################################
 #                    Handles user login with LDAP authentication                                                #
@@ -100,73 +92,61 @@ def login_view(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
 
-        response = requests.post(LDAP_API_URL, auth=HTTPBasicAuth(username, password))
+        # Use new LDAP utility
+        user_info = connexion_ad2000(username, password)
+        
+        if user_info:
+            email = user_info.get("email", "")
+            ad2000 = user_info.get("ad2000", "")
 
-        if response.status_code == 200:
-            data = response.json()
-            print(data)
-            if data.get("authenticated"):
-                userinfo = data.get("userinfo", {})
-                email = userinfo.get("mail", "")
-                ad2000 = userinfo.get("ad2000", "")
+            user = (CustomUser.objects.filter(username=username).first() or
+                    CustomUser.objects.filter(email=email).first() or
+                    CustomUser.objects.filter(ad2000=ad2000).first())
 
-                print('HERE')
-
-                user = (CustomUser.objects.filter(username=username).first() or
-                        CustomUser.objects.filter(email=email).first() or
-                        CustomUser.objects.filter(ad2000=ad2000).first())
-
-                if user:
-                    user.username = user.username or username
-                    user.first_name = user.first_name or userinfo.get("fname", "")
-                    user.last_name = user.last_name or userinfo.get("name", "")
-                    user.ad2000 = user.ad2000 or ad2000
-                    user.status = "Active"
-
-                else:
-                    # Check if the username is mohammed.benslimane@groupe-hasnaoui.com
-                    if username == "mohammed.benslimane@groupe-hasnaoui.com":
-                        role, created = Role.objects.get_or_create(name="admin")
-                        if created:
-                            # Assign all permissions to the admin role
-                            role.permissions.set(Permission.objects.all())
-                    else:
-                        role, created = Role.objects.get_or_create(name="user")
-                    
-                    user = CustomUser(
-                        username=username,
-                        first_name=userinfo.get("fname", ""),
-                        last_name=userinfo.get("name", ""),
-                        email=email,
-                        ad2000=ad2000,
-                        role=role,
-                        status="Active"
-                    )
-                    user.save()
-
-                    new_permissions = role.permissions.all()
-                    user.user_permissions.add(*new_permissions)
-                
-                user.ldap_password = password  
-                user.backend = 'django.contrib.auth.backends.ModelBackend'
-                user.save()
-
-                request.session['userinfo'] = userinfo
-                request.session['ldap_password'] = password  
-                user.ldap_password = password  
-
-                user.backend = 'django.contrib.auth.backends.ModelBackend'
-                user.save()
-                login(request, user)
-                log_history(user, "User logged in")
-
-                if user.role and user.role.name == "admin":
-                    return redirect('powerbi_report:dashboard')
-                return redirect('home')
+            if user:
+                user.username = username # Ensure username matches AD
+                user.first_name = user_info.get("first_name", "")
+                user.last_name = user_info.get("last_name", "")
+                user.ad2000 = ad2000
+                user.status = "Active"
             else:
-                messages.error(request, "Invalid credentials")
+                # Check for admin (hardcoded check from original code)
+                if username == "mohammed.benslimane@groupe-hasnaoui.com":
+                    role, created = Role.objects.get_or_create(name="admin")
+                    if created:
+                         role.permissions.set(Permission.objects.all())
+                else:
+                    role, created = Role.objects.get_or_create(name="user")
+                
+                user = CustomUser(
+                    username=username,
+                    first_name=user_info.get("first_name", ""),
+                    last_name=user_info.get("last_name", ""),
+                    email=email,
+                    ad2000=ad2000,
+                    role=role,
+                    status="Active"
+                )
+                user.save()
+                new_permissions = role.permissions.all()
+                user.user_permissions.add(*new_permissions)
+
+            # CRITICAL: Do NOT save password to DB (user.ldap_password)
+            user.backend = 'django.contrib.auth.backends.ModelBackend'
+            user.save()
+
+            # Save info to session
+            request.session['userinfo'] = user_info
+            request.session['ldap_password'] = password # Kept for NTLM
+            
+            login(request, user)
+            log_history(user, "User logged in")
+
+            if user.role and user.role.name == "admin":
+                return redirect('powerbi_report:dashboard')
+            return redirect('home')
         else:
-            messages.error(request, "Authentication failed.")
+            messages.error(request, "Invalid credentials or authentication failed.")
     
     return render(request, 'users/login.html')
     
@@ -214,30 +194,7 @@ def home_view(request):
 #################################################################################################################
 #                    Retrieves a dictionary of user permissions                                                 #
 #################################################################################################################
-def get_user_permissions(user):
-    all_permissions = [
-      
-        'add_permission', 'change_permission', 'delete_permission', 'view_permission',
-       
-        
-        'add_anomalyprediction', 'change_anomalyprediction', 'delete_anomalyprediction', 'view_anomalyprediction',
-        'add_notification', 'change_notification', 'delete_notification', 'view_notification',
-        'add_powerbireport', 'change_powerbireport', 'delete_powerbireport', 'view_powerbireport',
-        'add_report', 'change_report', 'delete_report', 'view_report',
-        'view_refresh',
-        'add_reportaccess', 'change_reportaccess', 'delete_reportaccess', 'view_reportaccess',
-        'add_task', 'change_task', 'delete_task', 'view_task',
-        'view_dashboard', 
-         'add_customuser', 'change_customuser', 'delete_customuser', 'view_customuser',
-        'add_role', 'change_role', 'delete_role', 'view_role',
-        'add_userhistory', 'change_userhistory', 'delete_userhistory', 'view_userhistory',
-    ]
-    
-    user_permissions = user.user_permissions.values_list('codename', flat=True)
-    
-    permissions = {perm: perm in user_permissions for perm in all_permissions}
-    
-    return permissions
+
 
 #################################################################################################################
 #                             Manages user and their roles                                                      #
@@ -434,38 +391,42 @@ def sync_users(request):
         messages.error(request, "You do not have permission to perform this action.")
         return redirect('report_list')  
 
-    try:
-        response = requests.get(LDAP_USERS_URL, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        ldap_users = data.get("users", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
-    except requests.RequestException as e:
-        messages.error(request, f"Failed to fetch LDAP users: {e}")
-        return redirect('users_view')
+    current_password = request.session.get('ldap_password')
+    if not current_password:
+         messages.error(request, "Session expired or password not found. Please login again.")
+         return redirect('users_view')
 
+    ldap_users = get_ad_users(request.user.username, current_password)
+    
+    if not ldap_users:
+         messages.error(request, "Failed to fetch LDAP users or no users found.")
+         return redirect('users_view')
+
+    count = 0
     for ldap_user in ldap_users:
-        ad2000 = ldap_user.get("AD2000", "").strip()
+        ad2000 = ldap_user.get("ad2000", "").strip()
+        # Fallback to creating ad2000 from samaccountname if missing, or skip
         if not ad2000:
-            continue  
+             continue 
 
         user = CustomUser.objects.filter(ad2000__iexact=ad2000).first()
         if not user:
             user_role, _ = Role.objects.get_or_create(name="user")
 
             user = CustomUser(
-                username=ad2000,  
+                username=ldap_user.get("sAMAccountName"),  
                 ad2000=ad2000,
-                first_name=ldap_user.get("fname", "").strip(),
-                last_name=ldap_user.get("lname", "").strip(),
+                first_name=ldap_user.get("name", "").split(' ')[0], # Rough approx
+                last_name=" ".join(ldap_user.get("name", "").split(' ')[1:]),
                 email=ldap_user.get("mail", "").strip(),
                 role=user_role,
                 status="Not Active"
             )
             user.save()  
-
             user.user_permissions.set(user_role.permissions.all())  
+            count += 1
 
-    messages.success(request, "User synchronization completed successfully.")
+    messages.success(request, f"User synchronization completed. {count} new users added.")
     return redirect('users_view')
 
 #################################################################################################################
