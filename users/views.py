@@ -99,16 +99,32 @@ def login_view(request):
             email = user_info.get("email", "")
             ad2000 = user_info.get("ad2000", "")
 
-            user = (CustomUser.objects.filter(username=username).first() or
-                    CustomUser.objects.filter(email=email).first() or
-                    CustomUser.objects.filter(ad2000=ad2000).first())
+            # Look up user - only search by non-empty fields to prevent matching wrong users
+            # Normalize empty-like values to prevent matching wrong users
+            email = email.strip() if email else ""
+            ad2000 = ad2000.strip() if ad2000 else ""
+            # Treat '[]' as empty (LDAP sometimes returns this for missing attributes)
+            if ad2000 == "[]" or ad2000 == "":
+                ad2000 = None  # Use None, not empty string, for unique constraint compatibility
+            
+            print(f"[DEBUG LOGIN] Looking up user with username='{username}', email='{email}', ad2000='{ad2000}'")
+            user = CustomUser.objects.filter(username=username).first()
+            print(f"[DEBUG LOGIN] Username lookup result: {user.id if user else None} ({user.username if user else 'None'})")
+            if not user and email:  # Only search by email if it's not empty
+                user = CustomUser.objects.filter(email=email).first()
+                print(f"[DEBUG LOGIN] Email lookup result: {user.id if user else None}")
+            if not user and ad2000:  # Only search by ad2000 if it's not empty
+                user = CustomUser.objects.filter(ad2000=ad2000).first()
+                print(f"[DEBUG LOGIN] AD2000 lookup result: {user.id if user else None}")
 
             if user:
                 user.username = username # Ensure username matches AD
                 user.first_name = user_info.get("first_name", "")
                 user.last_name = user_info.get("last_name", "")
+                user.email = email  # Update email from LDAP
                 user.ad2000 = ad2000
                 user.status = "Active"
+                print(f"[DEBUG LOGIN] Updated existing user {user.id} with email='{email}'")
             else:
                 # Check for admin (hardcoded check from original code)
                 if username == "mohammed.benslimane@groupe-hasnaoui.com":
@@ -141,11 +157,36 @@ def login_view(request):
             
             login(request, user)
             log_history(user, "User logged in")
+            
+            # Clear cached data to ensure fresh fetch for this user
+            cache.delete(f"powerbi_reports_cache_{user.id}")
+            cache.delete(f"dashboard_data_{user.id}")
+            print(f"[DEBUG LOGIN] Cleared cache for user {user.id}")
 
             if user.role and user.role.name == "admin":
                 return redirect('powerbi_report:dashboard')
             return redirect('home')
         else:
+            # Fallback: Try local Django authentication (for admin/test users not in LDAP)
+            from django.contrib.auth import authenticate
+            user = authenticate(request, username=username, password=password)
+            
+            if user is not None:
+                login(request, user)
+                log_history(user, "User logged in (Local/Admin)")
+                
+                # Setup session defaults that might be expected
+                request.session['userinfo'] = {
+                    "fname": user.first_name,
+                    "name": user.last_name,
+                    "mail": user.email,
+                    "ad2000": user.ad2000
+                }
+                
+                if user.role and user.role.name == "admin":
+                    return redirect('powerbi_report:dashboard')
+                return redirect('home')
+            
             messages.error(request, "Invalid credentials or authentication failed.")
     
     return render(request, 'users/login.html')

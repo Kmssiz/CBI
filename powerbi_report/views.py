@@ -53,11 +53,15 @@ REPORT_SERVER_URL = settings.POWERBI_REPORT_SERVER_URL
 def get_current_user_auth(request):
     current_username = request.user.username
     current_password = request.session.get('ldap_password', None)
+    
     if not current_password:
-        print("LDAP password not found in session. Authentication might fail.")
-
-    print(f"Authenticating as: {current_username}") 
-    return HttpNtlmAuth(current_username, current_password)
+        print(f"[PBIRS AUTH] LDAP password not found in session for user {current_username}. Authentication will fail.")
+        return None  # Return None so caller can handle gracefully
+    
+    # NTLM requires DOMAIN\username format
+    ntlm_username = f"GROUPE-HASNAOUI\\{current_username}"
+    print(f"[PBIRS AUTH] Authenticating as: {ntlm_username}") 
+    return HttpNtlmAuth(ntlm_username, current_password)
 
 
 #################################################################################################################
@@ -75,6 +79,12 @@ def get_powerbi_reports(request):
 
     url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports"
     auth = get_current_user_auth(request)
+    
+    # Handle missing auth (session expired)
+    if not auth:
+        print(f"[PBIRS] No auth available for user {user_id}, returning empty reports")
+        return []
+    
     session = requests.Session()  
     session.auth = auth  
 
@@ -2615,6 +2625,3 @@ def get_report_refresh_list(request):
         'completed_refreshes': completed_refreshes,
         'failed_refreshes': failed_refreshes,
     })
-
-
-

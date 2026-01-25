@@ -55,5 +55,4 @@ urlpatterns = [
     
     path('folders/', views.get_folder_list, name='folder_list'),
 
-
 ]
