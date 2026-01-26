@@ -29,7 +29,9 @@
     {% if messages %}
     <div class="mt-3">
       {% for message in messages %}
-      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
+      <div
+        class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show"
+        role="alert">
         <i class="feather icon-check-circle"></i>
         {{ message }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -53,7 +55,7 @@
             <select class="form-select" id="roleFilter">
               <option value="">All Roles</option>
               {% for role in roles %}
-                <option value="{{ role.name|lower }}">{{ role.name }}</option>
+              <option value="{{ role.name|lower }}">{{ role.name }}</option>
               {% endfor %}
             </select>
           </div>
@@ -79,7 +81,8 @@
           </div>
           <!-- Filter Buttons -->
           <div class="col-md-3 d-flex">
-            <button class="btn btn-outline-danger me-2 flex-fill" id="filterNoPermission" onclick="filterNoPermission()">
+            <button class="btn btn-outline-danger me-2 flex-fill" id="filterNoPermission"
+              onclick="filterNoPermission()">
               <i class="feather icon-ban me-1"></i> New Users
             </button>
             <button class="btn btn-outline-primary flex-fill" id="showAll">
@@ -91,7 +94,7 @@
     </div>
     <!-- [ Search and Filter Section ] end -->
 
-    <br/>
+    <br />
     <!-- [ User List Section ] start -->
     <div class="row">
       {% if users %}
@@ -112,62 +115,64 @@
                     <th>Actions</th>
                   </tr>
                 </thead>
-                
+
                 <tbody>
                   {% for user in users %}
                   <tr data-permission="true" data-user-id="{{ user.id }}" data-user-role="{{ user.role }}">
                     <td>{{ user.AD2000|default:user.get_full_name }}</td>
                     <td>{{ user.email }}</td>
                     <td class="user-role">{{ user.role }}</td>
-                    
+
                     <td>
                       {% if user.status == 'Active' %}
-                        <span class="status-dot bg-success"></span> Active
+                      <span class="status-dot bg-success"></span> Active
                       {% else %}
-                        <span class="status-dot bg-danger"></span> Not Active
+                      <span class="status-dot bg-danger"></span> Not Active
                       {% endif %}
                     </td>
                     <td>
                       {% if permissions.change_powerbireport %}
-                        {% if user.ad2000 %}
-                          <a href="{% url 'powerbi_report:user_permission' user.ad2000 %}" class="btn btn-outline-permission btn-sm me-1">
-                            Report Access
-                          </a>
-                        {% else %}
-                          <span class="text-muted"></span>
-                        {% endif %}
+                      {% if user.ad2000 %}
+                      <a href="{% url 'powerbi_report:user_permission' user.ad2000 %}"
+                        class="btn btn-outline-permission btn-sm me-1">
+                        Report Access
+                      </a>
+                      {% else %}
+                      <span class="text-muted"></span>
                       {% endif %}
-                      
+                      {% endif %}
+
                       <a href="{% url 'user_details' %}?user_id={{ user.id }}" class="btn btn-outline-info btn-sm me-1">
                         Info
                       </a>
-                      
+
                       {% if permissions.view_userhistory %}
-                        <a href="{% url 'user_history' user.id %}" class="btn btn-outline-secondary btn-sm me-1">
-                          History
-                        </a>
+                      <a href="{% url 'user_history' %}" class="btn btn-outline-secondary btn-sm me-1">
+                        History
+                      </a>
                       {% endif %}
-                      
+
                       {% if permissions.change_customuser %}
-                        <button class="btn btn-outline-warning btn-sm" onclick="openEditModal({{ user.id }}, '{{ user.role }}')">
-                          Edit
-                        </button>
+                      <button class="btn btn-outline-warning btn-sm"
+                        onclick="openEditModal({{ user.id }}, '{{ user.role }}')">
+                        Edit
+                      </button>
                       {% endif %}
-                      
-                     
+
+
                     </td>
                   </tr>
                   {% endfor %}
-                  
+
                 </tbody>
-                
+
               </table>
             </div>
           </div>
         </div>
       </div>
       {% else %}
-        <div class="text-center">No users found.</div>
+      <div class="text-center">No users found.</div>
       {% endif %}
     </div>
     <!-- [ User List Section ] end -->
@@ -182,7 +187,8 @@
         {% csrf_token %}
         <div class="modal-header">
           <h5 class="modal-title">Edit User Role</h5>
-          <button type="button" class="close" onclick="closeEditModal()" style="border: none; background: none; font-size: 1.5rem; color: red;">&times;</button>
+          <button type="button" class="close" onclick="closeEditModal()"
+            style="border: none; background: none; font-size: 1.5rem; color: red;">&times;</button>
         </div>
         <div class="modal-body">
           <input type="hidden" name="user_id" id="editUserId">
@@ -190,7 +196,7 @@
             <label for="role">Role</label>
             <select name="role" id="editUserRole" class="form-control">
               {% for role in roles %}
-                <option value="{{ role.id }}">{{ role.name }}</option>  <!-- Ensure the value is the role ID -->
+              <option value="{{ role.id }}">{{ role.name }}</option> <!-- Ensure the value is the role ID -->
               {% endfor %}
             </select>
           </div>
@@ -223,7 +229,7 @@
 
     const form = document.getElementById('editUserForm');
     form.action = "{% url 'user_edit' 0 %}".replace('/0/', '/' + userId + '/');
-    
+
     document.getElementById('editModal').style.display = 'block';
   }
 
@@ -259,7 +265,7 @@
   document.getElementById('statusFilter').addEventListener('change', applyFilters);
 
   // "No Permission" filter
-  document.getElementById('filterNoPermission').addEventListener('click', function() {
+  document.getElementById('filterNoPermission').addEventListener('click', function () {
     const rows = document.querySelectorAll('#userTable tbody tr');
     rows.forEach(row => {
       const permission = row.getAttribute('data-permission');
@@ -268,7 +274,7 @@
   });
 
   // Show all rows button
-  document.getElementById('showAll').addEventListener('click', function() {
+  document.getElementById('showAll').addEventListener('click', function () {
     const rows = document.querySelectorAll('#userTable tbody tr');
     rows.forEach(row => { row.style.display = ''; });
     document.getElementById('roleFilter').selectedIndex = 0;
@@ -282,7 +288,7 @@
 
     permissionButtons.forEach(button => {
       button.addEventListener("click", function () {
-        loadingPrompt.style.display = "flex"; 
+        loadingPrompt.style.display = "flex";
       });
     });
 
@@ -299,12 +305,12 @@
   }
 
   // Show all rows button
-  document.getElementById('showAll').addEventListener('click', function() {
-    window.location.href = "{% url 'users_view' %}"; 
+  document.getElementById('showAll').addEventListener('click', function () {
+    window.location.href = "{% url 'users_view' %}";
   });
 </script>
 <script>
-  setTimeout(function() {
+  setTimeout(function () {
     let alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
       let bsAlert = new bootstrap.Alert(alert);
@@ -313,40 +319,42 @@
   }, 5000);
 </script>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-            console.log("Waiting");
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(function () {
+      console.log("Waiting");
 
-            fetch("{% url 'powerbi_report:load_cache' %}")
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Cache loaded:', data);
-                })
-                .catch(error => {
-                    console.error('Error loading cache:', error);
-                });
-        }, 100);
-    });
-    </script>
-    
+      fetch("{% url 'powerbi_report:load_cache' %}")
+        .then(response => response.json())
+        .then(data => {
+          console.log('Cache loaded:', data);
+        })
+        .catch(error => {
+          console.error('Error loading cache:', error);
+        });
+    }, 100);
+  });
+</script>
+
 <style>
   .btn-outline-permission {
     color: #e83e8c;
     border-color: #e83e8c;
   }
+
   .btn-outline-permission:hover {
     background-color: #e83e8c;
     color: #fff;
   }
+
   .custom-success {
-    color: #28a745; 
-    border-color: #28a745; 
+    color: #28a745;
+    border-color: #28a745;
   }
 
   .custom-success:hover {
     background-color: #28a745;
-    color: #fff; 
+    color: #fff;
   }
 
   /* Modal styles */
@@ -359,29 +367,36 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(0, 0, 0, 0.5);
   }
+
   .modal-dialog {
     margin: 10% auto;
     max-width: 500px;
   }
+
   .modal-content {
     background-color: #fff;
     border-radius: 4px;
     padding: 20px;
   }
-  .modal-header, .modal-footer {
+
+  .modal-header,
+  .modal-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
+
   .modal-header {
     border-bottom: 1px solid #dee2e6;
   }
+
   .modal-footer {
     border-top: 1px solid #dee2e6;
     margin-top: 20px;
   }
+
   .loading-overlay {
     display: none;
     position: fixed;
@@ -389,7 +404,8 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6); /* Softer dark overlay */
+    background: rgba(0, 0, 0, 0.6);
+    /* Softer dark overlay */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -398,8 +414,10 @@
 
   .loading-content {
     text-align: center;
-    background: rgba(255, 255, 255, 0.9); /* Light background */
-    color: #007bff; /* Primary blue text */
+    background: rgba(255, 255, 255, 0.9);
+    /* Light background */
+    color: #007bff;
+    /* Primary blue text */
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
@@ -409,8 +427,10 @@
     width: 3rem;
     height: 3rem;
     margin-bottom: 10px;
-    color: #007bff !important; /* Blue spinner */
+    color: #007bff !important;
+    /* Blue spinner */
   }
+
   .status-dot {
     display: inline-block;
     width: 10px;

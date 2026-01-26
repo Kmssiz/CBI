@@ -16,7 +16,7 @@ def get_user_permissions(user):
         'add_permission', 'change_permission', 'delete_permission', 'view_permission',
        
         
-        'add_anomalyprediction', 'change_anomalyprediction', 'delete_anomalyprediction', 'view_anomalyprediction',
+
         'add_notification', 'change_notification', 'delete_notification', 'view_notification',
         'add_powerbireport', 'change_powerbireport', 'delete_powerbireport', 'view_powerbireport',
         'add_report', 'change_report', 'delete_report', 'view_report',

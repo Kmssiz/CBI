@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="{% static 'assets/css/style-preset.css' %}" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
- 
+
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-14K1GBX9FG"></script>
   <script>
@@ -51,7 +51,8 @@
     <div class="navbar-wrapper">
       <div class="m-header">
         <a href="{% url 'home' %}" class="b-brand text-primary">
-          <img src="{% static 'assets/images/mlogo.gif' %}" alt="logo" style="width: 140px; height: auto; margin-top:20px;" />
+          <img src="{% static 'assets/images/mlogo.gif' %}" alt="logo"
+            style="width: 140px; height: auto; margin-top:20px;" />
         </a>
       </div>
       <div class="navbar-content">
@@ -81,7 +82,7 @@
             </a>
           </li>
           {% endif %}
-          {% if permissions.view_powerbireport  %}
+          {% if permissions.view_powerbireport %}
           <li class="pc-item">
             <a href="{% url 'powerbi_report:report_list' %}" class="pc-link">
               <span class="pc-micon"><i data-feather="folder"></i></span>
@@ -90,15 +91,7 @@
           </li>
           {% endif %}
 
-          {% if permissions.view_anomalyprediction %}
-          <!-- New Anomaly Detection Link -->
-          <li class="pc-item">
-            <a href="{% url 'anomaly_detection:upload_log' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="alert-triangle"></i></span>
-              <span class="pc-mtext">Anomaly Detection</span>
-            </a>
-          </li>
-          {% endif %}
+
 
           {% endif %}
 
@@ -109,14 +102,6 @@
             <a href="{% url 'powerbi_report:report_list_hierarchy' %}" class="pc-link">
               <span class="pc-micon"><i data-feather="file-text"></i></span>
               <span class="pc-mtext">Reports</span>
-            </a>
-          </li>
-          {% endif %}
-          {% if permissions.view_task %}
-          <li class="pc-item">
-            <a href="{% url 'task_list' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="clipboard"></i></span>
-              <span class="pc-mtext">Tasks</span>
             </a>
           </li>
           {% endif %}
@@ -138,10 +123,10 @@
             </a>
           </li>
           {% endif %}
-          
-          {% if permissions.view_userhistory %}
+
+          {% if user.role.name == "admin" %}
           <li class="pc-item">
-            <a href="{% url 'user_history' user.id %}" class="pc-link">
+            <a href="{% url 'user_history' %}" class="pc-link">
               <span class="pc-micon"><i data-feather="clock"></i></span>
               <span class="pc-mtext">History</span>
             </a>
@@ -155,9 +140,9 @@
             </a>
           </li>
 
-         
+
           {% endif %}
-           <!--Navigation 3-->
+          <!--Navigation 3-->
           {% if user.is_superuser %}
           <li class="pc-item pc-caption">
             <label>Control</label>
@@ -193,17 +178,14 @@
       </div>
 
       <!-- right side menu -->
-      
+
       <div class="ms-auto">
         <ul class="list-unstyled">
           {% if user.is_authenticated %}
           <!-- Notifications Dropdown -->
           <li class="dropdown pc-h-item">
-            <a class="pc-head-link dropdown-toggle arrow-none me-0"
-               data-bs-toggle="dropdown"
-               href="#" 
-               role="button"
-               aria-expanded="false">
+            <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button"
+              aria-expanded="false">
               <i data-feather="bell"></i>
               {% if unread %}
               <span class="badge bg-success pc-h-badge">{{ unread }}</span>
@@ -217,48 +199,48 @@
                   <button type="submit" class="btn btn-link btn-sm">Mark all read</button>
                 </form>
               </div>
-              <div class="dropdown-body text-wrap header-notification-scroll position-relative" style="max-height: calc(100vh - 215px)">
+              <div class="dropdown-body text-wrap header-notification-scroll position-relative"
+                style="max-height: calc(100vh - 215px)">
                 {% if notifications %}
-                  {% for notification in notifications %}
-                  <div class="card mb-0">
-                    <div class="card-body">
-                      <div class="d-flex">
-                        <div class="flex-grow-1 ms-3">
-                          <a href="{% url 'notifications' %}" style="text-decoration: none; " onclick="markAsRead(this)">
-                            <span class="float-end text-sm text-muted">{{ notification.created_at|timesince }} ago</span>
-                            <p class="mb-0">{{ notification.message }}</p> 
-                          </a>
-                        </div>
+                {% for notification in notifications %}
+                <div class="card mb-0">
+                  <div class="card-body">
+                    <div class="d-flex">
+                      <div class="flex-grow-1 ms-3">
+                        <a href="{% url 'notifications' %}" style="text-decoration: none; " onclick="markAsRead(this)">
+                          <span class="float-end text-sm text-muted">{{ notification.created_at|timesince }} ago</span>
+                          <p class="mb-0">{{ notification.message }}</p>
+                        </a>
                       </div>
                     </div>
                   </div>
-                  {% endfor %}
+                </div>
+                {% endfor %}
                 {% else %}
-                  <p class="text-muted">No unread notifications.</p>
+                <p class="text-muted">No unread notifications.</p>
                 {% endif %}
               </div>
               <div class="text-center py-2">
                 <form action="{% url 'delete_all' %}" method="post" class="d-inline">
                   {% csrf_token %}
-                  <button type="submit" class="link-danger" style="border:none; background:none;">Clear all Notifications</button>
+                  <button type="submit" class="link-danger" style="border:none; background:none;">Clear all
+                    Notifications</button>
                 </form>
               </div>
             </div>
           </li>
           {% endif %}
-        
+
           <!-- Profile Dropdown -->
           {% if user.is_authenticated %}
           <li class="dropdown pc-h-item header-user-profile">
-            <a class="pc-head-link dropdown-toggle arrow-none me-0"
-               data-bs-toggle="dropdown"
-               href="#"
-               role="button"
-               aria-expanded="false">
+            <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button"
+              aria-expanded="false">
               {% if user.profile_image %}
-                <img src="{{ user.profile_image.url }}" alt="User Avatar" class="user-avtar wid-35" style="border-radius: 50%; z-index: 100;" />
+              <img src="{{ user.profile_image.url }}" alt="User Avatar" class="user-avtar wid-35"
+                style="border-radius: 50%; z-index: 100;" />
               {% else %}
-                <i data-feather="user"></i>
+              <i data-feather="user"></i>
               {% endif %}
             </a>
             <div class="dropdown-menu dropdown-user-profile dropdown-menu-end pc-h-dropdown p-0 overflow-hidden">
@@ -266,9 +248,10 @@
                 <div class="d-flex my-2">
                   <div class="flex-shrink-0">
                     {% if user.profile_image %}
-                      <img src="{{ user.profile_image.url }}" alt="User Avatar" class="user-avtar wid-35"/>
+                    <img src="{{ user.profile_image.url }}" alt="User Avatar" class="user-avtar wid-35" />
                     {% else %}
-                      <img src="{% static 'assets/images/user/avatar.jpg' %}" alt="User Avatar" class="user-avtar wid-35" />
+                    <img src="{% static 'assets/images/user/avatar.jpg' %}" alt="User Avatar"
+                      class="user-avtar wid-35" />
                     {% endif %}
                   </div>
                   <div class="flex-grow-1 ms-3">
@@ -379,4 +362,5 @@
   </script>
 
 </body>
+
 </html>

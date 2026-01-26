@@ -44,12 +44,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'users',
-    'tasks',
+
     'notifications',
     'powerbi_report',
     'guardian',
     'easyaudit',
-    'anomaly_detection',
+
 
 
 

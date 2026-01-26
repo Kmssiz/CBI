@@ -33,16 +33,21 @@ def connexion_ad2000(identifiant, password):
             conn.search(search_base=LDAP_SEARCH_BASE,
                         search_filter=search_filter,
                         search_scope=ldap3.SUBTREE,
-                        attributes=['mail', 'company', 'department', 'name', 'title', 'sAMAccountName', 'extensionAttribute1'])
+                        attributes=['mail', 'company', 'department', 'name', 'title', 'sAMAccountName', 
+                                    'extensionAttribute1', 'employeeID', 'employeeNumber'])
             
             if conn.entries:
                 entry = conn.entries[0]
+                # Use sAMAccountName as ad2000 identifier
+                ad2000_value = str(entry.sAMAccountName) if hasattr(entry, 'sAMAccountName') else ""
+                print(f"[DEBUG LDAP] Using sAMAccountName as ad2000: '{ad2000_value}'")
+                
                 return {
                     'username': str(entry.sAMAccountName) if hasattr(entry, 'sAMAccountName') else identifiant,
                     'email': str(entry.mail) if hasattr(entry, 'mail') else "",
                     'first_name': str(entry.name).split(' ')[0] if hasattr(entry, 'name') else "", # Rough approx
                     'last_name': " ".join(str(entry.name).split(' ')[1:]) if hasattr(entry, 'name') else "",
-                    'ad2000': str(entry.extensionAttribute1) if hasattr(entry, 'extensionAttribute1') else "", # Adjust if needed
+                    'ad2000': ad2000_value,
                     'department': str(entry.department) if hasattr(entry, 'department') else "",
                     'title': str(entry.title) if hasattr(entry, 'title') else "",
                 }

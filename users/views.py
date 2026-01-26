@@ -88,46 +88,62 @@ def login_view(request):
     return render(request, 'users/login.html')
 '''
 def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('home')
+        
     if request.method == 'POST':
-        username = request.POST.get('username')
+        login_identifier = request.POST.get('username')  # Could be email, ad2000, or username
         password = request.POST.get('password')
 
         # Use new LDAP utility
-        user_info = connexion_ad2000(username, password)
+        user_info = connexion_ad2000(login_identifier, password)
         
         if user_info:
+            # Get the canonical username from LDAP (sAMAccountName)
+            ldap_username = user_info.get("username", login_identifier)
             email = user_info.get("email", "")
             ad2000 = user_info.get("ad2000", "")
+            
+            print(f"[DEBUG LOGIN] LDAP returned: username='{ldap_username}', email='{email}', ad2000='{ad2000}'")
 
-            # Look up user - only search by non-empty fields to prevent matching wrong users
-            # Normalize empty-like values to prevent matching wrong users
+            # Normalize empty-like values
             email = email.strip() if email else ""
             ad2000 = ad2000.strip() if ad2000 else ""
-            # Treat '[]' as empty (LDAP sometimes returns this for missing attributes)
             if ad2000 == "[]" or ad2000 == "":
-                ad2000 = None  # Use None, not empty string, for unique constraint compatibility
+                ad2000 = None  # Use None for unique constraint compatibility
             
-            print(f"[DEBUG LOGIN] Looking up user with username='{username}', email='{email}', ad2000='{ad2000}'")
-            user = CustomUser.objects.filter(username=username).first()
-            print(f"[DEBUG LOGIN] Username lookup result: {user.id if user else None} ({user.username if user else 'None'})")
-            if not user and email:  # Only search by email if it's not empty
-                user = CustomUser.objects.filter(email=email).first()
+            # Look up user by LDAP username (canonical identifier), then by email, then by ad2000
+            print(f"[DEBUG LOGIN] Looking up user with ldap_username='{ldap_username}', email='{email}', ad2000='{ad2000}'")
+            
+            # Use case-insensitive lookup for username
+            user = CustomUser.objects.filter(username__iexact=ldap_username).first()
+            print(f"[DEBUG LOGIN] Username lookup result: {user.id if user else None}")
+            
+            if not user and email:
+                user = CustomUser.objects.filter(email__iexact=email).first()
                 print(f"[DEBUG LOGIN] Email lookup result: {user.id if user else None}")
-            if not user and ad2000:  # Only search by ad2000 if it's not empty
-                user = CustomUser.objects.filter(ad2000=ad2000).first()
+            
+            if not user and ad2000:
+                user = CustomUser.objects.filter(ad2000__iexact=ad2000).first()
                 print(f"[DEBUG LOGIN] AD2000 lookup result: {user.id if user else None}")
 
             if user:
-                user.username = username # Ensure username matches AD
+                # Update user info from LDAP (but keep username as LDAP's sAMAccountName)
+                # Only update username if it's different (to preserve case if desired, or sync to LDAP)
+                if user.username.lower() != ldap_username.lower():
+                    user.username = ldap_username
+                    
                 user.first_name = user_info.get("first_name", "")
                 user.last_name = user_info.get("last_name", "")
-                user.email = email  # Update email from LDAP
+                user.email = email
                 user.ad2000 = ad2000
                 user.status = "Active"
-                print(f"[DEBUG LOGIN] Updated existing user {user.id} with email='{email}'")
+                print(f"[DEBUG LOGIN] Updated existing user {user.id} with ldap_username='{ldap_username}'")
             else:
-                # Check for admin (hardcoded check from original code)
-                if username == "mohammed.benslimane@groupe-hasnaoui.com":
+                # Create new user
+                # Check for admin (case-insensitive check)
+                if ldap_username.lower() == "mohammed.benslimane@groupe-hasnaoui.com".lower() or \
+                   email.lower() == "mohammed.benslimane@groupe-hasnaoui.com".lower():
                     role, created = Role.objects.get_or_create(name="admin")
                     if created:
                          role.permissions.set(Permission.objects.all())
@@ -135,7 +151,7 @@ def login_view(request):
                     role, created = Role.objects.get_or_create(name="user")
                 
                 user = CustomUser(
-                    username=username,
+                    username=ldap_username,  # Use LDAP's canonical username
                     first_name=user_info.get("first_name", ""),
                     last_name=user_info.get("last_name", ""),
                     email=email,
@@ -169,7 +185,7 @@ def login_view(request):
         else:
             # Fallback: Try local Django authentication (for admin/test users not in LDAP)
             from django.contrib.auth import authenticate
-            user = authenticate(request, username=username, password=password)
+            user = authenticate(request, username=login_identifier, password=password)
             
             if user is not None:
                 login(request, user)
@@ -195,9 +211,12 @@ def login_view(request):
 #                    Displays user history for a specific user                                                  #
 #################################################################################################################
 @login_required
-def user_history(request, user_id):
-    user = get_object_or_404(CustomUser, id=user_id) 
-    history = UserHistory.objects.filter(user=user).order_by('-timestamp') 
+def user_history(request):
+    if not request.user.role or request.user.role.name != "admin":
+        messages.error(request, "Permission denied. Admin access required.")
+        return redirect('home')
+
+    history = UserHistory.objects.all().select_related('user').order_by('-timestamp')
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = Notification.objects.filter(user=request.user, is_read=False).count()
     permissions = get_user_permissions(request.user)
@@ -217,7 +236,7 @@ def user_history(request, user_id):
 def clear_history(request, user_id):
     if request.method == "POST":
         UserHistory.objects.filter(user_id=user_id).delete()  
-    return redirect('user_history', user_id=user_id)
+    return redirect('user_history')
 
 #################################################################################################################
 #                    Redirects users to appropriate home page based on role                                     #
