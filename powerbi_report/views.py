@@ -3,6 +3,7 @@ import urllib.parse
 import requests
 import json
 import pytz
+from django.db import models
 from easyaudit.models import LoginEvent
 from easyaudit.models import CRUDEvent, RequestEvent
 
@@ -13,7 +14,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from notifications.models import Notification
 from users.models import CustomUser,UserHistory,Role
-from .models import Report , ReportAccess
+from .models import Report, ReportAccess, ReportRef, CustomFolder, FolderReportItem
 from django.core.cache import cache
 from django.db.models import Count
 from requests_negotiate_sspi import HttpNegotiateAuth  
@@ -2625,3 +2626,368 @@ def get_report_refresh_list(request):
         'completed_refreshes': completed_refreshes,
         'failed_refreshes': failed_refreshes,
     })
+
+
+#################################################################################################################
+#                    CUSTOM VIRTUAL FOLDERS - PBIRS Permission-Based                                            #
+#################################################################################################################
+
+def get_visible_report_ids(request):
+    """
+    Get PBIRS report IDs the current user has access to.
+    Returns a set of report IDs from PBIRS that the user can see.
+    """
+    pbirs_reports = get_powerbi_reports(request)
+    return {r.get('Id') for r in pbirs_reports if r.get('Id')}
+
+
+def get_visible_folders(request, view_type):
+    """
+    Filter custom folders to only show those containing at least one visible report.
+    Uses PBIRS permissions as the source of truth.
+    """
+    visible_ids = get_visible_report_ids(request)
+    
+    # Get all folders for this view type
+    all_folders = CustomFolder.objects.filter(view_type=view_type)
+    visible_folders = []
+    
+    for folder in all_folders:
+        # Get all reports in this folder (including subfolders)
+        folder_report_ids = folder.get_all_report_ids()
+        
+        # If any report in this folder is visible to the user, include the folder
+        if folder_report_ids & visible_ids:
+            visible_folders.append(folder)
+    
+    return visible_folders
+
+
+def get_visible_reports_in_folder(request, folder):
+    """
+    Get reports in a specific folder that the user has access to via PBIRS.
+    """
+    visible_ids = get_visible_report_ids(request)
+    
+    # Get reports assigned to this folder
+    folder_items = FolderReportItem.objects.filter(folder=folder).select_related('report')
+    
+    visible_reports = []
+    for item in folder_items:
+        if item.report.pbirs_id in visible_ids:
+            visible_reports.append({
+                'id': item.report.id,
+                'pbirs_id': item.report.pbirs_id,
+                'name': item.report.name,
+                'path': item.report.path,
+                'embed_url': item.report.embed_url,
+                'order': item.order,
+            })
+    
+    return visible_reports
+
+
+@login_required
+def sync_reports_from_pbirs(request):
+    """
+    Sync reports from PBIRS to the local ReportRef table.
+    Admin only operation.
+    """
+    if not request.user.is_superuser:
+        messages.error(request, "Only administrators can sync reports.")
+        return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_business'))
+    
+    pbirs_reports = get_powerbi_reports(request)
+    base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
+    
+    synced_count = 0
+    for report in pbirs_reports:
+        pbirs_id = report.get('Id')
+        name = report.get('Name', 'Unnamed')
+        path = report.get('Path', '')
+        
+        # Build embed URL
+        clean_path = path.strip('/')
+        encoded_path = urllib.parse.quote(clean_path, safe='/')
+        embed_url = f"{base_embed_url}{encoded_path}?rs:embed=true"
+        
+        # Update or create the report reference
+        report_ref, created = ReportRef.objects.update_or_create(
+            pbirs_id=pbirs_id,
+            defaults={
+                'name': name,
+                'path': path,
+                'embed_url': embed_url,
+            }
+        )
+        synced_count += 1
+    
+    messages.success(request, f"Successfully synced {synced_count} reports from PBIRS.")
+    log_history(request.user, f"Synced {synced_count} reports from PBIRS to local cache")
+    
+    return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_business'))
+
+
+@login_required
+def custom_folders_list(request, view_type='business', folder_id=None):
+    """
+    Display custom folders and reports for a specific view type.
+    Filters based on PBIRS permissions.
+    """
+    # Validate view type
+    if view_type not in ['business', 'department']:
+        raise Http404("Invalid view type")
+    
+    # Get the current folder if specified
+    current_folder = None
+    if folder_id:
+        current_folder = get_object_or_404(CustomFolder, id=folder_id, view_type=view_type)
+    
+    # Get subfolders of current folder (or root folders if no current folder)
+    if current_folder:
+        subfolders = CustomFolder.objects.filter(parent=current_folder, view_type=view_type)
+    else:
+        subfolders = CustomFolder.objects.filter(parent__isnull=True, view_type=view_type)
+    
+    # Admins see all folders; regular users only see folders with visible reports
+    if request.user.is_superuser:
+        visible_subfolders = list(subfolders)
+    else:
+        visible_folder_ids = {f.id for f in get_visible_folders(request, view_type)}
+        visible_subfolders = [f for f in subfolders if f.id in visible_folder_ids]
+    
+    # Get reports in current folder (with PBIRS permission filtering)
+    folder_reports = []
+    if current_folder:
+        folder_reports = get_visible_reports_in_folder(request, current_folder)
+    
+    # Build breadcrumbs
+    breadcrumbs = []
+    if current_folder:
+        breadcrumbs = current_folder.get_breadcrumbs()
+    
+    # Get all reports for assignment modal (admin only)
+    all_reports = []
+    if request.user.is_superuser:
+        all_reports = ReportRef.objects.all().order_by('name')
+    
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+    unread = notifications.filter(is_read=False).count()
+    permissions = get_user_permissions(request.user)
+    
+    view_title = "Business Folders" if view_type == 'business' else "Department View"
+    
+    log_history(request.user, f"Viewed custom folders ({view_type})")
+    
+    return render(request, 'powerbi_report/custom_folders_list.html', {
+        'view_type': view_type,
+        'view_title': view_title,
+        'current_folder': current_folder,
+        'subfolders': visible_subfolders,
+        'reports': folder_reports,
+        'breadcrumbs': breadcrumbs,
+        'all_reports': all_reports,
+        'notifications': notifications,
+        'unread': unread,
+        'permissions': permissions,
+    })
+
+
+@login_required
+def create_custom_folder(request, view_type):
+    """
+    Create a new custom folder. Admin only.
+    """
+    if not request.user.is_superuser:
+        messages.error(request, "Only administrators can create folders.")
+        return redirect('powerbi_report:custom_' + view_type)
+    
+    if request.method == 'POST':
+        folder_name = request.POST.get('folder_name', '').strip()
+        parent_id = request.POST.get('parent_id')
+        
+        if not folder_name:
+            messages.error(request, "Folder name is required.")
+            return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_' + view_type))
+        
+        parent = None
+        if parent_id:
+            parent = get_object_or_404(CustomFolder, id=parent_id, view_type=view_type)
+        
+        # Get the next order value
+        if parent:
+            max_order = CustomFolder.objects.filter(parent=parent).aggregate(
+                max_order=models.Max('order')
+            )['max_order'] or 0
+        else:
+            max_order = CustomFolder.objects.filter(
+                parent__isnull=True, view_type=view_type
+            ).aggregate(max_order=models.Max('order'))['max_order'] or 0
+        
+        folder = CustomFolder.objects.create(
+            name=folder_name,
+            view_type=view_type,
+            parent=parent,
+            order=max_order + 1,
+            created_by=request.user,
+        )
+        
+        messages.success(request, f"Folder '{folder_name}' created successfully.")
+        log_history(request.user, f"Created custom folder '{folder_name}' in {view_type} view")
+        
+        # Redirect back to the parent folder or root
+        if parent:
+            return redirect('powerbi_report:custom_folder_detail', view_type=view_type, folder_id=parent.id)
+        return redirect('powerbi_report:custom_' + view_type)
+    
+    return redirect('powerbi_report:custom_' + view_type)
+
+
+@login_required
+def edit_custom_folder(request, folder_id):
+    """
+    Edit a custom folder. Admin only.
+    """
+    folder = get_object_or_404(CustomFolder, id=folder_id)
+    
+    if not request.user.is_superuser:
+        messages.error(request, "Only administrators can edit folders.")
+        return redirect('powerbi_report:custom_' + folder.view_type)
+    
+    if request.method == 'POST':
+        folder_name = request.POST.get('folder_name', '').strip()
+        
+        if not folder_name:
+            messages.error(request, "Folder name is required.")
+            return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_' + folder.view_type))
+        
+        old_name = folder.name
+        folder.name = folder_name
+        folder.save()
+        
+        messages.success(request, f"Folder renamed from '{old_name}' to '{folder_name}'.")
+        log_history(request.user, f"Renamed custom folder from '{old_name}' to '{folder_name}'")
+    
+    return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_' + folder.view_type))
+
+
+@login_required
+def delete_custom_folder(request, folder_id):
+    """
+    Delete a custom folder. Admin only.
+    """
+    folder = get_object_or_404(CustomFolder, id=folder_id)
+    view_type = folder.view_type
+    parent = folder.parent
+    
+    if not request.user.is_superuser:
+        messages.error(request, "Only administrators can delete folders.")
+        return redirect('powerbi_report:custom_' + view_type)
+    
+    if request.method == 'POST':
+        folder_name = folder.name
+        folder.delete()
+        
+        messages.success(request, f"Folder '{folder_name}' deleted successfully.")
+        log_history(request.user, f"Deleted custom folder '{folder_name}'")
+        
+        # Redirect to parent folder or root
+        if parent:
+            return redirect('powerbi_report:custom_folder_detail', view_type=view_type, folder_id=parent.id)
+        return redirect('powerbi_report:custom_' + view_type)
+    
+    return redirect('powerbi_report:custom_' + view_type)
+
+
+@login_required
+def assign_report_to_folder(request, folder_id):
+    """
+    Assign one or more reports to a custom folder. Admin only.
+    """
+    folder = get_object_or_404(CustomFolder, id=folder_id)
+    
+    if not request.user.is_superuser:
+        messages.error(request, "Only administrators can assign reports to folders.")
+        return redirect('powerbi_report:custom_folder_detail', view_type=folder.view_type, folder_id=folder.id)
+    
+    if request.method == 'POST':
+        report_ids = request.POST.getlist('report_ids')
+        
+        if not report_ids:
+            messages.error(request, "Please select at least one report.")
+            return redirect('powerbi_report:custom_folder_detail', view_type=folder.view_type, folder_id=folder.id)
+        
+        # Get current max order
+        max_order = FolderReportItem.objects.filter(folder=folder).aggregate(
+            max_order=models.Max('order')
+        )['max_order'] or 0
+        
+        assigned_count = 0
+        for report_id in report_ids:
+            report = get_object_or_404(ReportRef, id=report_id)
+            
+            # Create assignment if not already exists
+            item, created = FolderReportItem.objects.get_or_create(
+                folder=folder,
+                report=report,
+                defaults={'order': max_order + 1 + assigned_count}
+            )
+            
+            if created:
+                assigned_count += 1
+        
+        if assigned_count > 0:
+            messages.success(request, f"Assigned {assigned_count} report(s) to '{folder.name}'.")
+            log_history(request.user, f"Assigned {assigned_count} report(s) to folder '{folder.name}'")
+        else:
+            messages.info(request, "Selected reports are already in this folder.")
+    
+    return redirect('powerbi_report:custom_folder_detail', view_type=folder.view_type, folder_id=folder.id)
+
+
+@login_required
+def remove_report_from_folder(request, folder_id, report_id):
+    """
+    Remove a report from a custom folder. Admin only.
+    """
+    folder = get_object_or_404(CustomFolder, id=folder_id)
+    report = get_object_or_404(ReportRef, id=report_id)
+    
+    if not request.user.is_superuser:
+        messages.error(request, "Only administrators can remove reports from folders.")
+        return redirect('powerbi_report:custom_folder_detail', view_type=folder.view_type, folder_id=folder.id)
+    
+    if request.method == 'POST':
+        deleted_count, _ = FolderReportItem.objects.filter(folder=folder, report=report).delete()
+        
+        if deleted_count > 0:
+            messages.success(request, f"Removed '{report.name}' from '{folder.name}'.")
+            log_history(request.user, f"Removed report '{report.name}' from folder '{folder.name}'")
+        else:
+            messages.warning(request, "Report was not in this folder.")
+    
+    return redirect('powerbi_report:custom_folder_detail', view_type=folder.view_type, folder_id=folder.id)
+
+
+@login_required
+def get_available_reports_json(request):
+    """
+    API endpoint to get available reports for assignment.
+    Returns reports that are synced from PBIRS.
+    """
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    reports = ReportRef.objects.all().order_by('name')
+    report_list = [
+        {
+            'id': r.id,
+            'pbirs_id': r.pbirs_id,
+            'name': r.name,
+            'path': r.path,
+        }
+        for r in reports
+    ]
+    
+    return JsonResponse({'reports': report_list})
+

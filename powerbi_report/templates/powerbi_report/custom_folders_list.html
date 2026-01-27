@@ -1,0 +1,400 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ view_title }}{% endblock %}
+
+{% block content %}
+<div class="pc-container">
+    <div class="pc-content">
+        <div class="page-header">
+            <div class="page-block">
+                <div class="row align-items-center">
+                    <div class="col-md-12">
+                        <div class="page-header-title">
+                            <h5 class="mb-0">{{ view_title }}</h5>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <ul class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'powerbi_report:custom_'|add:view_type %}">{{ view_title }}</a>
+                            </li>
+                            {% for folder in breadcrumbs %}
+                            {% if not forloop.last %}
+                            <li class="breadcrumb-item">
+                                <a
+                                    href="{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=folder.id %}">
+                                    {{ folder.name }}
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="breadcrumb-item active">{{ folder.name }}</li>
+                            {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Display messages -->
+        {% if messages %}
+        <div class="mt-3">
+            {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'warning' %}warning{% else %}success{% endif %} alert-dismissible fade show"
+                role="alert">
+                <i
+                    class="feather icon-{% if message.tags == 'error' %}alert-circle{% elif message.tags == 'warning' %}alert-triangle{% else %}check-circle{% endif %}"></i>
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            {% if current_folder %}
+            <a href="{% if current_folder.parent %}{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=current_folder.parent.id %}{% else %}{% url 'powerbi_report:custom_'|add:view_type %}{% endif %}"
+                class="btn btn-outline-secondary">
+                <i class="feather icon-arrow-left"></i> Back
+            </a>
+            {% else %}
+            <div></div>
+            {% endif %}
+            <div class="d-flex gap-2">
+                <!-- View Toggle -->
+                <a href="{% url 'powerbi_report:custom_business' %}"
+                    class="btn {% if view_type == 'business' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class="feather icon-briefcase"></i> Business
+                </a>
+                <a href="{% url 'powerbi_report:custom_department' %}"
+                    class="btn {% if view_type == 'department' %}btn-info{% else %}btn-outline-info{% endif %}">
+                    <i class="feather icon-users"></i> Department
+                </a>
+
+                {% if user.is_superuser %}
+                <a href="{% url 'powerbi_report:sync_reports' %}" class="btn btn-outline-warning"
+                    title="Sync reports from PBIRS">
+                    <i class="feather icon-refresh-cw"></i> Sync PBIRS
+                </a>
+                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#createFolderModal">
+                    <i class="feather icon-folder-plus"></i> New Folder
+                </button>
+                {% if current_folder %}
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#assignReportModal">
+                    <i class="feather icon-plus"></i> Add Report
+                </button>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Subfolders and Reports Grid -->
+        <div class="row">
+            {% for folder in subfolders %}
+            <!-- Subfolder Card -->
+            <div class="col-md-4 col-lg-3">
+                <div class="card mb-4 folder-card">
+                    <a href="{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=folder.id %}"
+                        class="folder-link text-decoration-none">
+                        <div class="card-body d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <i class="feather icon-folder" style="font-size: 28px; color: #FFD700;"></i>
+                                <h6 class="mb-0 ms-3 text-dark">{{ folder.name }}</h6>
+                            </div>
+                            {% if user.is_superuser %}
+                            <div class="dropdown" onclick="event.preventDefault(); event.stopPropagation();">
+                                <button class="btn p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="feather icon-more-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                            data-bs-target="#editFolderModal"
+                                            onclick="setEditFolderData({{ folder.id }}, '{{ folder.name|escapejs }}')">
+                                            <i class="feather icon-edit-2 me-2"></i> Rename
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
+                                            data-bs-target="#deleteFolderModal"
+                                            onclick="setDeleteFolderData({{ folder.id }}, '{{ folder.name|escapejs }}')">
+                                            <i class="feather icon-trash-2 me-2"></i> Delete
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% for report in reports %}
+            <!-- Report Card -->
+            <div class="col-md-4 col-lg-3">
+                <div class="card mb-4 report-card">
+                    <a href="{{ report.embed_url }}" class="report-link text-decoration-none">
+                        <div class="card-body d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <i class="feather icon-bar-chart-2" style="font-size: 28px; color: #17a2b8;"></i>
+                                <h6 class="mb-0 ms-3 text-dark">{{ report.name }}</h6>
+                            </div>
+                            {% if user.is_superuser %}
+                            <div class="dropdown" onclick="event.preventDefault(); event.stopPropagation();">
+                                <button class="btn p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="feather icon-more-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#"
+                                            onclick="removeReportFromFolder({{ current_folder.id }}, {{ report.id }})">
+                                            <i class="feather icon-x me-2"></i> Remove from folder
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </a>
+                    <div class="card-footer text-muted small">
+                        <i class="feather icon-folder-location"></i> {{ report.path }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% if not subfolders and not reports %}
+            <div class="col-12">
+                <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                    <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
+                        type="module"></script>
+                    <dotlottie-player src="https://lottie.host/32f49128-c968-4a1a-81ab-f1ea5dc06556/KFFsAaw2Fi.lottie"
+                        background="transparent" speed="1" style="width: 250px; height: 250px;" loop autoplay>
+                    </dotlottie-player>
+                    <p class="text-muted mt-3">
+                        {% if current_folder %}
+                        No reports in this folder yet.
+                        {% if user.is_superuser %}
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#assignReportModal">Add some reports</a>
+                        {% endif %}
+                        {% else %}
+                        No folders available.
+                        {% if user.is_superuser %}
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#createFolderModal">Create your first
+                            folder</a>
+                        {% endif %}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Create Folder -->
+<div class="modal fade" id="createFolderModal" tabindex="-1" aria-labelledby="createFolderModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createFolderModalLabel">Create New Folder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{% url 'powerbi_report:create_custom_folder' view_type=view_type %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="folder_name" class="form-label">Folder Name</label>
+                        <input type="text" class="form-control" id="folder_name" name="folder_name" required>
+                    </div>
+                    {% if current_folder %}
+                    <input type="hidden" name="parent_id" value="{{ current_folder.id }}">
+                    <p class="text-muted small"><i class="feather icon-info"></i> This folder will be created inside "{{
+                        current_folder.name }}"</p>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Create Folder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Edit Folder -->
+<div class="modal fade" id="editFolderModal" tabindex="-1" aria-labelledby="editFolderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editFolderModalLabel">Rename Folder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editFolderForm" method="POST" action="">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_folder_name" class="form-label">Folder Name</label>
+                        <input type="text" class="form-control" id="edit_folder_name" name="folder_name" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Delete Folder -->
+<div class="modal fade" id="deleteFolderModal" tabindex="-1" aria-labelledby="deleteFolderModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteFolderModalLabel">Delete Folder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="deleteFolderForm" method="POST" action="">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Are you sure you want to delete "<span id="delete_folder_name"></span>"?</p>
+                    <p class="text-danger small"><i class="feather icon-alert-triangle"></i> This will also delete all
+                        subfolders. Reports will NOT be deleted from PBIRS.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete Folder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Assign Reports -->
+{% if current_folder %}
+<div class="modal fade" id="assignReportModal" tabindex="-1" aria-labelledby="assignReportModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignReportModalLabel">Add Reports to "{{ current_folder.name }}"</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{% url 'powerbi_report:assign_report_to_folder' folder_id=current_folder.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="reportSearch" placeholder="Search reports..."
+                            onkeyup="filterReports()">
+                    </div>
+                    <div class="report-list" style="max-height: 400px; overflow-y: auto;">
+                        {% if all_reports %}
+                        {% for report in all_reports %}
+                        <div class="form-check report-item mb-2 p-2 border rounded">
+                            <input class="form-check-input" type="checkbox" name="report_ids" value="{{ report.id }}"
+                                id="report_{{ report.id }}">
+                            <label class="form-check-label w-100" for="report_{{ report.id }}">
+                                <strong>{{ report.name }}</strong>
+                                <br><small class="text-muted">{{ report.path }}</small>
+                            </label>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="text-muted">No reports available. <a
+                                href="{% url 'powerbi_report:sync_reports' %}">Sync reports from PBIRS</a> first.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" {% if not all_reports %}disabled{% endif %}>Add
+                        Selected Reports</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Hidden form for removing reports -->
+<form id="removeReportForm" method="POST" action="" style="display: none;">
+    {% csrf_token %}
+</form>
+
+<script>
+    // Set data for edit folder modal
+    function setEditFolderData(folderId, folderName) {
+        document.getElementById('edit_folder_name').value = folderName;
+        document.getElementById('editFolderForm').action = "{% url 'powerbi_report:edit_custom_folder' folder_id=0 %}".replace('0', folderId);
+    }
+
+    // Set data for delete folder modal
+    function setDeleteFolderData(folderId, folderName) {
+        document.getElementById('delete_folder_name').textContent = folderName;
+        document.getElementById('deleteFolderForm').action = "{% url 'powerbi_report:delete_custom_folder' folder_id=0 %}".replace('0', folderId);
+    }
+
+    // Remove report from folder
+    function removeReportFromFolder(folderId, reportId) {
+        if (confirm('Remove this report from the folder?')) {
+            const form = document.getElementById('removeReportForm');
+            form.action = "{% url 'powerbi_report:remove_report_from_folder' folder_id=0 report_id=0 %}".replace('/0/', '/' + folderId + '/').replace('/0/', '/' + reportId + '/');
+            form.submit();
+        }
+    }
+
+    // Filter reports in assignment modal
+    function filterReports() {
+        const searchText = document.getElementById('reportSearch').value.toLowerCase();
+        const reportItems = document.querySelectorAll('.report-item');
+
+        reportItems.forEach(function (item) {
+            const label = item.querySelector('label').textContent.toLowerCase();
+            if (label.includes(searchText)) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    // Auto-close alerts
+    setTimeout(function () {
+        document.querySelectorAll('.alert').forEach(function (alert) {
+            new bootstrap.Alert(alert).close();
+        });
+    }, 5000);
+</script>
+
+<style>
+    .folder-card:hover {
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        transform: translateY(-2px);
+        transition: all 0.2s ease;
+    }
+
+    .report-card:hover {
+        box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
+        transform: translateY(-2px);
+        transition: all 0.2s ease;
+    }
+
+    .card {
+        transition: all 0.2s ease;
+    }
+
+    .report-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .gap-2 {
+        gap: 0.5rem;
+    }
+</style>
+{% endblock %}

@@ -98,12 +98,52 @@
           <!-- These items are accessible to all authenticated users -->
           {% if user.is_authenticated %}
           {% if permissions.view_report %}
+          {% comment %}
+          <!-- TEMPORARILY HIDDEN - Reports link -->
           <li class="pc-item">
             <a href="{% url 'powerbi_report:report_list_hierarchy' %}" class="pc-link">
               <span class="pc-micon"><i data-feather="file-text"></i></span>
               <span class="pc-mtext">Reports</span>
             </a>
           </li>
+          {% endcomment %}
+          {% if user.is_superuser %}
+          <!-- Admins see both views -->
+          <li class="pc-item">
+            <a href="{% url 'powerbi_report:custom_business' %}" class="pc-link">
+              <span class="pc-micon"><i data-feather="briefcase"></i></span>
+              <span class="pc-mtext">Business View</span>
+            </a>
+          </li>
+          <li class="pc-item">
+            <a href="{% url 'powerbi_report:custom_department' %}" class="pc-link">
+              <span class="pc-micon"><i data-feather="users"></i></span>
+              <span class="pc-mtext">Department View</span>
+            </a>
+          </li>
+          {% elif user.default_view == 'business' %}
+          <li class="pc-item">
+            <a href="{% url 'powerbi_report:custom_business' %}" class="pc-link">
+              <span class="pc-micon"><i data-feather="briefcase"></i></span>
+              <span class="pc-mtext">Business View</span>
+            </a>
+          </li>
+          {% elif user.default_view == 'department' %}
+          <li class="pc-item">
+            <a href="{% url 'powerbi_report:custom_department' %}" class="pc-link">
+              <span class="pc-micon"><i data-feather="users"></i></span>
+              <span class="pc-mtext">Department View</span>
+            </a>
+          </li>
+          {% else %}
+          <!-- Default to business view if not set -->
+          <li class="pc-item">
+            <a href="{% url 'powerbi_report:custom_business' %}" class="pc-link">
+              <span class="pc-micon"><i data-feather="briefcase"></i></span>
+              <span class="pc-mtext">Business View</span>
+            </a>
+          </li>
+          {% endif %}
           {% endif %}
           <!--Navigation 2-->
           <li class="pc-item pc-caption">

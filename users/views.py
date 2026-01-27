@@ -555,6 +555,7 @@ def user_edit(request, user_id):
     if request.method == 'POST':
         new_role_id = request.POST.get('role')  # Get the selected role ID
         new_role = get_object_or_404(Role, id=new_role_id) if new_role_id else None  # Fetch the role object
+        new_default_view = request.POST.get('default_view', 'business')  # Get the default view
 
         if new_role:
             # Remove all existing permissions
@@ -562,34 +563,48 @@ def user_edit(request, user_id):
 
             # Assign new permissions based on the new role
             new_permissions = new_role.permissions.all()  # Assuming Role model has a 'permissions' ManyToMany field
-            user.user_permissions.add(*new_permissions)  # Assign the new role’s permissions
+            user.user_permissions.add(*new_permissions)  # Assign the new role's permissions
 
             # Update role and superuser status
             user.role = new_role  
             user.is_superuser = new_role.name.lower() == 'admin'  # Set superuser status only for admin role
             user.is_staff = new_role.name.lower() == 'admin'  # Optionally set is_staff for admin access
-            user.save()
+        
+        # Update default view (always update, even if role is not changed)
+        old_view = user.default_view
+        user.default_view = new_default_view
+        user.save()
 
-            # Log the role update
+        # Log the updates
+        if new_role:
             log_history(request.user, f"Updated role for {user.username} to {new_role.name}")
+        if old_view != new_default_view:
+            view_label = 'Business View' if new_default_view == 'business' else 'Department View'
+            log_history(request.user, f"Updated default view for {user.username} to {view_label}")
 
-            # Notify the user
+        # Notify the user
+        if new_role:
             Notification.objects.create(
                 user=user,
                 message=f"Your role has been updated to {new_role.name}."
             )
+        if old_view != new_default_view:
+            view_label = 'Business View' if new_default_view == 'business' else 'Department View'
+            Notification.objects.create(
+                user=user,
+                message=f"Your default view has been changed to {view_label}."
+            )
 
-            # Notify all admins
-            admins = CustomUser.objects.filter(role__name='admin')  
-            for admin in admins:
+        # Notify all admins
+        admins = CustomUser.objects.filter(role__name='admin')  
+        for admin in admins:
+            if admin != request.user:
                 Notification.objects.create(
                     user=admin,
-                    message=f"{request.user.username} updated {user.username}'s role to {new_role.name}."
+                    message=f"{request.user.username} updated settings for {user.username}."
                 )
 
-            messages.success(request, "User role and permissions updated successfully.")
-        else:
-            messages.error(request, "Invalid role selected.")
+        messages.success(request, "User settings updated successfully.")
 
         return redirect('users_view')
 

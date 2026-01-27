@@ -55,4 +55,23 @@ urlpatterns = [
     
     path('folders/', views.get_folder_list, name='folder_list'),
 
+    # Custom Virtual Folder Views
+    path('custom/business/', views.custom_folders_list, {'view_type': 'business'}, name='custom_business'),
+    path('custom/business/<int:folder_id>/', views.custom_folders_list, {'view_type': 'business'}, name='custom_folder_detail'),
+    # Department view shows PBIRS folders directly (same as Reports page)
+    path('custom/department/', views.report_folders_list, name='custom_department'),
+    path('custom/department/<path:folder_path>/', views.report_folders_list, name='custom_department_folder'),
+    
+    # Custom Folder Management (Admin)
+    path('custom/folder/create/<str:view_type>/', views.create_custom_folder, name='create_custom_folder'),
+    path('custom/folder/<int:folder_id>/edit/', views.edit_custom_folder, name='edit_custom_folder'),
+    path('custom/folder/<int:folder_id>/delete/', views.delete_custom_folder, name='delete_custom_folder'),
+    
+    # Report Assignment (Admin)
+    path('custom/folder/<int:folder_id>/assign/', views.assign_report_to_folder, name='assign_report_to_folder'),
+    path('custom/folder/<int:folder_id>/remove/<int:report_id>/', views.remove_report_from_folder, name='remove_report_from_folder'),
+    
+    # Sync & API
+    path('custom/sync/', views.sync_reports_from_pbirs, name='sync_reports'),
+    path('custom/api/reports/', views.get_available_reports_json, name='available_reports_json'),
 ]

@@ -111,6 +111,7 @@
                     <th>User</th>
                     <th>Email</th>
                     <th>Role</th>
+                    <th>Default View</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
@@ -118,10 +119,18 @@
 
                 <tbody>
                   {% for user in users %}
-                  <tr data-permission="true" data-user-id="{{ user.id }}" data-user-role="{{ user.role }}">
+                  <tr data-permission="true" data-user-id="{{ user.id }}" data-user-role="{{ user.role }}"
+                    data-user-view="{{ user.default_view }}">
                     <td>{{ user.AD2000|default:user.get_full_name }}</td>
                     <td>{{ user.email }}</td>
                     <td class="user-role">{{ user.role }}</td>
+                    <td>
+                      {% if user.default_view == 'business' %}
+                      <span class="badge bg-primary">Business</span>
+                      {% else %}
+                      <span class="badge bg-info">Department</span>
+                      {% endif %}
+                    </td>
 
                     <td>
                       {% if user.status == 'Active' %}
@@ -154,7 +163,7 @@
 
                       {% if permissions.change_customuser %}
                       <button class="btn btn-outline-warning btn-sm"
-                        onclick="openEditModal({{ user.id }}, '{{ user.role }}')">
+                        onclick="openEditModal({{ user.id }}, '{{ user.role.id }}', '{{ user.default_view }}')">
                         Edit
                       </button>
                       {% endif %}
@@ -186,18 +195,25 @@
       <form id="editUserForm" method="post" action="{% url 'user_edit' 0 %}">
         {% csrf_token %}
         <div class="modal-header">
-          <h5 class="modal-title">Edit User Role</h5>
+          <h5 class="modal-title">Edit User Settings</h5>
           <button type="button" class="close" onclick="closeEditModal()"
             style="border: none; background: none; font-size: 1.5rem; color: red;">&times;</button>
         </div>
         <div class="modal-body">
           <input type="hidden" name="user_id" id="editUserId">
-          <div class="form-group">
+          <div class="form-group mb-3">
             <label for="role">Role</label>
             <select name="role" id="editUserRole" class="form-control">
               {% for role in roles %}
-              <option value="{{ role.id }}">{{ role.name }}</option> <!-- Ensure the value is the role ID -->
+              <option value="{{ role.id }}">{{ role.name }}</option>
               {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="default_view">Default View</label>
+            <select name="default_view" id="editUserView" class="form-control">
+              <option value="business">Business View</option>
+              <option value="department">Department View</option>
             </select>
           </div>
         </div>
@@ -222,10 +238,13 @@
 
 <script>
   // Function to open the edit modal
-  function openEditModal(userId, currentRole) {
+  function openEditModal(userId, currentRole, currentView) {
     document.getElementById('editUserId').value = userId;
     const roleSelect = document.getElementById('editUserRole');
     roleSelect.value = currentRole; // Set the current role
+
+    const viewSelect = document.getElementById('editUserView');
+    viewSelect.value = currentView || 'business'; // Set the current default view
 
     const form = document.getElementById('editUserForm');
     form.action = "{% url 'user_edit' 0 %}".replace('/0/', '/' + userId + '/');

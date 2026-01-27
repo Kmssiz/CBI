@@ -9,12 +9,22 @@ class Role(models.Model):
         return self.name
 
 class CustomUser(AbstractUser):
-   
+    VIEW_CHOICES = [
+        ('business', 'Business View'),
+        ('department', 'Department View'),
+    ]
+    
     ad2000 = models.CharField(max_length=255,blank=True, null=True, unique=True,help_text="AD2000 identifier from LDAP")
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, default='Not Active')
     profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
-    user_permissions = models.ManyToManyField(Permission, blank=True) 
+    user_permissions = models.ManyToManyField(Permission, blank=True)
+    default_view = models.CharField(
+        max_length=20, 
+        choices=VIEW_CHOICES, 
+        default='business',
+        help_text="Default view for this user (set by admin)"
+    ) 
 
     def __str__(self):
         return self.username
