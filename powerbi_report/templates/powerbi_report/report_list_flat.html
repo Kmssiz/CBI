@@ -50,7 +50,7 @@
       </div>
       <div class="d-flex align-items-center">
         <button class="btn btn-outline-secondary ms-3" id="clearFiltersBtn">Clear</button>
-        <a href="{% url 'powerbi_report:report_list_hierarchy' %}" class="btn btn-outline-primary ms-3">
+        <a href="{% url 'powerbi_report:custom_business' %}" class="btn btn-outline-primary ms-3">
           <i class="feather icon-layers"></i> Hierarchical View
         </a>
       </div>
@@ -60,27 +60,23 @@
     <!-- [ Reports Cards ] start -->
     <div class="row" id="reportsContainer">
       {% if reports %}
-        {% for report in reports %}
-          <div class="col-md-4 report-card" data-path="{{ report.Path }}">
-            <div class="card mb-4">
-              <a href="{% url 'powerbi_report:embed_report' report.Path %}" style="margin: auto;">
-                <div class="card-body">
-                  <h5 class="card-title" style="margin: auto;">{{ report.Name }}</h5>
-                </div>
-              </a>
+      {% for report in reports %}
+      <div class="col-md-4 report-card" data-path="{{ report.Path }}">
+        <div class="card mb-4">
+          <a href="{% url 'powerbi_report:embed_report' report.Path %}" style="margin: auto;">
+            <div class="card-body">
+              <h5 class="card-title" style="margin: auto;">{{ report.Name }}</h5>
             </div>
-          </div>
-        {% endfor %}
+          </a>
+        </div>
+      </div>
+      {% endfor %}
       {% else %}
       <div class="d-flex flex-column align-items-center justify-content-center" style="height: 100%;">
-        <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs" type="module"></script>
-        <dotlottie-player 
-          src="https://lottie.host/32f49128-c968-4a1a-81ab-f1ea5dc06556/KFFsAaw2Fi.lottie" 
-          background="transparent" 
-          speed="1" 
-          style="width: 300px; height: 300px;" 
-          loop 
-          autoplay>
+        <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
+          type="module"></script>
+        <dotlottie-player src="https://lottie.host/32f49128-c968-4a1a-81ab-f1ea5dc06556/KFFsAaw2Fi.lottie"
+          background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay>
         </dotlottie-player>
         <p class="text-center">No reports available.</p>
       </div>
@@ -301,13 +297,13 @@
     }
 
     // Event listeners for filters
-    poleFilter.addEventListener('change', function() {
+    poleFilter.addEventListener('change', function () {
       populateSousDirectionFilter(this.value);
       populateDirectionFilter(this.value, '');
       filterReports();
     });
 
-    sousDirectionFilter.addEventListener('change', function() {
+    sousDirectionFilter.addEventListener('change', function () {
       populateDirectionFilter(poleFilter.value, this.value);
       filterReports();
     });

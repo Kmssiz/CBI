@@ -1,4 +1,4 @@
-{% extends 'base.html' %} 
+{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}Reports{% endblock %}
@@ -19,11 +19,11 @@
               <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
               <li class="breadcrumb-item"><a href="{% url 'powerbi_report:report_list_hierarchy' %}">Reports</a></li>
               {% for breadcrumb in breadcrumbs %}
-                <li class="breadcrumb-item">
-                  <a href="{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=breadcrumb.url %}">
-                    {{ breadcrumb.name }}
-                  </a>
-                </li>
+              <li class="breadcrumb-item">
+                <a href="{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=breadcrumb.url %}">
+                  {{ breadcrumb.name }}
+                </a>
+              </li>
               {% endfor %}
             </ul>
           </div>
@@ -35,7 +35,9 @@
     {% if messages %}
     <div class="mt-3">
       {% for message in messages %}
-      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
+      <div
+        class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show"
+        role="alert">
         <i class="feather icon-check-circle"></i>
         {{ message }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -48,18 +50,20 @@
 
     <div class="d-flex justify-content-between align-items-center mb-3">
       {% if current_path %}
-        <a href="javascript:window.history.length > 1 ? history.back() : '{% url 'powerbi_report:report_list_hierarchy' %}'" class="btn btn-outline-secondary">
-          <i class="feather icon-arrow-left"></i> Back
-        </a>
+      <a href="javascript:window.history.length > 1 ? history.back() : '{% url 'powerbi_report:report_list_hierarchy' %}'"
+        class="btn btn-outline-secondary">
+        <i class="feather icon-arrow-left"></i> Back
+      </a>
       {% else %}
-        <div></div>
+      <div></div>
       {% endif %}
       <div>
         {% if permissions.add_powerbireport %}
 
         {% if current_path %}
-        <a href="{% url 'powerbi_report:report_folders_list_folder' folder_path=current_path|default:'' %}" class="btn btn-outline-purple">
-          <i class="feather icon-eye"></i> Show All 
+        <a href="{% url 'powerbi_report:report_folders_list_folder' folder_path=current_path|default:'' %}"
+          class="btn btn-outline-purple">
+          <i class="feather icon-eye"></i> Show All
         </a>
         {% else %}
         <a href="{% url 'powerbi_report:report_folders_list' %}" class="btn btn-outline-purple">
@@ -67,56 +71,61 @@
         </a>
         {% endif %}
         {% endif %}
+        {% if not current_path %}
         <a href="{% url 'powerbi_report:report_list_flat' %}" class="btn btn-outline-primary">
           <i class="feather icon-list"></i> Flat View
         </a>
+        {% endif %}
         {% if permissions.add_powerbireport %}
 
         <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#createFolderModal">
           <i class="feather icon-plus"></i> Create New Folder
         </button>
-         <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#uploadReportModal">
+        <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#uploadReportModal">
           <i class="feather icon-upload"></i> Upload Report
         </button>
         {% endif %}
-        
+
       </div>
     </div>
 
 
 
 
-<!-- Modal for Uploading Report (place below the Create New Folder modal) -->
-<div class="modal fade" id="uploadReportModal" tabindex="-1" role="dialog" aria-labelledby="uploadReportModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="uploadReportModalLabel">Upload Power BI Report</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <form id="uploadReportForm" method="POST" action="{% url 'powerbi_report:upload_powerbi_report' %}" enctype="multipart/form-data">
-          {% csrf_token %}
-          <div class="form-group">
-            <label for="report_name">Report Name</label>
-            <input type="text" class="form-control" id="report_name" name="report_name" required>
+    <!-- Modal for Uploading Report (place below the Create New Folder modal) -->
+    <div class="modal fade" id="uploadReportModal" tabindex="-1" role="dialog" aria-labelledby="uploadReportModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="uploadReportModalLabel">Upload Power BI Report</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="form-group">
-            <label for="pbix_file">Select .pbix File</label>
-            <input type="file" class="form-control" id="pbix_file" name="pbix_file" accept=".pbix" required>
+          <div class="modal-body">
+            <form id="uploadReportForm" method="POST" action="{% url 'powerbi_report:upload_powerbi_report' %}"
+              enctype="multipart/form-data">
+              {% csrf_token %}
+              <div class="form-group">
+                <label for="report_name">Report Name</label>
+                <input type="text" class="form-control" id="report_name" name="report_name" required>
+              </div>
+              <div class="form-group">
+                <label for="pbix_file">Select .pbix File</label>
+                <input type="file" class="form-control" id="pbix_file" name="pbix_file" accept=".pbix" required>
+              </div>
+              <input type="hidden" name="parent_folder" value="{{ current_path }}">
+              <div id="error-message" class="text-danger"></div>
+              <br />
+              <button type="submit" class="btn btn-primary">Upload Report</button>
+            </form>
           </div>
-          <input type="hidden" name="parent_folder" value="{{ current_path }}">
-          <div id="error-message" class="text-danger"></div>
-          <br/>
-          <button type="submit" class="btn btn-primary">Upload Report</button>
-        </form>
+        </div>
       </div>
     </div>
-  </div>
-</div>
 
     <!-- Modal for Creating New Folder -->
-    <div class="modal fade" id="createFolderModal" tabindex="-1" role="dialog" aria-labelledby="createFolderModalLabel" aria-hidden="true">
+    <div class="modal fade" id="createFolderModal" tabindex="-1" role="dialog" aria-labelledby="createFolderModalLabel"
+      aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
@@ -132,7 +141,7 @@
               </div>
               <input type="hidden" name="parent_folder" value="{{ current_path }}">
               <div id="error-message" class="text-danger"></div>
-              <br/>
+              <br />
               <button type="submit" class="btn btn-primary">Create Folder</button>
             </form>
           </div>
@@ -145,58 +154,55 @@
 
     <div class="row">
       {% for folder, contents in folder_structure.items %}
-        {% if contents.items %}
-          <!-- Folder -->
-          <div class="col-md-4">
-            <div class="card mb-4">
-              <a href="{% if current_path %}{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=current_path|add:'/'|add:folder %}{% else %}{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=folder %}{% endif %}" class="folder-link">
-                <div class="card-body d-flex align-items-center justify-content-between">
-                  <div class="d-flex align-items-center">
-                    <i class="feather icon-folder mr-3" style="font-size: 24px; color: #FFD700;"></i>
-                    <h5 class="mb-0" style="margin-left: 30px;">{{ folder }}</h5>
-                  </div>
-                 
-                </div>
-              </a>
+      {% if contents.items %}
+      <!-- Folder -->
+      <div class="col-md-4">
+        <div class="card mb-4">
+          <a href="{% if current_path %}{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=current_path|add:'/'|add:folder %}{% else %}{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=folder %}{% endif %}"
+            class="folder-link">
+            <div class="card-body d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center">
+                <i class="feather icon-folder mr-3" style="font-size: 24px; color: #FFD700;"></i>
+                <h5 class="mb-0" style="margin-left: 30px;">{{ folder }}</h5>
+              </div>
+
             </div>
-          </div>
-        {% else %}
-          <!-- Report -->
-          <div class="col-md-4">
-            <div class="card mb-4">
-              <a href="{% url 'powerbi_report:embed_report' report_path=current_path|add:'/'|add:folder %}">
-                <div class="card-body d-flex align-items-center justify-content-between">
-                  <div class="d-flex align-items-center">
-                    <i class="feather icon-bar-chart text-warning mr-3 "  style="font-size: 24px;" ></i>
-                    <h5 class="mb-0" style="margin-left: 30px;">{{ folder }}</h5>
-                  </div>
-                  
-                </div>
-              </a>
+          </a>
+        </div>
+      </div>
+      {% else %}
+      <!-- Report -->
+      <div class="col-md-4">
+        <div class="card mb-4">
+          <a href="{% url 'powerbi_report:embed_report' report_path=current_path|add:'/'|add:folder %}">
+            <div class="card-body d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center">
+                <i class="feather icon-bar-chart text-warning mr-3 " style="font-size: 24px;"></i>
+                <h5 class="mb-0" style="margin-left: 30px;">{{ folder }}</h5>
+              </div>
+
             </div>
-          </div>
-        {% endif %}
+          </a>
+        </div>
+      </div>
+      {% endif %}
       {% empty %}
       <div class="d-flex flex-column align-items-center justify-content-center" style="height: 100%;">
-        <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs" type="module"></script>
-        <br/><br/><br/><br/>
-        <dotlottie-player 
-          src="https://lottie.host/32f49128-c968-4a1a-81ab-f1ea5dc06556/KFFsAaw2Fi.lottie" 
-          background="transparent" 
-          speed="1" 
-          style="width: 300px; height: 300px;" 
-          loop 
-          autoplay>
+        <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
+          type="module"></script>
+        <br /><br /><br /><br />
+        <dotlottie-player src="https://lottie.host/32f49128-c968-4a1a-81ab-f1ea5dc06556/KFFsAaw2Fi.lottie"
+          background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay>
         </dotlottie-player>
         <p class="text-center">No reports available.</p>
       </div>
       {% endfor %}
     </div>
-    
+
   </div>
 </div>
 <script>
- 
+
   document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".icon-more-vertical").forEach(icon => {
       icon.addEventListener("click", function (e) {
@@ -214,8 +220,8 @@
       }
     });
   });
-   // Auto-close alerts
-  setTimeout(function() {
+  // Auto-close alerts
+  setTimeout(function () {
     let alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
       let bsAlert = new bootstrap.Alert(alert);
@@ -226,16 +232,23 @@
 
 <style>
   .btn-outline-purple {
-    color: #6f42c1; /* Couleur du texte */
-    border-color: #6f42c1; /* Couleur de la bordure */
-    background-color: transparent; /* Fond transparent */
-    transition: background-color 0.3s, color 0.3s; /* Effet de transition */
+    color: #6f42c1;
+    /* Couleur du texte */
+    border-color: #6f42c1;
+    /* Couleur de la bordure */
+    background-color: transparent;
+    /* Fond transparent */
+    transition: background-color 0.3s, color 0.3s;
+    /* Effet de transition */
   }
-  
+
   .btn-outline-purple:hover {
-    color: #fff; /* Couleur du texte au survol */
-    background-color: #6f42c1; /* Fond violet au survol */
-    border-color: #6f42c1; /* Bordure violet au survol */
+    color: #fff;
+    /* Couleur du texte au survol */
+    background-color: #6f42c1;
+    /* Fond violet au survol */
+    border-color: #6f42c1;
+    /* Bordure violet au survol */
   }
 </style>
 

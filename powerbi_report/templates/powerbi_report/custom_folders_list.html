@@ -64,9 +64,12 @@
             {% endif %}
             <div class="d-flex gap-2">
                 <!-- View Toggle -->
-                <a href="{% url 'powerbi_report:report_list' %}" class="btn btn-outline-secondary">
+                <!-- View Toggle -->
+                {% if not current_folder %}
+                <a href="{% url 'powerbi_report:report_list_flat' %}" class="btn btn-outline-secondary">
                     <i class="feather icon-list"></i> All Reports
                 </a>
+                {% endif %}
 
                 {% if user.is_superuser %}
                 <a href="{% url 'powerbi_report:sync_reports' %}" class="btn btn-outline-warning"
