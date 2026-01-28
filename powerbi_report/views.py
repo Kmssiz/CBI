@@ -14,7 +14,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from notifications.models import Notification
 from users.models import CustomUser,UserHistory,Role
-from .models import Report, ReportAccess, ReportRef, CustomFolder, FolderReportItem
+from .models import ReportRef, CustomFolder, FolderReportItem
 from django.core.cache import cache
 from django.db.models import Count
 from requests_negotiate_sspi import HttpNegotiateAuth  

@@ -141,14 +141,7 @@ def login_view(request):
                 print(f"[DEBUG LOGIN] Updated existing user {user.id} with ldap_username='{ldap_username}'")
             else:
                 # Create new user
-                # Check for admin (case-insensitive check)
-                if ldap_username.lower() == "mohammed.benslimane@groupe-hasnaoui.com".lower() or \
-                   email.lower() == "mohammed.benslimane@groupe-hasnaoui.com".lower():
-                    role, created = Role.objects.get_or_create(name="admin")
-                    if created:
-                         role.permissions.set(Permission.objects.all())
-                else:
-                    role, created = Role.objects.get_or_create(name="user")
+                role, created = Role.objects.get_or_create(name="user")
                 
                 user = CustomUser(
                     username=ldap_username,  # Use LDAP's canonical username

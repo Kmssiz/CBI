@@ -6,9 +6,9 @@ import json
 import re
 
 # Hardcoded settings based on user snippet suitable for the Hasnaoui environment
-LDAP_SERVER_NAME = 'ldap.groupe-hasnaoui.com'
-LDAP_DOMAIN = 'GROUPE-HASNAOUI'
-LDAP_SEARCH_BASE = "dc=groupe-hasnaoui,dc=local"
+LDAP_SERVER_NAME = settings.LDAP_SERVER_NAME
+LDAP_DOMAIN = settings.LDAP_DOMAIN
+LDAP_SEARCH_BASE = settings.LDAP_SEARCH_BASE
 
 def connexion_ad2000(identifiant, password):
     """

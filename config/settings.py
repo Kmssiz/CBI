@@ -9,9 +9,9 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-
 from pathlib import Path
 import os
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,17 +21,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-vrsgypq!nc++s%19kpyph(=^9imppc6ot7as-itqv)m-h2(og2'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 # Base URL of your report server 
-from decouple import config
 
 POWERBI_REPORT_SERVER_URL = config('POWERBI_REPORT_SERVER_URL')
+
+
+# LDAP Configuration
+LDAP_SERVER_NAME = config('LDAP_SERVER_NAME')
+LDAP_DOMAIN = config('LDAP_DOMAIN')
+LDAP_SEARCH_BASE = config('LDAP_SEARCH_BASE')
 
 
 # Application definition
