@@ -246,9 +246,21 @@ def home_view(request):
     if request.user.role and request.user.role.name == "admin":
         log_history(request.user, "Viewed home page")
         return redirect('powerbi_report:dashboard')
+    
     if request.user.role and request.user.role.name == "user":
+        # Check default view preference
+        if hasattr(request.user, 'default_view'):
+            if request.user.default_view == 'business':
+                log_history(request.user, "Viewed Business View (Home)")
+                return redirect('powerbi_report:custom_business')
+            elif request.user.default_view == 'department':
+                log_history(request.user, "Viewed Department View (Home)")
+                return redirect('powerbi_report:custom_department')
+        
+        # Fallback
         log_history(request.user, "Viewed report_list_hierarchy page")
         return redirect('powerbi_report:report_list_hierarchy')
+    
     return redirect('profile')
 
 #################################################################################################################

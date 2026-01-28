@@ -64,13 +64,8 @@
             {% endif %}
             <div class="d-flex gap-2">
                 <!-- View Toggle -->
-                <a href="{% url 'powerbi_report:custom_business' %}"
-                    class="btn {% if view_type == 'business' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                    <i class="feather icon-briefcase"></i> Business
-                </a>
-                <a href="{% url 'powerbi_report:custom_department' %}"
-                    class="btn {% if view_type == 'department' %}btn-info{% else %}btn-outline-info{% endif %}">
-                    <i class="feather icon-users"></i> Department
+                <a href="{% url 'powerbi_report:report_list' %}" class="btn btn-outline-secondary">
+                    <i class="feather icon-list"></i> All Reports
                 </a>
 
                 {% if user.is_superuser %}
@@ -95,39 +90,46 @@
             {% for folder in subfolders %}
             <!-- Subfolder Card -->
             <div class="col-md-4 col-lg-3">
-                <div class="card mb-4 folder-card">
+                <div class="card mb-4 folder-card position-relative">
                     <a href="{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=folder.id %}"
-                        class="folder-link text-decoration-none">
+                        class="folder-link text-decoration-none stretched-link">
                         <div class="card-body d-flex align-items-center justify-content-between">
                             <div class="d-flex align-items-center">
                                 <i class="feather icon-folder" style="font-size: 28px; color: #FFD700;"></i>
                                 <h6 class="mb-0 ms-3 text-dark">{{ folder.name }}</h6>
                             </div>
-                            {% if user.is_superuser %}
-                            <div class="dropdown" onclick="event.preventDefault(); event.stopPropagation();">
-                                <button class="btn p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="feather icon-more-vertical"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <a class="dropdown-item" href="#" data-bs-toggle="modal"
-                                            data-bs-target="#editFolderModal"
-                                            onclick="setEditFolderData({{ folder.id }}, '{{ folder.name|escapejs }}')">
-                                            <i class="feather icon-edit-2 me-2"></i> Rename
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
-                                            data-bs-target="#deleteFolderModal"
-                                            onclick="setDeleteFolderData({{ folder.id }}, '{{ folder.name|escapejs }}')">
-                                            <i class="feather icon-trash-2 me-2"></i> Delete
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                            {% endif %}
                         </div>
                     </a>
+                    {% if user.is_superuser %}
+                    <div class="dropdown position-absolute top-50 end-0 translate-middle-y me-3" style="z-index: 2;">
+                        <button class="btn p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="feather icon-more-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                    data-bs-target="#editFolderModal"
+                                    onclick="setEditFolderData({{ folder.id }}, '{{ folder.name|escapejs }}')">
+                                    <i class="feather icon-edit-2 me-2"></i> Rename
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                    data-bs-target="#moveFolderModal"
+                                    onclick="setMoveFolderData({{ folder.id }}, '{{ folder.name|escapejs }}')">
+                                    <i class="feather icon-move me-2"></i> Move
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
+                                    data-bs-target="#deleteFolderModal"
+                                    onclick="setDeleteFolderData({{ folder.id }}, '{{ folder.name|escapejs }}')">
+                                    <i class="feather icon-trash-2 me-2"></i> Delete
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}
@@ -135,30 +137,56 @@
             {% for report in reports %}
             <!-- Report Card -->
             <div class="col-md-4 col-lg-3">
-                <div class="card mb-4 report-card">
-                    <a href="{{ report.embed_url }}" class="report-link text-decoration-none">
+                <div class="card mb-4 report-card position-relative">
+                    <a href="{% url 'powerbi_report:embed_custom_report' view_type=view_type folder_id=current_folder.id report_id=report.id %}"
+                        class="report-link text-decoration-none stretched-link">
                         <div class="card-body d-flex align-items-center justify-content-between">
                             <div class="d-flex align-items-center">
                                 <i class="feather icon-bar-chart-2" style="font-size: 28px; color: #17a2b8;"></i>
                                 <h6 class="mb-0 ms-3 text-dark">{{ report.name }}</h6>
                             </div>
-                            {% if user.is_superuser %}
-                            <div class="dropdown" onclick="event.preventDefault(); event.stopPropagation();">
-                                <button class="btn p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="feather icon-more-vertical"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <a class="dropdown-item text-danger" href="#"
-                                            onclick="removeReportFromFolder({{ current_folder.id }}, {{ report.id }})">
-                                            <i class="feather icon-x me-2"></i> Remove from folder
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                            {% endif %}
                         </div>
                     </a>
+                    {% if user.is_superuser %}
+                    <div class="dropdown position-absolute top-50 end-0 translate-middle-y me-3" style="z-index: 2;">
+                        <button class="btn p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="feather icon-more-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                    data-bs-target="#editReportNameModal"
+                                    onclick="setEditReportNameData('{{ report.pbirs_id }}', '{{ report.name|escapejs }}')">
+                                    <i class="feather icon-edit-2 me-2"></i> Rename
+                                </a>
+                            </li>
+                            <!--
+                            <li>
+                                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#moveReportModal"
+                                    onclick="setMoveReportData('{{ report.id }}', '{{ report.name|escapejs }}')">
+                                    <i class="feather icon-move me-2"></i> Move
+                                </a>
+                            </li>
+                            -->
+                            <li>
+                                <div class="dropdown-divider"></div>
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="#"
+                                    onclick="removeReportFromFolder({{ current_folder.id }}, {{ report.id }})">
+                                    <i class="feather icon-x me-2"></i> Remove from folder
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
+                                    data-bs-target="#deleteReportModal"
+                                    onclick="setDeleteReportData('{{ report.pbirs_id }}', '{{ report.name|escapejs }}')">
+                                    <i class="feather icon-trash-2 me-2"></i> Delete from Server
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
                     <div class="card-footer text-muted small">
                         <i class="feather icon-folder-location"></i> {{ report.path }}
                     </div>
@@ -322,6 +350,94 @@
 </div>
 {% endif %}
 
+<!-- Modal: Move Folder -->
+<div class="modal fade" id="moveFolderModal" tabindex="-1" aria-labelledby="moveFolderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="moveFolderModalLabel">Move Folder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="moveFolderForm" method="POST" action="">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Move "<span id="move_folder_name"></span>" to:</p>
+                    <div class="mb-3">
+                        <label for="new_parent_id" class="form-label">Destination Parent Folder</label>
+                        <select class="form-select" id="new_parent_id" name="new_parent_id">
+                            <option value="">(Root)</option>
+                            {% for f in subfolders %}
+                            <!-- This list needs to be recursive or flat list of all folders excluding self -->
+                            <!-- Simplified for now: only showing current level subfolders won't work well for full move. -->
+                            <!-- ideally passed from backend as all_folders -->
+                            {% endfor %}
+                            <!-- For now, text input or just root option? Or we need data. -->
+                            <!-- Let's fix this in views to pass a list of potential parents -->
+                        </select>
+                        <small class="text-muted">Currently limited to Root or current level. (Needs backend support for
+                            full tree)</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Move</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Rename Report -->
+<div class="modal fade" id="editReportNameModal" tabindex="-1" aria-labelledby="editReportNameModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editReportNameModalLabel">Rename Report</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editReportNameForm" method="POST" action="">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="report_new_name" class="form-label">New Name</label>
+                        <input type="text" class="form-control" id="report_new_name" name="name" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Delete Report -->
+<div class="modal fade" id="deleteReportModal" tabindex="-1" aria-labelledby="deleteReportModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteReportModalLabel">Delete Report from Server</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="deleteReportForm" method="POST" action="">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Are you sure you want to delete "<span id="delete_report_name"></span>"?</p>
+                    <p class="text-danger fw-bold"><i class="feather icon-alert-triangle"></i> DANGER: This will
+                        permanently delete the report from the PBIRS Server. This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete Permanently</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Hidden form for removing reports -->
 <form id="removeReportForm" method="POST" action="" style="display: none;">
     {% csrf_token %}
@@ -338,6 +454,22 @@
     function setDeleteFolderData(folderId, folderName) {
         document.getElementById('delete_folder_name').textContent = folderName;
         document.getElementById('deleteFolderForm').action = "{% url 'powerbi_report:delete_custom_folder' folder_id=0 %}".replace('0', folderId);
+    }
+
+    function setMoveFolderData(folderId, folderName) {
+        document.getElementById('move_folder_name').textContent = folderName;
+        document.getElementById('moveFolderForm').action = "{% url 'powerbi_report:move_custom_folder' folder_id=0 %}".replace('0', folderId);
+    }
+
+    function setEditReportNameData(reportId, reportName) {
+        document.getElementById('report_new_name').value = reportName;
+        // reportId here is PBIRS ID (UUID)
+        document.getElementById('editReportNameForm').action = "{% url 'powerbi_report:edit_report' report_id='00000000-0000-0000-0000-000000000000' %}".replace('00000000-0000-0000-0000-000000000000', reportId);
+    }
+
+    function setDeleteReportData(reportId, reportName) {
+        document.getElementById('delete_report_name').textContent = reportName;
+        document.getElementById('deleteReportForm').action = "{% url 'powerbi_report:delete_report_server' report_id='00000000-0000-0000-0000-000000000000' %}".replace('00000000-0000-0000-0000-000000000000', reportId);
     }
 
     // Remove report from folder

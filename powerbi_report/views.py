@@ -653,6 +653,16 @@ def report_folders_list(request, folder_path=""):
     folder_dict = {}
     report_dict = {}  # Separate dictionary for reports
 
+    # Build a set of folder paths that contain visible reports
+    visible_folder_paths = set()
+    for report in reports:
+        path = report.get("Path", "").strip("/")
+        # Add all parent folders of this report to visible paths
+        parts = path.split("/")
+        for i in range(len(parts) - 1):  # Exclude the report name itself
+            parent_path = "/".join(parts[:i+1])
+            visible_folder_paths.add(parent_path)
+
     # Process reports
     for report in reports:
         path = report.get("Path", "").strip("/")
@@ -686,9 +696,20 @@ def report_folders_list(request, folder_path=""):
         print(f"Error fetching folders: {err}")
         all_folders = []
 
-    # Process folders
+    # Process folders - only include folders that contain visible reports
     for folder in all_folders:
         path = folder.get("Path", "").strip("/")
+        
+        # Skip folders that don't contain any visible reports (unless admin)
+        if not request.user.is_superuser:
+            # Check if this folder or any subfolder contains visible reports
+            has_visible_reports = any(
+                vp == path or vp.startswith(path + "/") 
+                for vp in visible_folder_paths
+            )
+            if not has_visible_reports:
+                continue
+        
         if folder_path:
             # Only include folders directly under the specified folder_path
             if path.startswith(folder_path + "/") and path.count("/") == folder_path.count("/") + 1:
@@ -2872,6 +2893,50 @@ def edit_custom_folder(request, folder_id):
 
 
 @login_required
+def move_custom_folder(request, folder_id):
+    """
+    Move a custom folder to a new parent. Admin only.
+    """
+    folder = get_object_or_404(CustomFolder, id=folder_id)
+    
+    if not request.user.is_superuser:
+        messages.error(request, "Only administrators can move folders.")
+        return redirect('powerbi_report:custom_' + folder.view_type)
+    
+    if request.method == 'POST':
+        new_parent_id = request.POST.get('new_parent_id')
+        
+        # Check for circular dependency
+        if new_parent_id:
+            if int(new_parent_id) == folder.id:
+                 messages.error(request, "Cannot move a folder into itself.")
+                 return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_' + folder.view_type))
+            
+            # Check if new parent is a child of current folder
+            new_parent = get_object_or_404(CustomFolder, id=new_parent_id)
+            if new_parent.view_type != folder.view_type:
+                 messages.error(request, "Cannot move folder to a different view type.")
+                 return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_' + folder.view_type))
+                 
+            ancestor = new_parent
+            while ancestor.parent:
+                if ancestor.parent.id == folder.id:
+                    messages.error(request, "Cannot move a folder into its own subfolder.")
+                    return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_' + folder.view_type))
+                ancestor = ancestor.parent
+            
+            folder.parent = new_parent
+        else:
+            folder.parent = None # Move to root
+            
+        folder.save()
+        messages.success(request, f"Folder '{folder.name}' moved successfully.")
+        log_history(request.user, f"Moved custom folder '{folder.name}' (ID: {folder.id})")
+        
+    return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_' + folder.view_type))
+
+
+@login_required
 def delete_custom_folder(request, folder_id):
     """
     Delete a custom folder. Admin only.
@@ -2991,3 +3056,70 @@ def get_available_reports_json(request):
     
     return JsonResponse({'reports': report_list})
 
+
+@login_required
+def delete_powerbi_report_server(request, report_id):
+    """
+    Delete a report from the PBIRS Server. Admin only.
+    """
+    if not request.user.is_superuser:
+        messages.error(request, "Only administrators can delete reports.")
+        return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:report_list'))
+
+    if request.method == "POST":
+        # report_id here is the PBIRS ID (UUID)
+        url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})"
+        auth = get_current_user_auth(request)
+        
+        try:
+            response = requests.delete(url, auth=auth)
+            response.raise_for_status()
+            
+            # Also remove local reference
+            ReportRef.objects.filter(pbirs_id=report_id).delete()
+            
+            messages.success(request, "Report deleted permanently from server.")
+            log_history(request.user, f"Deleted report  (ID: {report_id}) from PBIRS")
+            
+             # Notify admin users
+            admin_users = CustomUser.objects.filter(is_superuser=True)
+            for admin in admin_users:
+                Notification.objects.create(
+                    user=admin,
+                    message=f"Report (ID: {report_id}) has been deleted from server by {request.user.username}."
+                )
+                
+        except requests.exceptions.RequestException as e:
+            messages.error(request, f"Failed to delete report: {str(e)}")
+            
+    return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:report_list'))
+
+
+@login_required
+def embed_custom_report(request, view_type, folder_id, report_id):
+    """
+    Embed a report within the context of a custom folder to preserve breadcrumbs.
+    """
+    folder = get_object_or_404(CustomFolder, id=folder_id)
+    report_ref = get_object_or_404(ReportRef, id=report_id)
+    
+    # Check permissions logic
+    visible_ids = get_visible_report_ids(request)
+    if report_ref.pbirs_id not in visible_ids:
+         return render(request, '403_custom.html', {'message': "You do not have permission to view this report."})
+
+    context = {
+        'report_id': report_ref.pbirs_id,
+        'report_name': report_ref.name,
+        'embed_url': report_ref.embed_url,
+        'view_type': view_type,
+        'current_folder': folder,
+    }
+    
+    # Breadcrumbs
+    breadcrumbs = folder.get_breadcrumbs()
+    context['breadcrumbs'] = breadcrumbs
+    
+    log_history(request.user, f"Viewed report '{report_ref.name}' in folder '{folder.name}'")
+
+    return render(request, 'powerbi_report/embed_custom_report.html', context)

@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="pc-container">
+    <div class="pc-content">
+        <!-- [ Breadcrumb ] start -->
+        <div class="page-header">
+            <div class="page-block">
+                <div class="row align-items-center">
+                    <div class="col-md-12">
+                        <div class="page-header-title">
+                            <h5 class="mb-0">{{ report_name }}</h5>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <ul class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                            {% if view_type == 'business' %}
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'powerbi_report:custom_business' %}">Business Folders</a>
+                            </li>
+                            {% else %}
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'powerbi_report:custom_department' %}">Department View</a>
+                            </li>
+                            {% endif %}
+
+                            {% for folder in breadcrumbs %}
+                            <li class="breadcrumb-item">
+                                <a
+                                    href="{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=folder.id %}">
+                                    {{ folder.name }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                            <li class="breadcrumb-item active">{{ report_name }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- [ Breadcrumb ] end -->
+
+        <div class="row mb-4">
+            <div class="col d-flex justify-content-start">
+                <button id="backBtn" class="btn btn-outline-secondary me-2" onclick="goBack()">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+            </div>
+            <div class="col d-flex justify-content-end">
+                <button id="printBtn" class="btn btn-outline-primary me-2" onclick="printReport()">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <button id="shareBtn" class="btn btn-outline-primary me-2" onclick="copyShareUrl()">
+                    <i class="fas fa-share"></i> Share
+                </button>
+                <button id="fullscreenBtn" class="btn btn-outline-primary me-2" onclick="toggleFullScreen()">
+                    <i class="fas fa-expand"></i>
+                </button>
+                {% if permissions.view_powerbireport and permissions.change_powerbireport %}
+
+                <a href="{% url 'powerbi_report:download_report' report_id=report_id %}"
+                    class="btn btn-outline-primary me-2" id="downloadBtn">
+                    <i class="fas fa-download"></i> Download
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center align-items-center vh-100">
+            {% if embed_url %}
+            <iframe id="reportIframe" src="{{ embed_url }}" width="90%" height="90%" frameborder="0" allowfullscreen
+                title="Power BI Report">
+            </iframe>
+            {% else %}
+            <div class="text-center">
+                <p class="text-danger fw-bold">⚠ Failed to load the report. Please try again later.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Share URL Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="shareModalLabel">Share Report Link</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Copy the link below and share it:</p>
+                <input type="text" class="form-control" id="shareUrlInput" readonly>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="copyToClipboard()">Copy</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Share URL Modal end -->
+
+<!-- Print-Specific CSS -->
+<style>
+    @page {
+        margin: 10mm;
+    }
+
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+
+        #reportIframe {
+            visibility: visible;
+            position: fixed;
+            top: 10mm;
+            left: 10mm;
+            width: calc(100% - 20mm);
+            height: calc(100% - 20mm);
+            border: none;
+        }
+    }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+    function goBack() {
+        window.history.back();
+    }
+
+    function toggleFullScreen() {
+        var iframe = document.getElementById("reportIframe");
+        if (iframe) {
+            if (!document.fullscreenElement) {
+                if (iframe.requestFullscreen) {
+                    iframe.requestFullscreen();
+                } else if (iframe.mozRequestFullScreen) {
+                    iframe.mozRequestFullScreen();
+                } else if (iframe.webkitRequestFullscreen) {
+                    iframe.webkitRequestFullscreen();
+                } else if (iframe.msRequestFullscreen) {
+                    iframe.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+    }
+
+    function copyShareUrl() {
+        var shareUrl = window.location.href;
+        document.getElementById("shareUrlInput").value = shareUrl;
+        var shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+        shareModal.show();
+    }
+
+    function copyToClipboard() {
+        var copyText = document.getElementById("shareUrlInput");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value).then(function () {
+            alert("Link copied to clipboard!");
+        }).catch(function (error) {
+            console.error("Failed to copy:", error);
+        });
+    }
+
+    function printReport() {
+        window.print();
+    }
+</script>
+{% endblock %}
