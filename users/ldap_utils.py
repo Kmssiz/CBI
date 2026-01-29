@@ -1,97 +1,140 @@
+"""
+LDAP Utilities for Active Directory Authentication and User Sync.
+
+This module provides functions for authenticating users against Active Directory
+and fetching user lists for synchronization.
+"""
+
+import logging
 import ldap3
 from ldap3 import Server, Connection, ALL, NTLM
-from ldap3.core.exceptions import LDAPCursorError
+from ldap3.core.exceptions import LDAPBindError, LDAPSocketOpenError, LDAPException
 from django.conf import settings
-import json
-import re
 
-# Hardcoded settings based on user snippet suitable for the Hasnaoui environment
+logger = logging.getLogger('users')
+
 LDAP_SERVER_NAME = settings.LDAP_SERVER_NAME
 LDAP_DOMAIN = settings.LDAP_DOMAIN
 LDAP_SEARCH_BASE = settings.LDAP_SEARCH_BASE
 
-def connexion_ad2000(identifiant, password):
+
+def connexion_ad2000(identifiant: str, password: str) -> dict | None:
     """
     Authenticates a user against Active Directory.
-    Returns a dictionary with user info if successful, None otherwise.
+
+    Args:
+        identifiant: User identifier (email or sAMAccountName).
+        password: User's password.
+
+    Returns:
+        A dictionary with user info if successful, None otherwise.
     """
     server = Server(LDAP_SERVER_NAME, get_info=ALL)
-    
-    # Try to determine if identifiant is email or samaccountname
+
+    # Determine if identifier is email or username
     if '@' in identifiant:
-        # For email, bind with the email directly
         user_dn = identifiant
         search_filter = f'(mail={identifiant})'
     else:
-        # For username, prepend domain
         user_dn = f"{LDAP_DOMAIN}\\{identifiant}"
         search_filter = f'(sAMAccountName={identifiant})'
-    
+
     try:
         conn = Connection(server, user=user_dn, password=password, auto_bind=True)
         if conn:
-            conn.search(search_base=LDAP_SEARCH_BASE,
-                        search_filter=search_filter,
-                        search_scope=ldap3.SUBTREE,
-                        attributes=['mail', 'company', 'department', 'name', 'title', 'sAMAccountName', 
-                                    'extensionAttribute1', 'employeeID', 'employeeNumber'])
-            
+            conn.search(
+                search_base=LDAP_SEARCH_BASE,
+                search_filter=search_filter,
+                search_scope=ldap3.SUBTREE,
+                attributes=[
+                    'mail', 'company', 'department', 'name', 'title',
+                    'sAMAccountName', 'extensionAttribute1', 'employeeID', 'employeeNumber'
+                ]
+            )
+
             if conn.entries:
                 entry = conn.entries[0]
-                # Use sAMAccountName as ad2000 identifier
                 ad2000_value = str(entry.sAMAccountName) if hasattr(entry, 'sAMAccountName') else ""
-                print(f"[DEBUG LDAP] Using sAMAccountName as ad2000: '{ad2000_value}'")
-                
+                logger.debug(f"LDAP auth successful for user: {identifiant}, ad2000: {ad2000_value}")
+
                 return {
                     'username': str(entry.sAMAccountName) if hasattr(entry, 'sAMAccountName') else identifiant,
                     'email': str(entry.mail) if hasattr(entry, 'mail') else "",
-                    'first_name': str(entry.name).split(' ')[0] if hasattr(entry, 'name') else "", # Rough approx
+                    'first_name': str(entry.name).split(' ')[0] if hasattr(entry, 'name') else "",
                     'last_name': " ".join(str(entry.name).split(' ')[1:]) if hasattr(entry, 'name') else "",
                     'ad2000': ad2000_value,
                     'department': str(entry.department) if hasattr(entry, 'department') else "",
                     'title': str(entry.title) if hasattr(entry, 'title') else "",
                 }
         return None
-    except Exception as e:
-        print(f"LDAP Auth Error: {e}")
+
+    except LDAPBindError as e:
+        logger.warning(f"LDAP bind failed for {identifiant}: Invalid credentials")
+        return None
+    except LDAPSocketOpenError as e:
+        logger.error(f"LDAP server connection failed: {e}")
+        return None
+    except LDAPException as e:
+        logger.error(f"LDAP error during auth for {identifiant}: {e}")
         return None
 
-def get_ad_users(username, password):
+
+def get_ad_users(username: str, password: str) -> list[dict]:
     """
     Fetches all users from Active Directory.
-    Requires a valid user/pass to bind.
+
+    Args:
+        username: Admin username to bind with.
+        password: Admin password.
+
+    Returns:
+        A list of user dictionaries, or empty list on failure.
     """
-    liste = []
+    user_list = []
     server = Server(LDAP_SERVER_NAME, get_info=ALL)
     user_dn = f"{LDAP_DOMAIN}\\{username}"
-    
+
     try:
         conn = Connection(server, user=user_dn, password=password, authentication=NTLM, auto_bind=True)
-        
-        conn.search(search_base=LDAP_SEARCH_BASE,
-                    search_filter='(objectclass=person)',
-                    attributes=['mail', 'sAMAccountName', 'company', 'department', 'name', 'title', 'ipPhone', 'telephoneNumber', 'extensionAttribute1'])
 
-        for e in conn.entries:
+        conn.search(
+            search_base=LDAP_SEARCH_BASE,
+            search_filter='(objectclass=person)',
+            attributes=[
+                'mail', 'sAMAccountName', 'company', 'department', 'name',
+                'title', 'ipPhone', 'telephoneNumber', 'extensionAttribute1'
+            ]
+        )
+
+        for entry in conn.entries:
             try:
-                # Filter logic from snippet
-                sAMAccountName = str(e.sAMAccountName) if hasattr(e, 'sAMAccountName') else ""
-                department = str(e.department) if hasattr(e, 'department') else ""
-                
-                if 'user_' not in sAMAccountName or len(department) > 0:
-                    liste.append({
-                        'mail': str(e.mail) if hasattr(e, 'mail') else "",
-                        'sAMAccountName': sAMAccountName,
-                        'company': str(e.company) if hasattr(e, 'company') else "",
+                sam_account_name = str(entry.sAMAccountName) if hasattr(entry, 'sAMAccountName') else ""
+                department = str(entry.department) if hasattr(entry, 'department') else ""
+
+                # Filter out service accounts
+                if 'user_' not in sam_account_name or len(department) > 0:
+                    user_list.append({
+                        'mail': str(entry.mail) if hasattr(entry, 'mail') else "",
+                        'sAMAccountName': sam_account_name,
+                        'company': str(entry.company) if hasattr(entry, 'company') else "",
                         'department': department,
-                        'name': str(e.name) if hasattr(e, 'name') else "",
-                        'title': str(e.title) if hasattr(e, 'title') else "",
-                        'ad2000': str(e.extensionAttribute1) if hasattr(e, 'extensionAttribute1') else "", # frequent mapping
+                        'name': str(entry.name) if hasattr(entry, 'name') else "",
+                        'title': str(entry.title) if hasattr(entry, 'title') else "",
+                        'ad2000': str(entry.extensionAttribute1) if hasattr(entry, 'extensionAttribute1') else "",
                     })
-            except Exception:
-                pass
-                
-        return liste
-    except Exception as e:
-        print(f"LDAP Sync Error: {e}")
+            except AttributeError:
+                # Skip entries with missing required attributes
+                continue
+
+        logger.info(f"LDAP sync completed. Retrieved {len(user_list)} users.")
+        return user_list
+
+    except LDAPBindError:
+        logger.error(f"LDAP sync failed: Invalid credentials for {username}")
+        return []
+    except LDAPSocketOpenError as e:
+        logger.error(f"LDAP sync failed: Server connection error - {e}")
+        return []
+    except LDAPException as e:
+        logger.error(f"LDAP sync error: {e}")
         return []

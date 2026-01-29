@@ -1,49 +1,44 @@
+"""
+PowerBI Report Views.
+
+This module handles all view logic for Power BI Report management,
+including report listing, embedding, permissions, and folder management.
+"""
+
+import logging
 import os
 import urllib.parse
-import requests
-import json
-import pytz
-from django.db import models
-from easyaudit.models import LoginEvent
-from easyaudit.models import CRUDEvent, RequestEvent
-
-from requests_ntlm import HttpNtlmAuth
-from django.conf import settings
-from django.http import Http404, HttpResponse, JsonResponse
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from notifications.models import Notification
-from users.models import CustomUser,UserHistory,Role
-from .models import ReportRef, CustomFolder, FolderReportItem
-from django.core.cache import cache
-from django.db.models import Count
-from requests_negotiate_sspi import HttpNegotiateAuth  
-from django.utils.timezone import now
-from django.views.decorators.csrf import csrf_exempt
-from datetime import datetime ,timedelta
 from collections import Counter
-from django.contrib import messages
-from django.urls import reverse
-from django.http import HttpResponseRedirect
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from django.db.models import Count
-from django.db.models.functions import TruncMonth
-from django.db.models import Count
-from django.db.models.functions import TruncMonth
-from django.db.models.functions import TruncDay
+import pytz
+import requests
+from requests_ntlm import HttpNtlmAuth
+from requests_negotiate_sspi import HttpNegotiateAuth
 
-
-from django.contrib import admin
-from django.shortcuts import render
+from django.conf import settings
+from django.contrib import admin, messages
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
-from django.utils import timezone
-from datetime import datetime, timedelta
+from django.db import models
 from django.db.models import Count
 from django.db.models.functions import TruncMonth, TruncDay, TruncDate, TruncHour
+from django.http import Http404, HttpResponse, JsonResponse, HttpResponseRedirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.timezone import now
+from django.views.decorators.csrf import csrf_exempt
 
+from easyaudit.models import LoginEvent, CRUDEvent, RequestEvent
+from notifications.models import Notification
+from users.models import CustomUser, UserHistory, Role
 from users.utils import log_history, get_user_permissions
+
+from .models import ReportRef, CustomFolder, FolderReportItem
+from .services import PBIRSClient
+
+logger = logging.getLogger('powerbi_report')
 
 REPORT_SERVER_URL = settings.POWERBI_REPORT_SERVER_URL
 

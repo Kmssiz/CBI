@@ -31,5 +31,6 @@ COPY . .
 # Expose Django port
 EXPOSE 8000
 
-# Run Django app
-CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+# Run Django app with gunicorn (production-ready)
+# Note: Run migrations separately before starting (e.g., in CI/CD or entrypoint script)
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "config.wsgi:application"]
