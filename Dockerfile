@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     libblas-dev \
     liblapack-dev \
-    libatlas-base-dev \
     gfortran \
     && rm -rf /var/lib/apt/lists/*
 

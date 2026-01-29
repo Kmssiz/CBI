@@ -14,7 +14,13 @@ from datetime import datetime, timedelta
 import pytz
 import requests
 from requests_ntlm import HttpNtlmAuth
-from requests_negotiate_sspi import HttpNegotiateAuth
+
+# Windows-only authentication module
+import sys
+if sys.platform == 'win32':
+    from requests_negotiate_sspi import HttpNegotiateAuth
+else:
+    HttpNegotiateAuth = None  # Not available on Linux
 
 from django.conf import settings
 from django.contrib import admin, messages
