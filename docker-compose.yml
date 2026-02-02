@@ -1,5 +1,6 @@
 services:
   web:
+    container_name: PBI
     build: .
     command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8222 --workers 4 config.wsgi:application"
     volumes:
