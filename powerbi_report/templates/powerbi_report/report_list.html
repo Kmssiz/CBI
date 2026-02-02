@@ -42,39 +42,18 @@
     </div>
     {% endif %}
 
-    <!-- Actions and Filters Section -->
+    <!-- Actions Section -->
     <div class="row mb-4">
       <div class="col-md-12">
-        <!-- Search and Filters -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div class="input-group w-50" style="max-width:500px;">
+        <!-- Search -->
+        <div class="d-flex justify-content-start align-items-center mb-3">
+          <div class="input-group" style="max-width:500px;">
             <input type="text" class="form-control" placeholder="Rechercher des rapports par nom..." id="reportSearch">
-          </div>
-          <div class="d-flex align-items-center w-100" style="margin-left:10px;">
-            <div class="row g-3 w-100">
-              <div class="col-md-4">
-                <select class="form-select" id="poleFilter">
-                  <option value="">Tous les pôles</option>
-                </select>
-              </div>
-              <div class="col-md-4">
-                <select class="form-select" id="sousDirectionFilter">
-                  <option value="">Toutes les sociétés</option>
-                </select>
-              </div>
-              <div class="col-md-4">
-                <select class="form-select" id="directionFilter">
-                  <option value="">Toutes les directions</option>
-                </select>
-              </div>
-            </div>
-            <button class="btn btn-outline-secondary ms-3 align-self-stretch" style="width:70px"
-              id="clearFiltersBtn">Effacer</button>
           </div>
         </div>
       </div>
     </div>
-    <!-- End Actions and Filters Section -->
+    <!-- End Actions Section -->
 
     <!-- Report List Section -->
     <div class="row">
@@ -205,159 +184,16 @@
   document.addEventListener("DOMContentLoaded", function () {
     const reportTable = document.getElementById('reportTable');
     const rows = reportTable.querySelectorAll('tbody tr');
-    const poleFilter = document.getElementById('poleFilter');
-    const sousDirectionFilter = document.getElementById('sousDirectionFilter');
-    const directionFilter = document.getElementById('directionFilter');
     const reportSearch = document.getElementById('reportSearch');
-    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     const pathList = document.getElementById('pathList');
     const reportPathInput = document.getElementById('reportPath');
 
-    // Data structure to hold relationships
-    const pathData = {};
-    const allSousDirections = new Set();
-    const allDirections = new Set();
+    // Collect all paths for the Move Report Modal
     const allPaths = new Set();
-
-    // Extract path components and build relationships
     rows.forEach(row => {
       const path = row.querySelector('td:nth-child(2)').getAttribute('title');
-      allPaths.add(path); // Store full path
-      const parts = path.split('/').filter(part => part);
-      const pole = parts[0] || '';
-      let sousDirection = '';
-      let direction = '';
-
-      if (pole) {
-        if (!pathData[pole]) {
-          pathData[pole] = { sousDirections: new Set(), directions: {}, directDirections: new Set() };
-        }
-
-        if (parts[1] && parts[1].toLowerCase().startsWith('direction')) {
-          direction = parts[1];
-          pathData[pole].directDirections.add(direction);
-          allDirections.add(direction);
-        } else if (parts[1]) {
-          sousDirection = parts[1];
-          pathData[pole].sousDirections.add(sousDirection);
-          allSousDirections.add(sousDirection);
-          if (parts[2] && parts[2].toLowerCase().startsWith('direction')) {
-            direction = parts[2];
-            if (!pathData[pole].directions[sousDirection]) {
-              pathData[pole].directions[sousDirection] = new Set();
-            }
-            pathData[pole].directions[sousDirection].add(direction);
-            allDirections.add(direction);
-          }
-        }
-      }
+      allPaths.add(path);
     });
-
-    // Populate Pole filter
-    Object.keys(pathData).forEach(pole => {
-      const option = document.createElement('option');
-      option.value = pole;
-      option.textContent = pole;
-      poleFilter.appendChild(option);
-    });
-
-    // Populate all Sociétés and Directions initially
-    allSousDirections.forEach(sousDirection => {
-      const option = document.createElement('option');
-      option.value = sousDirection;
-      option.textContent = sousDirection;
-      sousDirectionFilter.appendChild(option);
-    });
-
-    allDirections.forEach(direction => {
-      const option = document.createElement('option');
-      option.value = direction;
-      option.textContent = direction;
-      directionFilter.appendChild(option);
-    });
-
-    // Function to populate Société filter based on selected Pole
-    function populateSousDirectionFilter(selectedPole) {
-      sousDirectionFilter.innerHTML = '';
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
-      if (selectedPole && pathData[selectedPole]) {
-        defaultOption.textContent = `Toutes les sociétés de ${selectedPole}`;
-        if (pathData[selectedPole].sousDirections.size > 0) {
-          pathData[selectedPole].sousDirections.forEach(sousDirection => {
-            const option = document.createElement('option');
-            option.value = sousDirection;
-            option.textContent = sousDirection;
-            sousDirectionFilter.appendChild(option);
-          });
-          sousDirectionFilter.disabled = false;
-        } else {
-          defaultOption.textContent = 'Aucune société disponible';
-          sousDirectionFilter.disabled = true;
-        }
-      } else {
-        defaultOption.textContent = 'Toutes les sociétés';
-        allSousDirections.forEach(sousDirection => {
-          const option = document.createElement('option');
-          option.value = sousDirection;
-          option.textContent = sousDirection;
-          sousDirectionFilter.appendChild(option);
-        });
-        sousDirectionFilter.disabled = false;
-      }
-      sousDirectionFilter.appendChild(defaultOption);
-      sousDirectionFilter.value = '';
-    }
-
-    // Function to populate Direction filter based on selected Pole and Société
-    function populateDirectionFilter(selectedPole, selectedSousDirection) {
-      directionFilter.innerHTML = '';
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
-      defaultOption.textContent = 'Toutes les directions';
-
-      if (selectedPole && pathData[selectedPole]) {
-        if (selectedSousDirection && pathData[selectedPole].directions[selectedSousDirection]) {
-          defaultOption.textContent = `Toutes les directions de ${selectedSousDirection}`;
-          pathData[selectedPole].directions[selectedSousDirection].forEach(direction => {
-            const option = document.createElement('option');
-            option.value = direction;
-            option.textContent = direction;
-            directionFilter.appendChild(option);
-          });
-          directionFilter.disabled = pathData[selectedPole].directions[selectedSousDirection].size === 0;
-        } else if (!selectedSousDirection) {
-          defaultOption.textContent = `Toutes les directions de ${selectedPole}`;
-          const allPoleDirections = new Set();
-          pathData[selectedPole].directDirections.forEach(direction => {
-            allPoleDirections.add(direction);
-          });
-          Object.values(pathData[selectedPole].directions).forEach(dirs => {
-            dirs.forEach(dir => allPoleDirections.add(dir));
-          });
-          allPoleDirections.forEach(direction => {
-            const option = document.createElement('option');
-            option.value = direction;
-            option.textContent = direction;
-            directionFilter.appendChild(option);
-          });
-          directionFilter.disabled = allPoleDirections.size === 0;
-        } else {
-          defaultOption.textContent = 'Aucune direction disponible';
-          directionFilter.disabled = true;
-        }
-      } else {
-        allDirections.forEach(direction => {
-          const option = document.createElement('option');
-          option.value = direction;
-          option.textContent = direction;
-          directionFilter.appendChild(option);
-        });
-        directionFilter.disabled = allDirections.size === 0;
-      }
-      directionFilter.appendChild(defaultOption);
-      directionFilter.value = '';
-    }
 
     // Function to populate path list in Move Report Modal
     function populatePathList() {
@@ -389,60 +225,19 @@
       }
     }
 
-    // Function to clear all filters
-    function clearFilters() {
-      poleFilter.value = '';
-      reportSearch.value = '';
-      populateSousDirectionFilter('');
-      populateDirectionFilter('', '');
-      filterReports();
-    }
-
-    // Filter function
+    // Filter function - search only
     function filterReports() {
       const searchValue = reportSearch.value.toLowerCase();
-      const poleValue = poleFilter.value;
-      const sousDirectionValue = sousDirectionFilter.value;
-      const directionValue = directionFilter.value;
 
       rows.forEach(row => {
         const reportName = row.querySelector('td:first-child').textContent.toLowerCase();
-        const path = row.querySelector('td:nth-child(2)').getAttribute('title');
-        const parts = path.split('/').filter(part => part);
-
         const matchesSearch = reportName.includes(searchValue);
-        const matchesPole = !poleValue || parts[0] === poleValue;
-
-        let matchesSousDirection = true;
-        let matchesDirection = true;
-
-        if (parts[1] && parts[1].toLowerCase().startsWith('direction')) {
-          matchesSousDirection = !sousDirectionValue;
-          matchesDirection = !directionValue || parts[1] === directionValue;
-        } else {
-          matchesSousDirection = !sousDirectionValue || parts[1] === sousDirectionValue;
-          matchesDirection = !directionValue || (parts[2] && parts[2] === directionValue);
-        }
-
-        row.style.display = matchesSearch && matchesPole && matchesSousDirection && matchesDirection ? '' : 'none';
+        row.style.display = matchesSearch ? '' : 'none';
       });
     }
 
-    // Event listeners for filters
-    poleFilter.addEventListener('change', function () {
-      populateSousDirectionFilter(this.value);
-      populateDirectionFilter(this.value, '');
-      filterReports();
-    });
-
-    sousDirectionFilter.addEventListener('change', function () {
-      populateDirectionFilter(poleFilter.value, this.value);
-      filterReports();
-    });
-
-    directionFilter.addEventListener('change', filterReports);
+    // Event listener for search
     reportSearch.addEventListener('input', filterReports);
-    clearFiltersBtn.addEventListener('click', clearFilters);
 
     // Handle Edit button click
     const editButtons = document.querySelectorAll('.btn-outline-warning');

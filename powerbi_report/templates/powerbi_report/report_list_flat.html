@@ -24,38 +24,20 @@
     </div>
     <!-- [ Breadcrumb ] end -->
 
-    <!-- [ Search Bar, Filters & Hierarchical View Button ] start -->
+    <!-- [ Search Bar & Hierarchical View Button ] start -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="flex-grow-1" style="max-width: 500px;">
         <div class="input-group">
           <input type="text" id="reportSearch" class="form-control" placeholder="Search reports by title...">
         </div>
       </div>
-      <div class="row g-3" style="margin-left:10px;">
-        <div class="col-md-4">
-          <select class="form-select" id="poleFilter" style="width:300px">
-            <option value="">All Pôles</option>
-          </select>
-        </div>
-        <div class="col-md-4">
-          <select class="form-select" id="sousDirectionFilter" style="width:300px">
-            <option value="">All Société</option>
-          </select>
-        </div>
-        <div class="col-md-4">
-          <select class="form-select" id="directionFilter" style="width:300px">
-            <option value="">All Directions</option>
-          </select>
-        </div>
-      </div>
       <div class="d-flex align-items-center">
-        <button class="btn btn-outline-secondary ms-3" id="clearFiltersBtn">Clear</button>
         <a href="{% url 'powerbi_report:custom_business' %}" class="btn btn-outline-primary ms-3">
           <i class="feather icon-layers"></i> Hierarchical View
         </a>
       </div>
     </div>
-    <!-- [ Search Bar, Filters & Hierarchical View Button ] end -->
+    <!-- [ Search Bar & Hierarchical View Button ] end -->
 
     <!-- [ Reports Cards ] start -->
     <div class="row" id="reportsContainer">
@@ -89,232 +71,22 @@
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const reportSearch = document.getElementById('reportSearch');
-    const poleFilter = document.getElementById('poleFilter');
-    const sousDirectionFilter = document.getElementById('sousDirectionFilter');
-    const directionFilter = document.getElementById('directionFilter');
-    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     const cards = document.querySelectorAll('.report-card');
 
-    // Data structure to hold relationships
-    const pathData = {};
-    const allSousDirections = new Set();
-    const allDirections = new Set();
-
-    // Extract path components and build relationships
-    cards.forEach(card => {
-      const path = card.getAttribute('data-path');
-      const parts = path.split('/').filter(part => part);
-      const pole = parts[0] || '';
-      let sousDirection = '';
-      let direction = '';
-
-      if (pole) {
-        if (!pathData[pole]) {
-          pathData[pole] = { sousDirections: new Set(), directions: {}, directDirections: new Set() };
-        }
-
-        // Check if the second component starts with "direction" (case-insensitive)
-        if (parts[1] && parts[1].toLowerCase().startsWith('direction')) {
-          // No Société, second component is a Direction
-          direction = parts[1];
-          pathData[pole].directDirections.add(direction);
-          allDirections.add(direction);
-        } else if (parts[1]) {
-          // Second component is a Société
-          sousDirection = parts[1];
-          pathData[pole].sousDirections.add(sousDirection);
-          allSousDirections.add(sousDirection);
-          if (parts[2] && parts[2].toLowerCase().startsWith('direction')) {
-            // Third component is a Direction
-            direction = parts[2];
-            if (!pathData[pole].directions[sousDirection]) {
-              pathData[pole].directions[sousDirection] = new Set();
-            }
-            pathData[pole].directions[sousDirection].add(direction);
-            allDirections.add(direction);
-          }
-        }
-      }
-    });
-
-    // Populate Pole filter
-    Object.keys(pathData).forEach(pole => {
-      const option = document.createElement('option');
-      option.value = pole;
-      option.textContent = pole;
-      poleFilter.appendChild(option);
-    });
-
-    // Populate all Sociétés and Directions initially
-    allSousDirections.forEach(sousDirection => {
-      const option = document.createElement('option');
-      option.value = sousDirection;
-      option.textContent = sousDirection;
-      sousDirectionFilter.appendChild(option);
-    });
-
-    allDirections.forEach(direction => {
-      const option = document.createElement('option');
-      option.value = direction;
-      option.textContent = direction;
-      directionFilter.appendChild(option);
-    });
-
-    // Function to populate Société filter based on selected Pole
-    function populateSousDirectionFilter(selectedPole) {
-      sousDirectionFilter.innerHTML = '';
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
-      if (selectedPole && pathData[selectedPole]) {
-        defaultOption.textContent = `All Société of ${selectedPole}`;
-        if (pathData[selectedPole].sousDirections.size > 0) {
-          // Populate with Sociétés for the selected Pole
-          pathData[selectedPole].sousDirections.forEach(sousDirection => {
-            const option = document.createElement('option');
-            option.value = sousDirection;
-            option.textContent = sousDirection;
-            sousDirectionFilter.appendChild(option);
-          });
-          sousDirectionFilter.disabled = false;
-        } else {
-          // No Sociétés, disable Société dropdown
-          defaultOption.textContent = 'No Société Available';
-          sousDirectionFilter.disabled = true;
-        }
-      } else {
-        // Populate with all Sociétés when no Pole is selected
-        defaultOption.textContent = 'All Société';
-        allSousDirections.forEach(sousDirection => {
-          const option = document.createElement('option');
-          option.value = sousDirection;
-          option.textContent = sousDirection;
-          sousDirectionFilter.appendChild(option);
-        });
-        sousDirectionFilter.disabled = false;
-      }
-      sousDirectionFilter.appendChild(defaultOption);
-      sousDirectionFilter.value = ''; // Ensure default option is selected
-    }
-
-    // Function to populate Direction filter based on selected Pole and Société
-    function populateDirectionFilter(selectedPole, selectedSousDirection) {
-      directionFilter.innerHTML = '';
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
-      defaultOption.textContent = 'All Directions';
-
-      if (selectedPole && pathData[selectedPole]) {
-        if (selectedSousDirection && pathData[selectedPole].directions[selectedSousDirection]) {
-          // Populate with Directions for the selected Société only
-          defaultOption.textContent = `All Directions of ${selectedSousDirection}`;
-          pathData[selectedPole].directions[selectedSousDirection].forEach(direction => {
-            const option = document.createElement('option');
-            option.value = direction;
-            option.textContent = direction;
-            directionFilter.appendChild(option);
-          });
-          directionFilter.disabled = pathData[selectedPole].directions[selectedSousDirection].size === 0;
-        } else if (!selectedSousDirection) {
-          // Populate with Directions directly under the Pole or all Directions under the Pole
-          defaultOption.textContent = `All Directions of ${selectedPole}`;
-          const allPoleDirections = new Set();
-          // Include direct Directions under the Pole
-          pathData[selectedPole].directDirections.forEach(direction => {
-            allPoleDirections.add(direction);
-          });
-          // Include Directions under all Sociétés if no Société is selected
-          Object.values(pathData[selectedPole].directions).forEach(dirs => {
-            dirs.forEach(dir => allPoleDirections.add(dir));
-          });
-          allPoleDirections.forEach(direction => {
-            const option = document.createElement('option');
-            option.value = direction;
-            option.textContent = direction;
-            directionFilter.appendChild(option);
-          });
-          directionFilter.disabled = allPoleDirections.size === 0;
-        } else {
-          // No Directions for the selected Société
-          defaultOption.textContent = 'No Directions Available';
-          directionFilter.disabled = true;
-        }
-      } else {
-        // Populate with all Directions when no Pole is selected
-        allDirections.forEach(direction => {
-          const option = document.createElement('option');
-          option.value = direction;
-          option.textContent = direction;
-          directionFilter.appendChild(option);
-        });
-        directionFilter.disabled = allDirections.size === 0;
-      }
-      directionFilter.appendChild(defaultOption);
-      directionFilter.value = ''; // Ensure default option is selected
-    }
-
-    // Function to clear all filters
-    function clearFilters() {
-      poleFilter.value = '';
-      sousDirectionFilter.value = '';
-      directionFilter.value = '';
-      reportSearch.value = '';
-      populateSousDirectionFilter('');
-      populateDirectionFilter('', '');
-      filterReports();
-    }
-
-    // Filter function
+    // Filter function - search only
     function filterReports() {
       const searchValue = reportSearch.value.toLowerCase();
-      const poleValue = poleFilter.value;
-      const sousDirectionValue = sousDirectionFilter.value;
-      const directionValue = directionFilter.value;
 
       cards.forEach(card => {
         const titleElement = card.querySelector('.card-title');
-        const path = card.getAttribute('data-path');
-        const parts = path.split('/').filter(part => part);
-
         const titleText = titleElement ? titleElement.textContent.toLowerCase() : '';
         const matchesSearch = titleText.includes(searchValue);
-        const matchesPole = !poleValue || parts[0] === poleValue;
-
-        let matchesSousDirection = true;
-        let matchesDirection = true;
-
-        if (parts[1] && parts[1].toLowerCase().startsWith('direction')) {
-          // No Société, second component is Direction
-          matchesSousDirection = !sousDirectionValue;
-          matchesDirection = !directionValue || parts[1] === directionValue;
-        } else {
-          // Second component is Société
-          matchesSousDirection = !sousDirectionValue || parts[1] === sousDirectionValue;
-          matchesDirection = !directionValue || (parts[2] && parts[2] === directionValue);
-        }
-
-        card.style.display = matchesSearch && matchesPole && matchesSousDirection && matchesDirection ? '' : 'none';
+        card.style.display = matchesSearch ? '' : 'none';
       });
     }
 
-    // Event listeners for filters
-    poleFilter.addEventListener('change', function () {
-      populateSousDirectionFilter(this.value);
-      populateDirectionFilter(this.value, '');
-      filterReports();
-    });
-
-    sousDirectionFilter.addEventListener('change', function () {
-      populateDirectionFilter(poleFilter.value, this.value);
-      filterReports();
-    });
-
-    directionFilter.addEventListener('change', filterReports);
+    // Event listener for search
     reportSearch.addEventListener('input', filterReports);
-    clearFiltersBtn.addEventListener('click', clearFilters);
-
-    // Initialize filters
-    populateSousDirectionFilter('');
-    populateDirectionFilter('', '');
   });
 </script>
 

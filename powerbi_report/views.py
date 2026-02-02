@@ -2757,7 +2757,7 @@ def custom_folders_list(request, view_type='business', folder_id=None):
     Filters based on PBIRS permissions.
     """
     # Validate view type
-    if view_type not in ['business', 'department']:
+    if view_type not in ['business', 'department', 'biblio']:
         raise Http404("Invalid view type")
     
     # Get the current folder if specified
@@ -2797,7 +2797,12 @@ def custom_folders_list(request, view_type='business', folder_id=None):
     unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
     
-    view_title = "Business Folders" if view_type == 'business' else "Department View"
+    view_titles = {
+        'business': 'Rapports par Société',
+        'department': 'Rapports par Pôle',
+        'biblio': 'Bibliothèque'
+    }
+    view_title = view_titles.get(view_type, 'Dossiers personnalisés')
     
     log_history(request.user, f"Viewed custom folders ({view_type})")
     

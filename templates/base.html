@@ -70,7 +70,7 @@
               <span class="pc-micon">
                 <i data-feather="home"></i>
               </span>
-              <span class="pc-mtext">Tableau de bord</span>
+              <span class="pc-mtext">Dashboard</span>
             </a>
           </li>
           {% endif %}
@@ -99,13 +99,13 @@
           <li class="pc-item">
             <a href="{% url 'powerbi_report:custom_business' %}" class="pc-link">
               <span class="pc-micon"><i data-feather="briefcase"></i></span>
-              <span class="pc-mtext">Rapports par Société</span>
+              <span class="pc-mtext">Tableau de bord</span>
             </a>
           </li>
           <li class="pc-item">
             <a href="{% url 'powerbi_report:custom_department' %}" class="pc-link">
               <span class="pc-micon"><i data-feather="users"></i></span>
-              <span class="pc-mtext">Rapports par Pôle</span>
+              <span class="pc-mtext">Tableau de bord</span>
             </a>
           </li>
           {% else %}
@@ -126,6 +126,14 @@
           </li>
           {% endif %}
           {% endif %}
+
+          <!-- Bibliothèque - visible to all authenticated users -->
+          <li class="pc-item">
+            <a href="{% url 'powerbi_report:custom_biblio' %}" class="pc-link">
+              <span class="pc-micon"><i data-feather="book"></i></span>
+              <span class="pc-mtext">Bibliothèque</span>
+            </a>
+          </li>
 
           <!--Navigation 2-->
           <li class="pc-item pc-caption">
