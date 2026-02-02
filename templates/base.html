@@ -239,9 +239,8 @@
                   <div class="card-body">
                     <div class="d-flex">
                       <div class="flex-grow-1 ms-3">
-                        <a href="{% url 'notifications' %}" style="text-decoration: none; " onclick="markAsRead(this)">
-                          <span class="float-end text-sm text-muted">Il y a {{ notification.created_at|timesince
-                            }}</span>
+                        <a href="{% url 'notifications' %}" style="text-decoration: none;" onclick="markAsRead(this)">
+                          <span class="float-end text-sm text-muted"> {{ notification.created_at|timesince }}</span>
                           <p class="mb-0">{{ notification.message }}</p>
                         </a>
                       </div>
