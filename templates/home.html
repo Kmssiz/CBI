@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Dashboard{% endblock %}
+{% block title %}Tableau de bord{% endblock %}
 {% block content %}
 
 <!-- [ Main Content ] start -->
@@ -12,13 +12,13 @@
         <div class="row align-items-center">
           <div class="col-md-12">
             <div class="page-header-title">
-              <h5 class="mb-0">Dashboard</h5>
+              <h5 class="mb-0">Tableau de bord</h5>
             </div>
           </div>
           <div class="col-md-12">
             <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="#">Home</a></li>
-              <li class="breadcrumb-item"><a href="javascript: void(0)">Dashboard</a></li>
+              <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+              <li class="breadcrumb-item"><a href="javascript: void(0)">Tableau de bord</a></li>
             </ul>
           </div>
         </div>
@@ -28,23 +28,25 @@
 
     <div class="row">
 
-{% if permissions.view_dashboard %}
+      {% if permissions.view_dashboard %}
       <!-- [ Total Users ] start -->
       <div class="col-md-6 col-xl-4">
         <a href="{% url 'users_view' %}" class="text-decoration-none">
           <div class="card">
             <div class="card-body">
-              <h6 class="mb-4">Total Users</h6>
+              <h6 class="mb-4">Utilisateurs totaux</h6>
               <div class="row d-flex align-items-center">
                 <div class="col-9">
-                  <h3 class="f-w-300 d-flex align-items-center m-b-0"><i class="feather icon-users text-primary f-30 m-r-10"></i>{{ active_users }}</h3>
+                  <h3 class="f-w-300 d-flex align-items-center m-b-0"><i
+                      class="feather icon-users text-primary f-30 m-r-10"></i>{{ active_users }}</h3>
                 </div>
                 <div class="col-3 text-end">
                   <p class="m-b-0">{{ total_users }}</p>
                 </div>
               </div>
               <div class="progress m-t-30" style="height: 7px">
-                <div class="progress-bar bg-info" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                <div class="progress-bar bg-info" role="progressbar" style="width: 100%" aria-valuenow="100"
+                  aria-valuemin="0" aria-valuemax="100"></div>
               </div>
             </div>
           </div>
@@ -57,14 +59,16 @@
         <a href="{% url 'powerbi_report:report_list' %}" class="text-decoration-none">
           <div class="card">
             <div class="card-body">
-              <h6 class="mb-4">Users Per Month</h6>
+              <h6 class="mb-4">Utilisateurs ce mois</h6>
               <div class="row d-flex align-items-center">
                 <div class="col-9">
-                  <h3 class="f-w-300 d-flex align-items-center m-b-0"><i class="feather icon-users text-warning f-30 m-r-10"></i>{{ users_this_month }}</h3>
+                  <h3 class="f-w-300 d-flex align-items-center m-b-0"><i
+                      class="feather icon-users text-warning f-30 m-r-10"></i>{{ users_this_month }}</h3>
                 </div>
               </div>
               <div class="progress m-t-30" style="height: 7px">
-                <div class="progress-bar bg-warning" role="progressbar" style="width: 100%" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+                <div class="progress-bar bg-warning" role="progressbar" style="width: 100%" aria-valuenow="60"
+                  aria-valuemin="0" aria-valuemax="100"></div>
               </div>
             </div>
           </div>
@@ -77,14 +81,16 @@
         <a href="{% url 'powerbi_report:report_list' %}" class="text-decoration-none">
           <div class="card">
             <div class="card-body">
-              <h6 class="mb-4">Total Reports</h6>
+              <h6 class="mb-4">Rapports totaux</h6>
               <div class="row d-flex align-items-center">
                 <div class="col-9">
-                  <h3 class="f-w-300 d-flex align-items-center m-b-0"><i class="feather icon-file-text text-info f-30 m-r-10"></i>{{ total_reports }}</h3>
+                  <h3 class="f-w-300 d-flex align-items-center m-b-0"><i
+                      class="feather icon-file-text text-info f-30 m-r-10"></i>{{ total_reports }}</h3>
                 </div>
               </div>
               <div class="progress m-t-30" style="height: 7px">
-                <div class="progress-bar bg-success" role="progressbar" style="width: 100%" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+                <div class="progress-bar bg-success" role="progressbar" style="width: 100%" aria-valuenow="60"
+                  aria-valuemin="0" aria-valuemax="100"></div>
               </div>
             </div>
           </div>
@@ -99,286 +105,293 @@
             <!-- [ Graph Filter ] start -->
             <div class="card mb-3">
               <div class="d-flex flex-column gap-2 p-3">
-                <button class="btn btn-outline-primary" data-graph="monthly">Monthly Login Statistics</button>
-                <button class="btn btn-outline-success" data-graph="daily">Daily Login Statistics</button>
-                <button class="btn btn-outline-warning" data-graph="weekly">Weekly Login Statistics</button>
-                <button class="btn btn-outline-info" data-graph="hourly">Hourly Login Statistics</button>
+                <button class="btn btn-outline-primary" data-graph="monthly">Statistiques mensuelles</button>
+                <button class="btn btn-outline-success" data-graph="daily">Statistiques quotidiennes</button>
+                <button class="btn btn-outline-warning" data-graph="weekly">Statistiques hebdomadaires</button>
+                <button class="btn btn-outline-info" data-graph="hourly">Statistiques horaires</button>
               </div>
             </div>
             <!-- [ Graph Filter ] end -->
 
-{% if completed_refreshes %}
+            {% if completed_refreshes %}
             <!-- [ Completed Refreshes ] start -->
             <div class="card mb-3">
               <div class="card-body">
-                <h6 class="mb-4">Completed Refreshes</h6>
+                <h6 class="mb-4">Actualisations terminées</h6>
                 <div class="row d-flex align-items-center">
                   <div class="col-9">
-                    <h3 class="f-w-300 d-flex align-items-center m-b-0"><i class="feather icon-check-circle text-success f-30 m-r-10"></i>{{ completed_refreshes }}</h3>
+                    <h3 class="f-w-300 d-flex align-items-center m-b-0"><i
+                        class="feather icon-check-circle text-success f-30 m-r-10"></i>{{ completed_refreshes }}</h3>
                   </div>
                 </div>
                 <div class="progress m-t-30" style="height: 7px">
-                  <div class="progress-bar bg-success" role="progressbar" style="width: 85%" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100"></div>
+                  <div class="progress-bar bg-success" role="progressbar" style="width: 85%" aria-valuenow="85"
+                    aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
               </div>
             </div>
             <!-- [ Completed Refreshes ] end -->
-{% endif %}
-{% if failed_refreshes %}
+            {% endif %}
+            {% if failed_refreshes %}
             <!-- [ Failed Refreshes ] start -->
             <div class="card mb-3">
               <div class="card-body">
-                <h6 class="mb-4">Failed Refreshes</h6>
+                <h6 class="mb-4">Actualisations échouées</h6>
                 <div class="row d-flex align-items-center">
                   <div class="col-9">
-                    <h3 class="f-w-300 d-flex align-items-center m-b-0"><i class="feather icon-x-circle text-danger f-30 m-r-10"></i>{{ failed_refreshes }}</h3>
+                    <h3 class="f-w-300 d-flex align-items-center m-b-0"><i
+                        class="feather icon-x-circle text-danger f-30 m-r-10"></i>{{ failed_refreshes }}</h3>
                   </div>
                 </div>
                 <div class="progress m-t-30" style="height: 7px">
-                  <div class="progress-bar bg-danger" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
+                  <div class="progress-bar bg-danger" role="progressbar" style="width: 20%" aria-valuenow="20"
+                    aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
               </div>
             </div>
             <!-- [ Failed Refreshes ] end -->
-{% endif %}
+            {% endif %}
 
 
           </div>
         </div>
 
         <div class="col-md-9 text-end">
-<!-- [ Monthly Graph Section ] start -->
-<div id="monthly-graph" class="graph-container">
-  <div class="card">
-    <div class="card-header">
-      <h5>Monthly Login Statistics</h5>
-    </div>
-    <div class="card-body">
-      <canvas id="statistics-chart" class="chart-canvas"></canvas>
-    </div>
-  </div>
-</div>
-<!-- [ Monthly Graph Section ] end -->
-
-<!-- [ Daily Graph Section ] start -->
-<div id="daily-graph" class="graph-container" style="display: none;">
-  <div class="card">
-    <div class="card-header">
-      <h5>Daily Login Statistics</h5>
-    </div>
-    <div class="card-body">
-      <canvas id="statistics-chart2" class="chart-canvas"></canvas>
-    </div>
-  </div>
-</div>
-<!-- [ Daily Graph Section ] end -->
-
-<!-- [ Weekly Graph Section ] start -->
-<div id="weekly-graph" class="graph-container" style="display: none;">
-  <div class="card">
-    <div class="card-header">
-      <h5>Weekly Login Statistics</h5>
-    </div>
-    <div class="card-body">
-      <canvas id="statistics-chart3" class="chart-canvas"></canvas>
-    </div>
-  </div>
-</div>
-<!-- [ Weekly Graph Section ] end -->
-
-<!-- [ Hourly Graph Section ] start -->
-<div id="hourly-graph" class="graph-container" style="display: none;">
-  <div class="card">
-    <div class="card-header">
-      <h5>Hourly Login Statistics</h5>
-    </div>
-    <div class="card-body">
-      <canvas id="statistics-chart4" class="chart-canvas"></canvas>
-    </div>
-  </div>
-</div>
-<!-- [ Hourly Graph Section ] end -->
-      </div>
-      <!-- [ Refreshing ] end -->
-
-{%endif%}
-{% if permissions.view_refresh  %}
-
-{% if report_refresh_list %}
-      <!-- [ Filter Section ] start -->
-      <div style="margin-bottom:20px">
-        <div class="row mt-3">
-          <div class="col-md-4">
-            <input type="text" id="searchName" class="form-control" placeholder="Search by report name">
+          <!-- [ Monthly Graph Section ] start -->
+          <div id="monthly-graph" class="graph-container">
+            <div class="card">
+              <div class="card-header">
+                <h5>Statistiques de connexion mensuelles</h5>
+              </div>
+              <div class="card-body">
+                <canvas id="statistics-chart" class="chart-canvas"></canvas>
+              </div>
+            </div>
           </div>
-          <div class="col-md-4">
-            <select id="statusFilter" class="form-control">
-              <option value="">All Statuses</option>
-              <option value="Completed Data Refresh">Completed</option>
-              <option value="Nouveau plan d'actualisation planifié">Scheduled</option>
-              <option value="Data Refresh failed">Failed</option>
-            </select>
+          <!-- [ Monthly Graph Section ] end -->
+
+          <!-- [ Daily Graph Section ] start -->
+          <div id="daily-graph" class="graph-container" style="display: none;">
+            <div class="card">
+              <div class="card-header">
+                <h5>Statistiques de connexion quotidiennes</h5>
+              </div>
+              <div class="card-body">
+                <canvas id="statistics-chart2" class="chart-canvas"></canvas>
+              </div>
+            </div>
           </div>
-          <div class="col-md-4">
-            <select id="sortTime" class="form-control">
-              <option value="">Sort by Last Refresh</option>
-              <option value="asc">Oldest First</option>
-              <option value="desc">Newest First</option>
-            </select>
+          <!-- [ Daily Graph Section ] end -->
+
+          <!-- [ Weekly Graph Section ] start -->
+          <div id="weekly-graph" class="graph-container" style="display: none;">
+            <div class="card">
+              <div class="card-header">
+                <h5>Statistiques de connexion hebdomadaires</h5>
+              </div>
+              <div class="card-body">
+                <canvas id="statistics-chart3" class="chart-canvas"></canvas>
+              </div>
+            </div>
           </div>
+          <!-- [ Weekly Graph Section ] end -->
+
+          <!-- [ Hourly Graph Section ] start -->
+          <div id="hourly-graph" class="graph-container" style="display: none;">
+            <div class="card">
+              <div class="card-header">
+                <h5>Statistiques de connexion horaires</h5>
+              </div>
+              <div class="card-body">
+                <canvas id="statistics-chart4" class="chart-canvas"></canvas>
+              </div>
+            </div>
+          </div>
+          <!-- [ Hourly Graph Section ] end -->
         </div>
-      </div>
-      <!-- [ Filter Section ] end -->
+        <!-- [ Refreshing ] end -->
 
-      <!-- [ Report Refresh List ] start -->
-      <div class="col-md-12">
-        <div class="card">
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="table table-hover" id="reportTable">
-                <thead>
-                  <tr>
-                    <th>Report Name</th>
-                    <th>Last Refresh</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for report in report_refresh_list %}
-                  {% if permissions.view_dashboard %}
+        {%endif%}
+        {% if permissions.view_refresh %}
 
-                  <tr onclick="window.location.href='{% url 'powerbi_report:report_detail' report.report_id %}'" style="cursor: pointer;">
-                    <td class="report-name">
-                      {{ report.report_name }}
-                    </td>
-                    <td class="last-refresh">{{ report.last_refresh }}</td>
-                    <td class="status">
-                      <span class="badge {% if report.status == 'Completed Data Refresh' %}bg-success{% elif report.status == 'Nouveau plan d\'actualisation planifié' %}bg-warning{% else %}bg-danger{% endif %}">
-                        {% if 'Data Refresh failed' in report.status %}
-                        Data Refresh failed
-                        {% else %}
-                        {{ report.status }}
-                        {% endif %}
-                      </span>
-                    </td>
-                  </tr>
-                  {%else%}
-                  <tr onclick="window.location.href='#'" style="cursor: pointer;">
-                    <td class="report-name">
-                      {{ report.report_name }}
-                    </td>
-                    <td class="last-refresh">{{ report.last_refresh }}</td>
-                    <td class="status">
-                      <span class="badge {% if report.status == 'Completed Data Refresh' %}bg-success{% elif report.status == 'Nouveau plan d\'actualisation planifié' %}bg-warning{% else %}bg-danger{% endif %}">
-                        {% if 'Data Refresh failed' in report.status %}
-                        Data Refresh failed
-                        {% else %}
-                        {{ report.status }}
-                        {% endif %}
-                      </span>
-                    </td>
-                  </tr>
-                  {%endif%}
-
-                  
-                  {% empty %}
-                  <tr>
-                    <td colspan="3" class="text-center">No refresh data available.</td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+        {% if report_refresh_list %}
+        <!-- [ Filter Section ] start -->
+        <div style="margin-bottom:20px">
+          <div class="row mt-3">
+            <div class="col-md-4">
+              <input type="text" id="searchName" class="form-control" placeholder="Rechercher par nom de rapport">
+            </div>
+            <div class="col-md-4">
+              <select id="statusFilter" class="form-control">
+                <option value="">Tous les statuts</option>
+                <option value="Completed Data Refresh">Terminé</option>
+                <option value="Nouveau plan d'actualisation planifié">Planifié</option>
+                <option value="Data Refresh failed">Échoué</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <select id="sortTime" class="form-control">
+                <option value="">Trier par dernière actualisation</option>
+                <option value="asc">Plus ancien en premier</option>
+                <option value="desc">Plus récent en premier</option>
+              </select>
             </div>
           </div>
         </div>
+        <!-- [ Filter Section ] end -->
+
+        <!-- [ Report Refresh List ] start -->
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover" id="reportTable">
+                  <thead>
+                    <tr>
+                      <th>Nom du rapport</th>
+                      <th>Dernière actualisation</th>
+                      <th>Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for report in report_refresh_list %}
+                    {% if permissions.view_dashboard %}
+
+                    <tr onclick="window.location.href='{% url 'powerbi_report:report_detail' report.report_id %}'"
+                      style="cursor: pointer;">
+                      <td class="report-name">
+                        {{ report.report_name }}
+                      </td>
+                      <td class="last-refresh">{{ report.last_refresh }}</td>
+                      <td class="status">
+                        <span
+                          class="badge {% if report.status == 'Completed Data Refresh' %}bg-success{% elif report.status == 'Nouveau plan d\'actualisation planifié' %}bg-warning{% else %}bg-danger{% endif %}">
+                          {% if 'Data Refresh failed' in report.status %}
+                          Échec de l'actualisation
+                          {% else %}
+                          {{ report.status }}
+                          {% endif %}
+                        </span>
+                      </td>
+                    </tr>
+                    {%else%}
+                    <tr onclick="window.location.href='#'" style="cursor: pointer;">
+                      <td class="report-name">
+                        {{ report.report_name }}
+                      </td>
+                      <td class="last-refresh">{{ report.last_refresh }}</td>
+                      <td class="status">
+                        <span
+                          class="badge {% if report.status == 'Completed Data Refresh' %}bg-success{% elif report.status == 'Nouveau plan d\'actualisation planifié' %}bg-warning{% else %}bg-danger{% endif %}">
+                          {% if 'Data Refresh failed' in report.status %}
+                          Data Refresh failed
+                          {% else %}
+                          {{ report.status }}
+                          {% endif %}
+                        </span>
+                      </td>
+                    </tr>
+                    {%endif%}
+
+
+                    {% empty %}
+                    <tr>
+                      <td colspan="3" class="text-center">Aucune donnée d'actualisation disponible.</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- [ Report Refresh List ] end -->
+        {% endif %}
+
+        {%endif%}
       </div>
-      <!-- [ Report Refresh List ] end -->
-{% endif %}
-
-{%endif%}
+      <!-- [ Main Content ] end -->
     </div>
-    <!-- [ Main Content ] end -->
   </div>
-</div>
-<!-- [ Main Content ] end -->
+  <!-- [ Main Content ] end -->
 
-<!-- Include Chart Library -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Include Chart Library -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- Existing Table Filter and Sort Scripts -->
-<script>
-  document.getElementById("searchName").addEventListener("keyup", function() {
-    let value = this.value.toLowerCase();
-    document.querySelectorAll("#reportTable tbody tr").forEach(row => {
-      let name = row.querySelector(".report-name").textContent.toLowerCase();
-      row.style.display = name.includes(value) ? "" : "none";
-    });
-  });
-
-  document.getElementById("statusFilter").addEventListener("change", function() {
-    let value = this.value;
-    document.querySelectorAll("#reportTable tbody tr").forEach(row => {
-      let status = row.querySelector(".status").textContent.trim();
-      row.style.display = value === "" || status === value ? "" : "none";
-    });
-  });
-
-  document.getElementById("sortTime").addEventListener("change", function() {
-    let table = document.querySelector("#reportTable tbody");
-    let rows = Array.from(table.querySelectorAll("tr"));
-    let order = this.value;
-    rows.sort((a, b) => {
-      let dateA = new Date(a.querySelector(".last-refresh").textContent);
-      let dateB = new Date(b.querySelector(".last-refresh").textContent);
-      return order === "asc" ? dateA - dateB : dateB - dateA;
-    });
-    rows.forEach(row => table.appendChild(row));
-  });
-</script>
-
-<!-- Graph Filter Script -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const graphButtons = document.querySelectorAll('.btn[data-graph]');
-    const monthlyGraph = document.getElementById('monthly-graph');
-    const dailyGraph = document.getElementById('daily-graph');
-    const weeklyGraph = document.getElementById('weekly-graph');
-    const hourlyGraph = document.getElementById('hourly-graph');
-
-    graphButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        // Remove active class from all buttons
-        graphButtons.forEach(btn => btn.classList.remove('active'));
-        // Add active class to clicked button
-        this.classList.add('active');
-
-        // Show/hide graphs based on button clicked
-        monthlyGraph.style.display = this.dataset.graph === 'monthly' ? 'block' : 'none';
-        dailyGraph.style.display = this.dataset.graph === 'daily' ? 'block' : 'none';
-        weeklyGraph.style.display = this.dataset.graph === 'weekly' ? 'block' : 'none';
-        hourlyGraph.style.display = this.dataset.graph === 'hourly' ? 'block' : 'none';
+  <!-- Existing Table Filter and Sort Scripts -->
+  <script>
+    document.getElementById("searchName").addEventListener("keyup", function () {
+      let value = this.value.toLowerCase();
+      document.querySelectorAll("#reportTable tbody tr").forEach(row => {
+        let name = row.querySelector(".report-name").textContent.toLowerCase();
+        row.style.display = name.includes(value) ? "" : "none";
       });
     });
-  });
-</script>
 
-<!-- Chart.js Script for Monthly Logins -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Prepare data for the chart
-    const monthlyLogins = [
-      {% for login in monthly_logins %}
+    document.getElementById("statusFilter").addEventListener("change", function () {
+      let value = this.value;
+      document.querySelectorAll("#reportTable tbody tr").forEach(row => {
+        let status = row.querySelector(".status").textContent.trim();
+        row.style.display = value === "" || status === value ? "" : "none";
+      });
+    });
+
+    document.getElementById("sortTime").addEventListener("change", function () {
+      let table = document.querySelector("#reportTable tbody");
+      let rows = Array.from(table.querySelectorAll("tr"));
+      let order = this.value;
+      rows.sort((a, b) => {
+        let dateA = new Date(a.querySelector(".last-refresh").textContent);
+        let dateB = new Date(b.querySelector(".last-refresh").textContent);
+        return order === "asc" ? dateA - dateB : dateB - dateA;
+      });
+      rows.forEach(row => table.appendChild(row));
+    });
+  </script>
+
+  <!-- Graph Filter Script -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const graphButtons = document.querySelectorAll('.btn[data-graph]');
+      const monthlyGraph = document.getElementById('monthly-graph');
+      const dailyGraph = document.getElementById('daily-graph');
+      const weeklyGraph = document.getElementById('weekly-graph');
+      const hourlyGraph = document.getElementById('hourly-graph');
+
+      graphButtons.forEach(button => {
+        button.addEventListener('click', function () {
+          // Remove active class from all buttons
+          graphButtons.forEach(btn => btn.classList.remove('active'));
+          // Add active class to clicked button
+          this.classList.add('active');
+
+          // Show/hide graphs based on button clicked
+          monthlyGraph.style.display = this.dataset.graph === 'monthly' ? 'block' : 'none';
+          dailyGraph.style.display = this.dataset.graph === 'daily' ? 'block' : 'none';
+          weeklyGraph.style.display = this.dataset.graph === 'weekly' ? 'block' : 'none';
+          hourlyGraph.style.display = this.dataset.graph === 'hourly' ? 'block' : 'none';
+        });
+      });
+    });
+  </script>
+
+  <!-- Chart.js Script for Monthly Logins -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Prepare data for the chart
+      const monthlyLogins = [
+        {% for login in monthly_logins %}
         {
-          month: "{{ login.month|date:'F' }}",
-          count: {{ login.count }}
-        }{% if not forloop.last %},{% endif %}
-      {% endfor %}
+        month: "{{ login.month|date:'F' }}",
+        count: {{ login.count }}
+        }{% if not forloop.last %}, {% endif %}
+    {% endfor %}
     ];
 
     // Create an array for all months to ensure consistent display
     const allMonths = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
     ];
     const labels = allMonths;
     const data = new Array(12).fill(0); // Initialize with zeros
@@ -398,7 +411,7 @@
       data: {
         labels: labels,
         datasets: [{
-          label: 'Login Events',
+          label: 'Événements de connexion',
           data: data,
           backgroundColor: 'rgba(54, 162, 235, 0.6)',
           borderColor: 'rgba(54, 162, 235, 1)',
@@ -419,7 +432,7 @@
           x: {
             title: {
               display: true,
-              text: 'Month'
+              text: 'Mois'
             }
           }
         },
@@ -435,20 +448,20 @@
       }
     });
   });
-</script>
+  </script>
 
 
-<!-- Chart.js Script for Daily Logins -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Prepare data for the chart
-    const dailyLogins = [
-      {% for login in daily_logins %}
+  <!-- Chart.js Script for Daily Logins -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Prepare data for the chart
+      const dailyLogins = [
+        {% for login in daily_logins %}
         {
-          day: "{{ login.day|date:'j' }}",
-          count: {{ login.count }}
-        }{% if not forloop.last %},{% endif %}
-      {% endfor %}
+        day: "{{ login.day|date:'j' }}",
+        count: {{ login.count }}
+        }{% if not forloop.last %}, {% endif %}
+    {% endfor %}
     ];
 
     // Create an array for all days of the month (1-31)
@@ -471,7 +484,7 @@
       data: {
         labels: labels,
         datasets: [{
-          label: 'Login Events',
+          label: 'Événements de connexion',
           data: data,
           backgroundColor: 'rgba(75, 192, 192, 0.6)',
           borderColor: 'rgba(75, 192, 192, 1)',
@@ -492,7 +505,7 @@
           x: {
             title: {
               display: true,
-              text: 'Day of Month'
+              text: 'Jour du mois'
             }
           }
         },
@@ -508,23 +521,23 @@
       }
     });
   });
-</script>
+  </script>
 
-<!-- Chart.js Script for Weekly Logins -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Prepare data for the chart
-    const weeklyLogins = [
-      {% for login in weekly_logins %}
+  <!-- Chart.js Script for Weekly Logins -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Prepare data for the chart
+      const weeklyLogins = [
+        {% for login in weekly_logins %}
         {
-          day: "{{ login.day|date:'l' }}",
-          count: {{ login.count }}
-        }{% if not forloop.last %},{% endif %}
-      {% endfor %}
+        day: "{{ login.day|date:'l' }}",
+        count: {{ login.count }}
+        }{% if not forloop.last %}, {% endif %}
+    {% endfor %}
     ];
 
     // Create an array for the last 7 days (Friday to Thursday)
-    const allDays = ['Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
+    const allDays = ['Vendredi', 'Samedi', 'Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi'];
     const labels = allDays;
     const data = new Array(7).fill(0); // Initialize with zeros
 
@@ -543,7 +556,7 @@
       data: {
         labels: labels,
         datasets: [{
-          label: 'Login Events',
+          label: 'Événements de connexion',
           data: data,
           backgroundColor: 'rgba(153, 102, 255, 0.6)',
           borderColor: 'rgba(153, 102, 255, 1)',
@@ -558,13 +571,13 @@
             beginAtZero: true,
             title: {
               display: true,
-              text: 'Number of Logins'
+              text: 'Nombre de connexions'
             }
           },
           x: {
             title: {
               display: true,
-              text: 'Day of Week'
+              text: 'Jour de la semaine'
             }
           }
         },
@@ -580,19 +593,19 @@
       }
     });
   });
-</script>
+  </script>
 
-<!-- Chart.js Script for Hourly Logins -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Prepare data for the chart
-    const hourlyLogins = [
-      {% for login in hourly_logins %}
+  <!-- Chart.js Script for Hourly Logins -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Prepare data for the chart
+      const hourlyLogins = [
+        {% for login in hourly_logins %}
         {
-          hours: "{{ login.hours.hour }}",
-          count: {{ login.count }}
+        hours: "{{ login.hours.hour }}",
+        count: {{ login.count }}
         }{% if not forloop.last %}, {% endif %}
-      {% endfor %}
+    {% endfor %}
     ];
 
     // Debug: Log hourly logins data
@@ -619,7 +632,7 @@
         data: {
           labels: labels,
           datasets: [{
-            label: 'Login Events',
+            label: 'Événements de connexion',
             data: data,
             backgroundColor: 'rgba(255, 159, 64, 0.6)',
             borderColor: 'rgba(255, 159, 1)',
@@ -633,13 +646,13 @@
               beginAtZero: true,
               title: {
                 display: true,
-                text: 'Number of Logins'
+                text: 'Nombre de connexions'
               }
             },
             x: {
               title: {
                 display: true,
-                text: 'Hour of Day'
+                text: 'Heure de la journée'
               }
             }
           },
@@ -658,54 +671,61 @@
       console.error("Canvas with ID 'statistics-chart4' not found");
     }
   });
-</script>
+  </script>
 
-<!-- Existing Refresh Fetch Script -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    let Refresh = false;
+  <!-- Existing Refresh Fetch Script -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      let Refresh = false;
 
-    setTimeout(function() {
-      console.log("Waiting");
+      setTimeout(function () {
+        console.log("Waiting");
 
-      fetch("{% url 'powerbi_report:get_report_refresh_list' %}")
-        .then(response => response.json())
-        .then(data => {
-          console.log('Cache loaded:', data);
-        })
-        .catch(error => {
-          console.error('Error loading cache:', error);
-        });
-    }, 100);
-  });
-</script>
+        fetch("{% url 'powerbi_report:get_report_refresh_list' %}")
+          .then(response => response.json())
+          .then(data => {
+            console.log('Cache loaded:', data);
+          })
+          .catch(error => {
+            console.error('Error loading cache:', error);
+          });
+      }, 100);
+    });
+  </script>
 
-<style>
-  .bg-warning {
-    background-color: rgb(255, 193, 7);
-    color: white;
-  }
-  .btn-outline-primary.active {
-    background-color: #007bff;
-    color: white;
-  }
-  .btn-outline-success.active {
-    background-color: #28a745;
-    color: white;
-  }
-  .btn-outline-warning.active {
-    background-color: #ffc107;
-    color: white;
-  }
-  .btn-outline-info.active {
-    background-color: #17a2b8;
-    color: white;
-  }
-  /* New CSS class for uniform chart height */
-  .chart-canvas {
-    height: 470px !important; /* Consistent height for all charts */
-    width: 100%; /* Ensure full width */
-  }
-</style>
+  <style>
+    .bg-warning {
+      background-color: rgb(255, 193, 7);
+      color: white;
+    }
 
-{% endblock %}
+    .btn-outline-primary.active {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .btn-outline-success.active {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .btn-outline-warning.active {
+      background-color: #ffc107;
+      color: white;
+    }
+
+    .btn-outline-info.active {
+      background-color: #17a2b8;
+      color: white;
+    }
+
+    /* New CSS class for uniform chart height */
+    .chart-canvas {
+      height: 470px !important;
+      /* Consistent height for all charts */
+      width: 100%;
+      /* Ensure full width */
+    }
+  </style>
+
+  {% endblock %}

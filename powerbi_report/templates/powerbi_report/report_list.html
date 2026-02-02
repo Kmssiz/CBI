@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Power BI Reports{% endblock %}
+{% block title %}Rapports Power BI{% endblock %}
 {% block content %}
 
 <!-- Main Content -->
@@ -13,13 +13,13 @@
         <div class="row align-items-center">
           <div class="col-md-12">
             <div class="page-header-title">
-              <h5 class="mb-0">Power BI Reports</h5>
+              <h5 class="mb-0">Rapports Power BI</h5>
             </div>
           </div>
           <div class="col-md-12">
             <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-              <li class="breadcrumb-item active" aria-current="page">Reports</li>
+              <li class="breadcrumb-item"><a href="{% url 'home' %}">Accueil</a></li>
+              <li class="breadcrumb-item active" aria-current="page">Rapports</li>
             </ul>
           </div>
         </div>
@@ -31,7 +31,9 @@
     {% if messages %}
     <div class="mt-3">
       {% for message in messages %}
-      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
+      <div
+        class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show"
+        role="alert">
         <i class="feather icon-check-circle"></i>
         {{ message }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -46,29 +48,30 @@
         <!-- Search and Filters -->
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div class="input-group w-50" style="max-width:500px;">
-            <input type="text" class="form-control" placeholder="Search reports by name..." id="reportSearch">
+            <input type="text" class="form-control" placeholder="Rechercher des rapports par nom..." id="reportSearch">
           </div>
           <div class="d-flex align-items-center w-100" style="margin-left:10px;">
             <div class="row g-3 w-100">
               <div class="col-md-4">
                 <select class="form-select" id="poleFilter">
-                  <option value="">All Pôles</option>
+                  <option value="">Tous les pôles</option>
                 </select>
               </div>
               <div class="col-md-4">
                 <select class="form-select" id="sousDirectionFilter">
-                  <option value="">All Société</option>
+                  <option value="">Toutes les sociétés</option>
                 </select>
               </div>
               <div class="col-md-4">
                 <select class="form-select" id="directionFilter">
-                  <option value="">All Directions</option>
+                  <option value="">Toutes les directions</option>
                 </select>
               </div>
             </div>
-            <button class="btn btn-outline-secondary ms-3 align-self-stretch" style="width:70px" id="clearFiltersBtn">Clear</button>
-        </div>
+            <button class="btn btn-outline-secondary ms-3 align-self-stretch" style="width:70px"
+              id="clearFiltersBtn">Effacer</button>
           </div>
+        </div>
       </div>
     </div>
     <!-- End Actions and Filters Section -->
@@ -79,15 +82,15 @@
       <div class="col-md-12">
         <div class="card">
           <div class="card-header">
-            <h5>Available Reports</h5>
+            <h5>Rapports disponibles</h5>
           </div>
           <div class="card-body px-0 py-3">
             <div class="table-responsive">
               <table class="table table-hover" id="reportTable">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Path</th>
+                    <th>Nom</th>
+                    <th>Chemin</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -97,20 +100,27 @@
                     <td>{{ report.Name }}</td>
                     <td title="{{ report.Path }}">{{ report.Path|truncatechars:40 }}</td>
                     <td>
-                      <a href="{% url 'powerbi_report:report_permissions' report.Id %}" class="btn btn-outline-permission btn-sm me-1">
-                        Manage Access
+                      <a href="{% url 'powerbi_report:report_permissions' report.Id %}"
+                        class="btn btn-outline-permission btn-sm me-1">
+                        Gérer l'accès
                       </a>
-                      <a href="{% url 'powerbi_report:report_detail' report.Id %}" class="btn btn-outline-primary btn-sm me-1">
-                        Details
+                      <a href="{% url 'powerbi_report:report_detail' report.Id %}"
+                        class="btn btn-outline-primary btn-sm me-1">
+                        Détails
                       </a>
-                      <a href="{% url 'powerbi_report:embed_report' report.Path %}" target="_blank" class="btn btn-outline-success btn-sm me-1">
-                        View
+                      <a href="{% url 'powerbi_report:embed_report' report.Path %}" target="_blank"
+                        class="btn btn-outline-success btn-sm me-1">
+                        Voir
                       </a>
-                      <button class="btn btn-outline-warning btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editReportModal" data-report-id="{{ report.Id }}" data-report-name="{{ report.Name }}">
-                        Rename
+                      <button class="btn btn-outline-warning btn-sm me-1" data-bs-toggle="modal"
+                        data-bs-target="#editReportModal" data-report-id="{{ report.Id }}"
+                        data-report-name="{{ report.Name }}">
+                        Renommer
                       </button>
-                      <button class="btn btn-outline-info btn-sm me-1" data-bs-toggle="modal" data-bs-target="#moveReportModal" data-report-id="{{ report.Id }}" data-report-path="{{ report.Path }}">
-                        Move
+                      <button class="btn btn-outline-info btn-sm me-1" data-bs-toggle="modal"
+                        data-bs-target="#moveReportModal" data-report-id="{{ report.Id }}"
+                        data-report-path="{{ report.Path }}">
+                        Déplacer
                       </button>
                     </td>
                   </tr>
@@ -123,17 +133,13 @@
       </div>
       {% else %}
       <div class="d-flex flex-column align-items-center justify-content-center" style="height: 100%;">
-        <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs" type="module"></script>
-        <br/><br/><br/><br/>
-        <dotlottie-player 
-          src="https://lottie.host/32f49128-c968-4a1a-81ab-f1ea5dc06556/KFFsAaw2Fi.lottie" 
-          background="transparent" 
-          speed="1" 
-          style="width: 300px; height: 300px;" 
-          loop 
-          autoplay>
+        <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
+          type="module"></script>
+        <br /><br /><br /><br />
+        <dotlottie-player src="https://lottie.host/32f49128-c968-4a1a-81ab-f1ea5dc06556/KFFsAaw2Fi.lottie"
+          background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay>
         </dotlottie-player>
-        <p class="text-center">No reports available.</p>
+        <p class="text-center">Aucun rapport disponible.</p>
       </div>
       {% endif %}
     </div>
@@ -147,18 +153,18 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="editReportModalLabel">Edit Report Name</h5>
+        <h5 class="modal-title" id="editReportModalLabel">Modifier le nom du rapport</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <form id="editReportForm" method="POST" action="{% url 'powerbi_report:edit_report' 0 %}">
           {% csrf_token %}
           <div class="mb-3">
-            <label for="reportName" class="form-label">Report Name</label>
+            <label for="reportName" class="form-label">Nom du rapport</label>
             <input type="text" class="form-control" id="reportName" name="name" required>
             <input type="hidden" id="reportId" name="report_id">
           </div>
-          <button type="submit" class="btn btn-primary">Update Name</button>
+          <button type="submit" class="btn btn-primary">Mettre à jour le nom</button>
         </form>
       </div>
     </div>
@@ -170,21 +176,22 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="moveReportModalLabel">Move Report</h5>
+        <h5 class="modal-title" id="moveReportModalLabel">Déplacer le rapport</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <form id="moveReportForm" method="POST" action="{% url 'powerbi_report:edit_path' 0 %}">
           {% csrf_token %}
           <div class="mb-3">
-            <label for="reportPath" class="form-label">New Report Path</label>
+            <label for="reportPath" class="form-label">Nouveau chemin du rapport</label>
             <input type="text" class="form-control" id="reportPath" name="path" required>
             <input type="hidden" id="moveReportId" name="report_id">
-            <div id="pathList" class="mt-2" style="max-height: 150px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 4px; padding: 5px;">
+            <div id="pathList" class="mt-2"
+              style="max-height: 150px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 4px; padding: 5px;">
               <!-- Path list will be populated by JavaScript -->
             </div>
           </div>
-          <button type="submit" class="btn btn-primary">Update Path</button>
+          <button type="submit" class="btn btn-primary">Mettre à jour le chemin</button>
         </form>
       </div>
     </div>
@@ -275,7 +282,7 @@
       const defaultOption = document.createElement('option');
       defaultOption.value = '';
       if (selectedPole && pathData[selectedPole]) {
-        defaultOption.textContent = `All Société of ${selectedPole}`;
+        defaultOption.textContent = `Toutes les sociétés de ${selectedPole}`;
         if (pathData[selectedPole].sousDirections.size > 0) {
           pathData[selectedPole].sousDirections.forEach(sousDirection => {
             const option = document.createElement('option');
@@ -285,11 +292,11 @@
           });
           sousDirectionFilter.disabled = false;
         } else {
-          defaultOption.textContent = 'No Société Available';
+          defaultOption.textContent = 'Aucune société disponible';
           sousDirectionFilter.disabled = true;
         }
       } else {
-        defaultOption.textContent = 'All Société';
+        defaultOption.textContent = 'Toutes les sociétés';
         allSousDirections.forEach(sousDirection => {
           const option = document.createElement('option');
           option.value = sousDirection;
@@ -307,11 +314,11 @@
       directionFilter.innerHTML = '';
       const defaultOption = document.createElement('option');
       defaultOption.value = '';
-      defaultOption.textContent = 'All Directions';
+      defaultOption.textContent = 'Toutes les directions';
 
       if (selectedPole && pathData[selectedPole]) {
         if (selectedSousDirection && pathData[selectedPole].directions[selectedSousDirection]) {
-          defaultOption.textContent = `All Directions of ${selectedSousDirection}`;
+          defaultOption.textContent = `Toutes les directions de ${selectedSousDirection}`;
           pathData[selectedPole].directions[selectedSousDirection].forEach(direction => {
             const option = document.createElement('option');
             option.value = direction;
@@ -320,7 +327,7 @@
           });
           directionFilter.disabled = pathData[selectedPole].directions[selectedSousDirection].size === 0;
         } else if (!selectedSousDirection) {
-          defaultOption.textContent = `All Directions of ${selectedPole}`;
+          defaultOption.textContent = `Toutes les directions de ${selectedPole}`;
           const allPoleDirections = new Set();
           pathData[selectedPole].directDirections.forEach(direction => {
             allPoleDirections.add(direction);
@@ -336,7 +343,7 @@
           });
           directionFilter.disabled = allPoleDirections.size === 0;
         } else {
-          defaultOption.textContent = 'No Directions Available';
+          defaultOption.textContent = 'Aucune direction disponible';
           directionFilter.disabled = true;
         }
       } else {
@@ -357,7 +364,7 @@
       pathList.innerHTML = '';
       if (allPaths.size === 0) {
         const noPaths = document.createElement('p');
-        noPaths.textContent = 'No paths available';
+        noPaths.textContent = 'Aucun chemin disponible';
         noPaths.style.padding = '5px';
         pathList.appendChild(noPaths);
       } else {
@@ -368,13 +375,13 @@
           pathItem.style.cursor = 'pointer';
           pathItem.style.borderBottom = '1px solid #e9ecef';
           pathItem.style.backgroundColor = '#fff';
-          pathItem.addEventListener('mouseover', function() {
+          pathItem.addEventListener('mouseover', function () {
             this.style.backgroundColor = '#f8f9fa';
           });
-          pathItem.addEventListener('mouseout', function() {
+          pathItem.addEventListener('mouseout', function () {
             this.style.backgroundColor = '#fff';
           });
-          pathItem.addEventListener('click', function() {
+          pathItem.addEventListener('click', function () {
             reportPathInput.value = this.textContent;
           });
           pathList.appendChild(pathItem);
@@ -422,13 +429,13 @@
     }
 
     // Event listeners for filters
-    poleFilter.addEventListener('change', function() {
+    poleFilter.addEventListener('change', function () {
       populateSousDirectionFilter(this.value);
       populateDirectionFilter(this.value, '');
       filterReports();
     });
 
-    sousDirectionFilter.addEventListener('change', function() {
+    sousDirectionFilter.addEventListener('change', function () {
       populateDirectionFilter(poleFilter.value, this.value);
       filterReports();
     });
@@ -440,7 +447,7 @@
     // Handle Edit button click
     const editButtons = document.querySelectorAll('.btn-outline-warning');
     editButtons.forEach(button => {
-      button.addEventListener('click', function() {
+      button.addEventListener('click', function () {
         const reportId = this.getAttribute('data-report-id');
         const reportName = this.getAttribute('data-report-name');
         document.getElementById('reportId').value = reportId;
@@ -453,7 +460,7 @@
     // Handle Move button click
     const moveButtons = document.querySelectorAll('.btn-outline-info');
     moveButtons.forEach(button => {
-      button.addEventListener('click', function() {
+      button.addEventListener('click', function () {
         const reportId = this.getAttribute('data-report-id');
         const reportPath = this.getAttribute('data-report-path');
         document.getElementById('moveReportId').value = reportId;
@@ -480,7 +487,7 @@
   });
 
   // Auto-close alerts
-  setTimeout(function() {
+  setTimeout(function () {
     let alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
       let bsAlert = new bootstrap.Alert(alert);
@@ -494,11 +501,12 @@
     color: #e83e8c;
     border-color: #e83e8c;
   }
+
   .btn-outline-permission:hover {
     background-color: #e83e8c;
     color: #fff;
   }
-  
+
   .btn-outline-success,
   .btn-outline-warning,
   .btn-outline-info,
@@ -507,21 +515,23 @@
     padding: 0.25rem 0.5rem;
     margin-right: 0.25rem;
   }
-  
+
   .btn-outline-success {
     color: #2ecc71;
     border-color: #27ae60;
   }
+
   .btn-outline-success:hover {
     background-color: #27ae60;
     border-color: #1e8449;
     color: #fff;
   }
-  
+
   .btn-outline-warning {
     color: #ffc107;
     border-color: #ffc107;
   }
+
   .btn-outline-warning:hover {
     background-color: #e0a800;
     color: #fff;
@@ -531,6 +541,7 @@
     color: #17a2b8;
     border-color: #17a2b8;
   }
+
   .btn-outline-info:hover {
     background-color: #138496;
     color: #fff;
@@ -540,6 +551,7 @@
     color: #6c757d;
     border-color: #6c757d;
   }
+
   .btn-outline-secondary:hover {
     background-color: #5a6268;
     color: #fff;

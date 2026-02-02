@@ -1,6 +1,6 @@
 {% load static %}
 <!doctype html>
-<html lang="en">
+<html lang="fr">
 
 <head>
   <title>{% block title %}{% endblock %}</title>
@@ -62,90 +62,82 @@
             <label>Navigation</label>
           </li>
 
+          {% if user.is_authenticated %}
 
-          {% if user.is_authenticated and user.role %}
           {% if permissions.view_dashboard or permissions.view_refresh %}
           <li class="pc-item">
             <a href="{% url 'powerbi_report:dashboard' %}" class="pc-link">
               <span class="pc-micon">
                 <i data-feather="home"></i>
               </span>
-              <span class="pc-mtext">Dashboard</span>
+              <span class="pc-mtext">Tableau de bord</span>
             </a>
           </li>
           {% endif %}
+
           {% if permissions.view_customuser %}
           <li class="pc-item">
             <a href="{% url 'users_view' %}" class="pc-link">
               <span class="pc-micon"><i data-feather="users"></i></span>
-              <span class="pc-mtext">Manage Users</span>
+              <span class="pc-mtext">Gestion des utilisateurs</span>
             </a>
           </li>
           {% endif %}
+
           {% if permissions.view_powerbireport %}
           <li class="pc-item">
             <a href="{% url 'powerbi_report:report_list' %}" class="pc-link">
               <span class="pc-micon"><i data-feather="folder"></i></span>
-              <span class="pc-mtext">Manage Reports</span>
+              <span class="pc-mtext">Gestion des rapports</span>
             </a>
           </li>
           {% endif %}
 
-
-
-          {% endif %}
-
-          <!-- These items are accessible to all authenticated users -->
-          {% if user.is_authenticated %}
-          {% comment %}
-          <!-- TEMPORARILY HIDDEN - Reports link -->
-          <li class="pc-item">
-            <a href="{% url 'powerbi_report:report_list_hierarchy' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="file-text"></i></span>
-              <span class="pc-mtext">Reports</span>
-            </a>
-          </li>
-          {% endcomment %}
-          {% if user.is_superuser %}
-          <!-- Admins see both views -->
+          {% comment %} Business/Department Views - Admin sees both, users see their default {% endcomment %}
+          {% if permissions.view_dashboard %}
+          <!-- Admins/Superusers see both views -->
           <li class="pc-item">
             <a href="{% url 'powerbi_report:custom_business' %}" class="pc-link">
               <span class="pc-micon"><i data-feather="briefcase"></i></span>
-              <span class="pc-mtext">Business View</span>
+              <span class="pc-mtext">Rapports par Société</span>
             </a>
           </li>
           <li class="pc-item">
             <a href="{% url 'powerbi_report:custom_department' %}" class="pc-link">
               <span class="pc-micon"><i data-feather="users"></i></span>
-              <span class="pc-mtext">Department View</span>
-            </a>
-          </li>
-          {% elif user.default_view == 'department' %}
-          <li class="pc-item">
-            <a href="{% url 'powerbi_report:custom_department' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="users"></i></span>
-              <span class="pc-mtext">Department View</span>
+              <span class="pc-mtext">Rapports par Pôle</span>
             </a>
           </li>
           {% else %}
-          <!-- Default to business view for all users -->
+          <!-- Regular users see only their assigned view -->
+          {% if user.default_view == 'department' %}
+          <li class="pc-item">
+            <a href="{% url 'powerbi_report:custom_department' %}" class="pc-link">
+              <span class="pc-micon"><i data-feather="users"></i></span>
+              <span class="pc-mtext">Vue Département</span>
+            </a>
+          </li>
+          {% else %}
           <li class="pc-item">
             <a href="{% url 'powerbi_report:custom_business' %}" class="pc-link">
               <span class="pc-micon"><i data-feather="briefcase"></i></span>
-              <span class="pc-mtext">Business View</span>
+              <span class="pc-mtext">Vue Métier</span>
             </a>
           </li>
           {% endif %}
+          {% endif %}
+
           <!--Navigation 2-->
           <li class="pc-item pc-caption">
-            <label>Settings</label>
+            <label>Paramètres</label>
           </li>
           <li class="pc-item">
             <a href="{% url 'profile' %}" class="pc-link">
               <span class="pc-micon"><i data-feather="user"></i></span>
-              <span class="pc-mtext">Profile</span>
+              <span class="pc-mtext">Profil</span>
             </a>
           </li>
+
           {% if permissions.view_notification %}
           <li class="pc-item">
             <a href="{% url 'notifications' %}" class="pc-link">
@@ -155,11 +147,11 @@
           </li>
           {% endif %}
 
-          {% if user.role.name == "admin" %}
+          {% if permissions.view_userhistory %}
           <li class="pc-item">
             <a href="{% url 'user_history' %}" class="pc-link">
               <span class="pc-micon"><i data-feather="clock"></i></span>
-              <span class="pc-mtext">History</span>
+              <span class="pc-mtext">Historique</span>
             </a>
           </li>
           {% endif %}
@@ -167,29 +159,30 @@
           <li class="pc-item">
             <a href="{% url 'logout' %}" class="pc-link">
               <span class="pc-micon"><i data-feather="log-out"></i></span>
-              <span class="pc-mtext">Logout</span>
+              <span class="pc-mtext">Déconnexion</span>
             </a>
           </li>
 
-
-          {% endif %}
-          <!--Navigation 3-->
-          {% if user.is_superuser %}
+          <!--Navigation 3 - Control Panel for admins -->
+          {% if permissions.view_customuser and permissions.view_role %}
           <li class="pc-item pc-caption">
-            <label>Control</label>
+            <label>Contrôle</label>
           </li>
           <li class="pc-item">
             <a href="{% url 'admin:index' %}" target="_blank" class="pc-link">
               <span class="pc-micon"><i data-feather="server"></i></span>
-              <span class="pc-mtext">Control Panel</span>
+              <span class="pc-mtext">Panneau de contrôle</span>
             </a>
           </li>
+          {% endif %}
+
           {% endif %}
         </ul>
       </div>
     </div>
   </nav>
   <!-- [ Sidebar Menu ] end -->
+
 
   <header class="pc-header">
     <div class="header-wrapper">
@@ -227,7 +220,7 @@
                 <h5 class="m-0">Notifications</h5>
                 <form action="{% url 'mark_notifications' %}" method="post" class="d-inline">
                   {% csrf_token %}
-                  <button type="submit" class="btn btn-link btn-sm">Mark all read</button>
+                  <button type="submit" class="btn btn-link btn-sm">Tout marquer comme lu</button>
                 </form>
               </div>
               <div class="dropdown-body text-wrap header-notification-scroll position-relative"
@@ -239,7 +232,8 @@
                     <div class="d-flex">
                       <div class="flex-grow-1 ms-3">
                         <a href="{% url 'notifications' %}" style="text-decoration: none; " onclick="markAsRead(this)">
-                          <span class="float-end text-sm text-muted">{{ notification.created_at|timesince }} ago</span>
+                          <span class="float-end text-sm text-muted">Il y a {{ notification.created_at|timesince
+                            }}</span>
                           <p class="mb-0">{{ notification.message }}</p>
                         </a>
                       </div>
@@ -248,14 +242,14 @@
                 </div>
                 {% endfor %}
                 {% else %}
-                <p class="text-muted">No unread notifications.</p>
+                <p class="text-muted">Aucune notification non lue.</p>
                 {% endif %}
               </div>
               <div class="text-center py-2">
                 <form action="{% url 'delete_all' %}" method="post" class="d-inline">
                   {% csrf_token %}
-                  <button type="submit" class="link-danger" style="border:none; background:none;">Clear all
-                    Notifications</button>
+                  <button type="submit" class="link-danger" style="border:none; background:none;">Effacer toutes les
+                    notifications</button>
                 </form>
               </div>
             </div>
@@ -298,14 +292,14 @@
                       <svg class="pc-icon text-muted me-2">
                         <use xlink:href="#custom-setting-outline"></use>
                       </svg>
-                      <span>Settings</span>
+                      <span>Paramètres</span>
                     </span>
                   </a>
                   <div class="d-grid my-2">
                     <button class="btn bg-red-500">
                       <a href="{% url 'logout' %}" class="pc-link">
                         <span class="pc-micon text-red-100"><i data-feather="log-out"></i></span>
-                        <span class="text-red-100">Logout</span>
+                        <span class="text-red-100">Déconnexion</span>
                       </a>
                     </button>
                   </div>
@@ -328,7 +322,7 @@
         <div class="col my-1"></div>
         <div class="col-auto my-1">
           <ul class="list-inline footer-link mb-0">
-            <li class="list-inline-item"><a href="{% url 'home' %}">Home</a></li>
+            <li class="list-inline-item"><a href="{% url 'home' %}">Accueil</a></li>
           </ul>
         </div>
       </div>

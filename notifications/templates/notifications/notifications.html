@@ -15,7 +15,7 @@
           </div>
           <div class="col-md-12">
             <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+              <li class="breadcrumb-item"><a href="{% url 'home' %}">Accueil</a></li>
               <li class="breadcrumb-item active" aria-current="page">Notifications</li>
             </ul>
           </div>
@@ -30,23 +30,27 @@
         <div class="card shadow-sm border-0 bg-gradient-to-r from-indigo-50 to-purple-50 p-3 rounded-lg">
           <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div class="d-flex flex-wrap gap-2" id="filterButtons">
-              <button class="btn btn-sm btn-outline-secondary active" data-filter="all" onclick="filterNotifications('all')">
-                <i class="feather icon-filter"></i> All
+              <button class="btn btn-sm btn-outline-secondary active" data-filter="all"
+                onclick="filterNotifications('all')">
+                <i class="feather icon-filter"></i> Tous
               </button>
               <button class="btn btn-sm btn-outline-success" data-filter="read" onclick="filterNotifications('read')">
-                <i class="feather icon-check-circle"></i> Read
+                <i class="feather icon-check-circle"></i> Lu
               </button>
-              <button class="btn btn-sm btn-outline-warning" data-filter="unread" onclick="filterNotifications('unread')">
-                <i class="feather icon-bell"></i> Unread
+              <button class="btn btn-sm btn-outline-warning" data-filter="unread"
+                onclick="filterNotifications('unread')">
+                <i class="feather icon-bell"></i> Non lu
               </button>
             </div>
             <div class="d-flex align-items-center gap-2">
-              <button class="btn btn-outline-primary btn-sm shadow-sm d-flex align-items-center gap-1" onclick="showMarkAllAsReadConfirmation()">
-                <i class="feather icon-check"></i> Mark All as Read
+              <button class="btn btn-outline-primary btn-sm shadow-sm d-flex align-items-center gap-1"
+                onclick="showMarkAllAsReadConfirmation()">
+                <i class="feather icon-check"></i> Tout marquer comme lu
               </button>
               {% if permissions.delete_notification %}
-              <button class="btn btn-outline-danger btn-sm shadow-sm d-flex align-items-center gap-1" onclick="showClearAllConfirmation()">
-                <i class="feather icon-trash"></i> Clear All
+              <button class="btn btn-outline-danger btn-sm shadow-sm d-flex align-items-center gap-1"
+                onclick="showClearAllConfirmation()">
+                <i class="feather icon-trash"></i> Tout effacer
               </button>
               {% endif %}
             </div>
@@ -58,43 +62,40 @@
 
     <!-- [ Notifications Cards ] start -->
     <div class="row" id="notificationsContainer">
-        {% if notifications %}
-          {% for notification in notifications %}
-            <div class="col-md-6 mb-3 notification-card" id="notification-{{ notification.id }}" data-id="{{ notification.id }}">
-              <div class="card">
-                <div class="card-body {% if not notification.is_read %}unread{% else %}read{% endif %}">
-                  <h6 class="card-title text-truncate">{{ notification.message }}</h6>
-                  <p class="card-text text-muted text-truncate">{{ notification.created_at }}</p>
-                  <div class="d-flex justify-content-end">
-                    <button class="btn btn-outline-primary btn-sm mr-3" style="margin-right: 5px;"
-                      onclick="showDetails({{ notification.id }}, '{{ notification.message|escapejs }}', '{{ notification.created_at }}'); ">
-                      View
-                    </button>
-                    {% if permissions.delete_notification %}
-                    <button class="btn btn-outline-danger btn-sm ml-3" onclick="confirmDelete({{ notification.id }})">
-                      Delete
-                    </button>
-                    {% endif %}
-                  </div>
-                </div>
-              </div>
+      {% if notifications %}
+      {% for notification in notifications %}
+      <div class="col-md-6 mb-3 notification-card" id="notification-{{ notification.id }}"
+        data-id="{{ notification.id }}">
+        <div class="card">
+          <div class="card-body {% if not notification.is_read %}unread{% else %}read{% endif %}">
+            <h6 class="card-title text-truncate">{{ notification.message }}</h6>
+            <p class="card-text text-muted text-truncate">{{ notification.created_at }}</p>
+            <div class="d-flex justify-content-end">
+              <button class="btn btn-outline-primary btn-sm mr-3" style="margin-right: 5px;"
+                onclick="showDetails({{ notification.id }}, '{{ notification.message|escapejs }}', '{{ notification.created_at }}'); ">
+                Voir
+              </button>
+              {% if permissions.delete_notification %}
+              <button class="btn btn-outline-danger btn-sm ml-3" onclick="confirmDelete({{ notification.id }})">
+                Supprimer
+              </button>
+              {% endif %}
             </div>
-          {% endfor %}
-          {% else %} 
-            <div class="col-12 d-flex flex-column align-items-center justify-content-center" style="height: 100%;">
-              <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs" type="module"></script>
-              <dotlottie-player 
-                src="https://lottie.host/cbe9a3e0-4de2-4a56-b425-a93c3331a1ec/qINEoZDpMo.lottie" 
-                background="transparent" 
-                speed="1" 
-                style="width: 500px; height: 500px;" 
-                loop 
-                autoplay>
-              </dotlottie-player>
-              <p class="mt-2 text-center">No notifications available.</p>
-            </div>
-          {% endif %}
+          </div>
+        </div>
       </div>
+      {% endfor %}
+      {% else %}
+      <div class="col-12 d-flex flex-column align-items-center justify-content-center" style="height: 100%;">
+        <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
+          type="module"></script>
+        <dotlottie-player src="https://lottie.host/cbe9a3e0-4de2-4a56-b425-a93c3331a1ec/qINEoZDpMo.lottie"
+          background="transparent" speed="1" style="width: 500px; height: 500px;" loop autoplay>
+        </dotlottie-player>
+        <p class="mt-2 text-center">Aucune notification disponible.</p>
+      </div>
+      {% endif %}
+    </div>
     <!-- [ Notifications Cards ] end -->
   </div>
 </div>
@@ -107,7 +108,7 @@
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalTitle">Notification Details</h5>
+        <h5 class="modal-title" id="modalTitle">Détails de la notification</h5>
         <button type="button" class="close" onclick="closeModal()">
           <span>×</span>
         </button>
@@ -117,7 +118,7 @@
         <p id="modalDate" class="text-muted"></p>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline-secondary" onclick="closeModal()">Close</button>
+        <button class="btn btn-outline-secondary" onclick="closeModal()">Fermer</button>
       </div>
     </div>
   </div>
@@ -128,17 +129,17 @@
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Confirm Deletion</h5>
+        <h5 class="modal-title">Confirmer la suppression</h5>
         <button type="button" class="close" onclick="closeDeleteConfirmation()">
           <span>×</span>
         </button>
       </div>
       <div class="modal-body">
-        <p>Are you sure you want to delete this notification? This action cannot be undone.</p>
+        <p>Êtes-vous sûr de vouloir supprimer cette notification ? Cette action est irréversible.</p>
       </div>
       <div class="modal-footer">
-        <button id="confirmDeleteButton" class="btn btn-outline-danger">Delete</button>
-        <button class="btn btn-outline-secondary" onclick="closeDeleteConfirmation()">Cancel</button>
+        <button id="confirmDeleteButton" class="btn btn-outline-danger">Supprimer</button>
+        <button class="btn btn-outline-secondary" onclick="closeDeleteConfirmation()">Annuler</button>
       </div>
     </div>
   </div>
@@ -149,17 +150,17 @@
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Confirm Clear All</h5>
+        <h5 class="modal-title">Confirmer la suppression totale</h5>
         <button type="button" class="close" onclick="closeClearAllConfirmation()">
           <span>×</span>
         </button>
       </div>
       <div class="modal-body">
-        <p>Are you sure you want to clear all notifications? This action cannot be undone.</p>
+        <p>Êtes-vous sûr de vouloir supprimer toutes les notifications ? Cette action est irréversible.</p>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline-danger" onclick="clearAllNotifications()">Clear All</button>
-        <button class="btn btn-outline-secondary" onclick="closeClearAllConfirmation()">Cancel</button>
+        <button class="btn btn-outline-danger" onclick="clearAllNotifications()">Tout effacer</button>
+        <button class="btn btn-outline-secondary" onclick="closeClearAllConfirmation()">Annuler</button>
       </div>
     </div>
   </div>
@@ -170,17 +171,17 @@
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Confirm Mark All as Read</h5>
+        <h5 class="modal-title">Confirmer le marquage global</h5>
         <button type="button" class="close" onclick="closeMarkAllAsReadConfirmation()">
           <span>×</span>
         </button>
       </div>
       <div class="modal-body">
-        <p>Are you sure you want to mark all notifications as read?</p>
+        <p>Êtes-vous sûr de vouloir marquer toutes les notifications comme lues ?</p>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline-primary" onclick="markAllAsRead()">Mark All as Read</button>
-        <button class="btn btn-outline-secondary" onclick="closeMarkAllAsReadConfirmation()">Cancel</button>
+        <button class="btn btn-outline-primary" onclick="markAllAsRead()">Tout marquer comme lu</button>
+        <button class="btn btn-outline-secondary" onclick="closeMarkAllAsReadConfirmation()">Annuler</button>
       </div>
     </div>
   </div>
@@ -194,26 +195,26 @@
 
     // Update active button
     buttons.forEach(button => {
-        button.classList.toggle('active', button.getAttribute('data-filter') === filter);
+      button.classList.toggle('active', button.getAttribute('data-filter') === filter);
     });
 
     // Filter cards
     cards.forEach(card => {
-        const cardBody = card.querySelector('.card-body');
-        if (filter === 'all') {
-            card.style.display = '';
-        } else {
-            card.style.display = cardBody.classList.contains(filter) ? '' : 'none';
-        }
+      const cardBody = card.querySelector('.card-body');
+      if (filter === 'all') {
+        card.style.display = '';
+      } else {
+        card.style.display = cardBody.classList.contains(filter) ? '' : 'none';
+      }
     });
-}
+  }
 
   function showDetails(id, message, createdAt) {
     document.getElementById('modalTitle').innerText = `Notification Details (ID: ${id})`;
     document.getElementById('modalMessage').innerText = message;
-    document.getElementById('modalDate').innerText = `Date: ${createdAt}`;
+    document.getElementById('modalDate').innerText = `Date : ${createdAt}`;
     document.getElementById('notificationModal').style.display = 'block';
-    
+
     // Mark notification as read
     fetch(`/notifications/mark_as_read/${id}/`, {
       method: 'POST',
@@ -223,20 +224,20 @@
       },
       body: JSON.stringify({})
     })
-    .then(response => {
-      if (response.ok) {
-        const notificationCard = document.querySelector(`.notification-card[data-id="${id}"] .card-body`);
-        if (notificationCard) {
-          notificationCard.classList.remove('unread');
-          notificationCard.classList.add('read');
+      .then(response => {
+        if (response.ok) {
+          const notificationCard = document.querySelector(`.notification-card[data-id="${id}"] .card-body`);
+          if (notificationCard) {
+            notificationCard.classList.remove('unread');
+            notificationCard.classList.add('read');
+          }
+        } else {
+          console.error('Failed to mark notification as read.');
         }
-      } else {
-        console.error('Failed to mark notification as read.');
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-    });
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
   }
 
   function closeModal() {
@@ -253,7 +254,7 @@
     document.getElementById('deleteConfirmationModal').style.display = 'none';
   }
 
-  document.getElementById('confirmDeleteButton').onclick = function() {
+  document.getElementById('confirmDeleteButton').onclick = function () {
     if (notificationToDelete !== null) {
       fetch(`/notifications/delete/${notificationToDelete}/`, {
         method: 'POST',
@@ -263,22 +264,22 @@
         },
         body: JSON.stringify({})
       })
-      .then(response => {
-        if (response.ok) {
-          const notificationCard = document.querySelector(`.notification-card[data-id="${notificationToDelete}"]`);
-          if (notificationCard) {
-            notificationCard.remove();
+        .then(response => {
+          if (response.ok) {
+            const notificationCard = document.querySelector(`.notification-card[data-id="${notificationToDelete}"]`);
+            if (notificationCard) {
+              notificationCard.remove();
+            }
+            closeDeleteConfirmation();
+            notificationToDelete = null;
+          } else {
+            alert('Échec de la suppression de la notification.');
           }
-          closeDeleteConfirmation();
-          notificationToDelete = null;
-        } else {
-          alert('Failed to delete notification.');
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while trying to delete the notification.');
-      });
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Une erreur s\'est produite lors de la suppression de la notification.');
+        });
     }
   };
 
@@ -299,18 +300,18 @@
       },
       body: JSON.stringify({})
     })
-    .then(response => {
-      if (response.ok) {
-        document.getElementById('notificationsContainer').innerHTML = '<div class="col-12"><p class="text-center">No notifications available.</p></div>';
-        closeClearAllConfirmation();
-      } else {
-        alert('Failed to clear notifications.');
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      alert('An error occurred while trying to clear notifications.');
-    });
+      .then(response => {
+        if (response.ok) {
+          document.getElementById('notificationsContainer').innerHTML = '<div class="col-12"><p class="text-center">Aucune notification disponible.</p></div>';
+          closeClearAllConfirmation();
+        } else {
+          alert('Échec de la suppression des notifications.');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while trying to clear notifications.');
+      });
   }
 
   function showMarkAllAsReadConfirmation() {
@@ -330,38 +331,38 @@
       },
       body: JSON.stringify({})
     })
-    .then(response => {
-      if (response.ok) {
-        location.reload();
-      } else {
-        alert('Failed to mark notifications as read.');
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      alert('An error occurred while trying to mark notifications as read.');
-    });
+      .then(response => {
+        if (response.ok) {
+          location.reload();
+        } else {
+          alert('Échec du marquage des notifications.');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while trying to mark notifications as read.');
+      });
   }
 </script>
 
 <script>
-    // Show/hide back-to-top button based on scroll position
-    window.addEventListener('scroll', function() {
-        const backToTopButton = document.querySelector('.back-to-top');
-        if (window.scrollY > 300) {
-            backToTopButton.style.display = 'block';
-        } else {
-            backToTopButton.style.display = 'none';
-        }
-    });
-
-    // Smooth scroll to top
-    function scrollToTop() {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
+  // Show/hide back-to-top button based on scroll position
+  window.addEventListener('scroll', function () {
+    const backToTopButton = document.querySelector('.back-to-top');
+    if (window.scrollY > 300) {
+      backToTopButton.style.display = 'block';
+    } else {
+      backToTopButton.style.display = 'none';
     }
+  });
+
+  // Smooth scroll to top
+  function scrollToTop() {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }
 </script>
 
 <style>
@@ -375,12 +376,14 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(0, 0, 0, 0.5);
   }
+
   .modal-dialog {
     margin: 10% auto;
     max-width: 500px;
   }
+
   /* Style for the close (X) button in modals */
   .modal .close {
     color: red;
@@ -391,37 +394,42 @@
     background: transparent;
     border: none;
   }
+
   /* Notification card status */
   .unread {
     font-weight: bold;
     background-color: rgb(255, 242, 243);
     border-left: 5px solid #dc3545;
   }
+
   .read {
     background-color: #fff;
     border-left: 5px solid transparent;
   }
-   /* Back to Top Button Styles */
-    .back-to-top {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        display: none;
-        background: #17a2b8;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        font-size: 1.2rem;
-        cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        transition: opacity 0.3s ease, background 0.3s ease;
-        z-index: 1000;
-    }
-    .back-to-top:hover {
-        background: #138496;
-    }
+
+  /* Back to Top Button Styles */
+  .back-to-top {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: none;
+    background: #17a2b8;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: opacity 0.3s ease, background 0.3s ease;
+    z-index: 1000;
+  }
+
+  .back-to-top:hover {
+    background: #138496;
+  }
+
   /* Truncate text to one line with ellipsis */
   .text-truncate {
     white-space: nowrap;

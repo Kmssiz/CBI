@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}User Profile{% endblock %}
+{% block title %}Profil utilisateur{% endblock %}
 {% block content %}
 
 <!-- [ Main Content ] start -->
@@ -12,13 +12,13 @@
                 <div class="row align-items-center">
                     <div class="col-md-12">
                         <div class="page-header-title">
-                            <h5 class="mb-0">User Profile</h5>
+                            <h5 class="mb-0">Profil utilisateur</h5>
                         </div>
                     </div>
                     <div class="col-md-12">
                         <ul class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Profile</li>
+                            <li class="breadcrumb-item"><a href="{% url 'home' %}">Accueil</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Profil</li>
                         </ul>
                     </div>
                 </div>
@@ -33,14 +33,17 @@
                     <div class="card-body text-center">
                         <!-- Display dynamic profile image or fallback -->
                         {% if user.profile_image %}
-                            <img src="{{ user.profile_image.url }}" alt="User Avatar" class="rounded-circle" style="width: 150px; height: 150px;" id="profileImage">
+                        <img src="{{ user.profile_image.url }}" alt="User Avatar" class="rounded-circle"
+                            style="width: 150px; height: 150px;" id="profileImage">
                         {% else %}
-                             
-                            <img src="{% static 'assets/images/user/avatar.jpg' %}" alt="User Avatar" class="rounded-circle" style="width: 150px; height: 150px;" id="profileImage">
+
+                        <img src="{% static 'assets/images/user/avatar.jpg' %}" alt="User Avatar" class="rounded-circle"
+                            style="width: 150px; height: 150px;" id="profileImage">
                         {% endif %}
                         <h5 class="mt-3">{{ user.get_full_name|default:user.username }}</h5>
                         <p class="text-muted">{{ user.email }}</p>
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">Edit Profile</button>
+                        <button class="btn btn-primary" data-bs-toggle="modal"
+                            data-bs-target="#editProfileModal">Modifier le profil</button>
                     </div>
                 </div>
             </div>
@@ -48,67 +51,70 @@
             <div class="col-md-8">
                 <div class="card">
                     <div class="card-header">
-                        <h5>User Information</h5>
+                        <h5>Informations utilisateur</h5>
                     </div>
                     <div class="card-body">
                         <ul class="list-group">
                             <li class="list-group-item">
-                                <strong>Full Name:</strong> {{ user.get_full_name|default:user.username }}
+                                <strong>Nom complet :</strong> {{ user.get_full_name|default:user.username }}
                             </li>
                             <li class="list-group-item">
-                                <strong>Role:</strong> 
-                                {% if user.role %} 
-                                    {{ user.role.name|title }} 
+                                <strong>Rôle :</strong>
+                                {% if user.role %}
+                                {{ user.role.name|title }}
                                 {% else %}
-                                    <span class="text-muted">No Role Assigned</span>
+                                <span class="text-muted">Aucun rôle attribué</span>
                                 {% endif %}
                             </li>
-                           
+
                             <li class="list-group-item">
-                                <strong>Joined:</strong> {{ user.date_joined|date:"F j, Y" }}
+                                <strong>Inscription :</strong> {{ user.date_joined|date:"j F Y" }}
                             </li>
                             <li class="list-group-item">
-                                <strong>Last Login:</strong> 
+                                <strong>Dernière connexion :</strong>
                                 {% if user.last_login %}
-                                    {{ user.last_login|date:"F j, Y, g:i a" }}
+                                {{ user.last_login|date:"j F Y, H:i" }}
                                 {% else %}
-                                    <span class="text-muted">Never logged in</span>
+                                <span class="text-muted">Jamais connecté</span>
                                 {% endif %}
                             </li>
                         </ul>
                     </div>
-                    
+
                 </div>
             </div>
         </div>
         <!-- [ Profile Section ] end -->
 
         <!-- [ Edit Profile Modal ] start -->
-<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="editProfileForm" method="post" action="{% url 'edit_profile' %}" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="newProfileImage" class="form-label">Change Profile Image</label>
-                        <input type="file" class="form-control" id="newProfileImage" name="profile_image" accept="image/*">
+        <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editProfileModalLabel">Modifier le profil</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <!-- You can add more fields here if needed -->
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="submit" class="btn btn-primary" form="editProfileForm">Save Changes</button>
+                    <div class="modal-body">
+                        <form id="editProfileForm" method="post" action="{% url 'edit_profile' %}"
+                            enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="newProfileImage" class="form-label">Changer l'image de profil</label>
+                                <input type="file" class="form-control" id="newProfileImage" name="profile_image"
+                                    accept="image/*">
+                            </div>
+                            <!-- You can add more fields here if needed -->
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                        <button type="submit" class="btn btn-primary" form="editProfileForm">Enregistrer</button>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
-<!-- [ Edit Profile Modal ] end -->
+        <!-- [ Edit Profile Modal ] end -->
 
 
     </div>
@@ -116,18 +122,18 @@
 <!-- [ Main Content ] end -->
 
 <script>
-  // Optionally, add JavaScript to update the profile image preview
-  document.getElementById('newProfileImage').addEventListener('change', function() {
-    const fileInput = this;
-    const profileImage = document.getElementById('profileImage');
-    if (fileInput.files && fileInput.files[0]) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        profileImage.src = e.target.result; 
-      }
-      reader.readAsDataURL(fileInput.files[0]);
-    }
-  });
+    // Optionally, add JavaScript to update the profile image preview
+    document.getElementById('newProfileImage').addEventListener('change', function () {
+        const fileInput = this;
+        const profileImage = document.getElementById('profileImage');
+        if (fileInput.files && fileInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                profileImage.src = e.target.result;
+            }
+            reader.readAsDataURL(fileInput.files[0]);
+        }
+    });
 </script>
 
 {% endblock %}

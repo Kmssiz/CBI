@@ -12,6 +12,7 @@ def log_history(user, action):
 def get_user_permissions(user):
     """
     Retrieves all permissions for a given user and returns them in a dictionary.
+    Considers: superuser status, role permissions, and direct user permissions.
     """
     all_permissions = [
         'add_permission', 'change_permission', 'delete_permission', 'view_permission',
@@ -30,8 +31,20 @@ def get_user_permissions(user):
     
     if not user.is_authenticated:
         return {perm: False for perm in all_permissions}
-        
-    user_permissions = user.user_permissions.values_list('codename', flat=True)
-    permissions = {perm: perm in user_permissions for perm in all_permissions}
+    
+    # Superusers have all permissions
+    if user.is_superuser:
+        return {perm: True for perm in all_permissions}
+    
+    # Collect permissions from role and direct user permissions
+    user_perm_set = set(user.user_permissions.values_list('codename', flat=True))
+    
+    # Add role permissions if user has a role
+    if user.role:
+        role_perms = user.role.permissions.values_list('codename', flat=True)
+        user_perm_set.update(role_perms)
+    
+    permissions = {perm: perm in user_perm_set for perm in all_permissions}
     
     return permissions
+

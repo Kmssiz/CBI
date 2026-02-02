@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}User Management{% endblock %}
+{% block title %}Gestion des utilisateurs{% endblock %}
 {% block content %}
 
 <div class="pc-container">
@@ -11,13 +11,13 @@
         <div class="row align-items-center">
           <div class="col-md-12">
             <div class="page-header-title">
-              <h5 class="mb-0">User Management</h5>
+              <h5 class="mb-0">Gestion des utilisateurs</h5>
             </div>
           </div>
           <div class="col-md-12">
             <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-              <li class="breadcrumb-item active" aria-current="page">User Management</li>
+              <li class="breadcrumb-item"><a href="{% url 'home' %}">Accueil</a></li>
+              <li class="breadcrumb-item active" aria-current="page">Gestion des utilisateurs</li>
             </ul>
           </div>
         </div>
@@ -47,13 +47,13 @@
           <!-- Search Field with Icon -->
           <div class="col-md-3">
             <div class="input-group">
-              <input type="text" class="form-control" placeholder="Search by name..." id="userSearch">
+              <input type="text" class="form-control" placeholder="Rechercher par nom..." id="userSearch">
             </div>
           </div>
           <!-- Role Filter -->
           <div class="col-md-2">
             <select class="form-select" id="roleFilter">
-              <option value="">All Roles</option>
+              <option value="">Tous les rôles</option>
               {% for role in roles %}
               <option value="{{ role.name|lower }}">{{ role.name }}</option>
               {% endfor %}
@@ -62,20 +62,20 @@
           <!-- Status Filter -->
           <div class="col-md-2">
             <select class="form-select" id="statusFilter">
-              <option value="">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="not active">Not Active</option>
+              <option value="">Tous les statuts</option>
+              <option value="active">Actif</option>
+              <option value="not active">Inactif</option>
             </select>
           </div>
           <!-- Sync LDAP Users Button -->
           <div class="col-md-2">
             <button class="btn btn-outline-secondary" onclick="window.location.href='{% url 'sync_users' %}'">
-              <i class="feather icon-refresh-cw me-1"></i> Sync
+              <i class="feather icon-refresh-cw me-1"></i> Synchroniser
             </button>
             <!-- Manage Roles Button -->
             {% if permissions.view_role %}
             <button class="btn custom-success" onclick="window.location.href='{% url 'manage_roles' %}'">
-              <i class="feather icon-user-check"></i> Manage Roles
+              <i class="feather icon-user-check"></i> Gérer les rôles
             </button>
             {% endif %}
           </div>
@@ -83,10 +83,10 @@
           <div class="col-md-3 d-flex">
             <button class="btn btn-outline-danger me-2 flex-fill" id="filterNoPermission"
               onclick="filterNoPermission()">
-              <i class="feather icon-ban me-1"></i> New Users
+              <i class="feather icon-ban me-1"></i> Nouveaux utilisateurs
             </button>
             <button class="btn btn-outline-primary flex-fill" id="showAll">
-              <i class="feather icon-refresh-cw me-1"></i> All
+              <i class="feather icon-refresh-cw me-1"></i> Tous
             </button>
           </div>
         </div>
@@ -101,18 +101,18 @@
       <div class="col-md-12">
         <div class="card">
           <div class="card-header">
-            <h5>Recent Users</h5>
+            <h5>Utilisateurs récents</h5>
           </div>
           <div class="card-body px-0 py-3">
             <div class="table-responsive">
               <table class="table table-hover" id="userTable">
                 <thead>
                   <tr>
-                    <th>User</th>
+                    <th>Utilisateur</th>
                     <th>Email</th>
-                    <th>Role</th>
-                    <th>Default View</th>
-                    <th>Status</th>
+                    <th>Rôle</th>
+                    <th>Vue par défaut</th>
+                    <th>Statut</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -126,17 +126,17 @@
                     <td class="user-role">{{ user.role }}</td>
                     <td>
                       {% if user.default_view == 'business' %}
-                      <span class="badge bg-primary">Business</span>
+                      <span class="badge bg-primary">Métier</span>
                       {% else %}
-                      <span class="badge bg-info">Department</span>
+                      <span class="badge bg-info">Département</span>
                       {% endif %}
                     </td>
 
                     <td>
                       {% if user.status == 'Active' %}
-                      <span class="status-dot bg-success"></span> Active
+                      <span class="status-dot bg-success"></span> Actif
                       {% else %}
-                      <span class="status-dot bg-danger"></span> Not Active
+                      <span class="status-dot bg-danger"></span> Inactif
                       {% endif %}
                     </td>
                     <td>
@@ -144,7 +144,7 @@
                       {% if user.ad2000 %}
                       <a href="{% url 'powerbi_report:user_permission' user.ad2000 %}"
                         class="btn btn-outline-permission btn-sm me-1">
-                        Report Access
+                        Accès aux rapports
                       </a>
                       {% else %}
                       <span class="text-muted"></span>
@@ -157,14 +157,14 @@
 
                       {% if permissions.view_userhistory %}
                       <a href="{% url 'user_history' %}" class="btn btn-outline-secondary btn-sm me-1">
-                        History
+                        Historique
                       </a>
                       {% endif %}
 
                       {% if permissions.change_customuser %}
                       <button class="btn btn-outline-warning btn-sm"
                         onclick="openEditModal({{ user.id }}, '{{ user.role.id }}', '{{ user.default_view }}')">
-                        Edit
+                        Modifier
                       </button>
                       {% endif %}
 
@@ -181,7 +181,7 @@
         </div>
       </div>
       {% else %}
-      <div class="text-center">No users found.</div>
+      <div class="text-center">Aucun utilisateur trouvé.</div>
       {% endif %}
     </div>
     <!-- [ User List Section ] end -->
@@ -195,14 +195,14 @@
       <form id="editUserForm" method="post" action="{% url 'user_edit' 0 %}">
         {% csrf_token %}
         <div class="modal-header">
-          <h5 class="modal-title">Edit User Settings</h5>
+          <h5 class="modal-title">Modifier les paramètres utilisateur</h5>
           <button type="button" class="close" onclick="closeEditModal()"
             style="border: none; background: none; font-size: 1.5rem; color: red;">&times;</button>
         </div>
         <div class="modal-body">
           <input type="hidden" name="user_id" id="editUserId">
           <div class="form-group mb-3">
-            <label for="role">Role</label>
+            <label for="role">Rôle</label>
             <select name="role" id="editUserRole" class="form-control">
               {% for role in roles %}
               <option value="{{ role.id }}">{{ role.name }}</option>
@@ -210,16 +210,16 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="default_view">Default View</label>
+            <label for="default_view">Vue par défaut</label>
             <select name="default_view" id="editUserView" class="form-control">
-              <option value="business">Business View</option>
-              <option value="department">Department View</option>
+              <option value="business">Vue Métier</option>
+              <option value="department">Vue Département</option>
             </select>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Save</button>
-          <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+          <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Annuler</button>
         </div>
       </form>
     </div>
@@ -232,7 +232,7 @@
     <div class="spinner-border text-primary" role="status">
       <span class="visually-hidden">Loading...</span>
     </div>
-    <p>Fetching permissions... Please wait.</p>
+    <p>Récupération des permissions... Veuillez patienter.</p>
   </div>
 </div>
 
