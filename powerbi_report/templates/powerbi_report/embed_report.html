@@ -12,7 +12,7 @@
           <div class="col-md-12">
             <div class="page-header-title">
               {% with breadcrumbs|last as last_breadcrumb %}
-                <h5 class="mb-0">Report {{ last_breadcrumb.name }}</h5>
+              <h5 class="mb-0">Report {{ last_breadcrumb.name }}</h5>
               {% endwith %}
             </div>
           </div>
@@ -21,9 +21,9 @@
               <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
               <li class="breadcrumb-item"><a href="{% url 'powerbi_report:report_list_hierarchy' %}">Reports</a></li>
               {% for breadcrumb in breadcrumbs %}
-                <li class="breadcrumb-item">
-                  <a href="#">{{ breadcrumb.name }}</a>
-                </li>
+              <li class="breadcrumb-item">
+                <a href="#">{{ breadcrumb.name }}</a>
+              </li>
               {% endfor %}
             </ul>
           </div>
@@ -31,7 +31,7 @@
       </div>
     </div>
     <!-- [ Breadcrumb ] end -->
-    
+
     <div class="row mb-4">
       <div class="col d-flex justify-content-start">
         <button id="backBtn" class="btn btn-outline-secondary me-2" onclick="goBack()">
@@ -50,29 +50,24 @@
         </button>
         {% if permissions.view_powerbireport and permissions.change_powerbireport %}
 
-        <a href="{% url 'powerbi_report:download_report' report_id=report_id %}" class="btn btn-outline-primary me-2" id="downloadBtn">
+        <a href="{% url 'powerbi_report:download_report' report_id=report_id %}" class="btn btn-outline-primary me-2"
+          id="downloadBtn">
           <i class="fas fa-download"></i> Download
         </a>
         {% endif%}
       </div>
     </div>
-    
+
     <!-- Report Embed Section -->
     <div class="d-flex justify-content-center align-items-center vh-100">
       {% if embed_url %}
-        <iframe 
-          id="reportIframe"
-          src="{{ embed_url }}" 
-          width="90%" 
-          height="90%" 
-          frameborder="0" 
-          allowfullscreen 
-          title="Power BI Report">
-        </iframe>
+      <iframe id="reportIframe" src="{{ embed_url }}" width="90%" height="90%" frameborder="0" allowfullscreen
+        title="Power BI Report">
+      </iframe>
       {% else %}
-        <div class="text-center">
-          <p class="text-danger fw-bold">⚠ Failed to load the report. Please try again later.</p>
-        </div>
+      <div class="text-center">
+        <p class="text-danger fw-bold">⚠ Failed to load the report. Please try again later.</p>
+      </div>
       {% endif %}
     </div>
   </div>
@@ -87,31 +82,51 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <p>Copy the link below and share it:</p>
-        <input type="text" class="form-control" id="shareUrlInput" readonly>
+        <p><i class="fas fa-check-circle text-success me-2"></i>Link copied to clipboard!</p>
+        <div class="input-group">
+          <input type="text" class="form-control" id="shareUrlInput" readonly>
+          <button class="btn btn-outline-primary" type="button" onclick="copyToClipboard()">
+            <i class="fas fa-copy"></i>
+          </button>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary" onclick="copyToClipboard()">Copy</button>
       </div>
     </div>
   </div>
 </div>
 <!-- Share URL Modal end -->
 
+<!-- Toast for copy notification -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+  <div id="copyToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive"
+    aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="fas fa-check-circle me-2"></i>Link copied to clipboard!
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+        aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
 <!-- Print-Specific CSS -->
 <style>
   @page {
-    margin: 10mm; 
+    margin: 10mm;
   }
+
   @media print {
     body * {
       visibility: hidden;
     }
+
     #reportIframe {
       visibility: visible;
       position: fixed;
-      top: 10mm; 
+      top: 10mm;
       left: 10mm;
       width: calc(100% - 20mm);
       height: calc(100% - 20mm);
@@ -133,9 +148,9 @@
       if (!document.fullscreenElement) {
         if (iframe.requestFullscreen) {
           iframe.requestFullscreen();
-        } else if (iframe.mozRequestFullScreen) { 
+        } else if (iframe.mozRequestFullScreen) {
           iframe.mozRequestFullScreen();
-        } else if (iframe.webkitRequestFullscreen) { 
+        } else if (iframe.webkitRequestFullscreen) {
           iframe.webkitRequestFullscreen();
         } else if (iframe.msRequestFullscreen) {
           iframe.msRequestFullscreen();
@@ -151,17 +166,28 @@
   function copyShareUrl() {
     var shareUrl = window.location.href;
     document.getElementById("shareUrlInput").value = shareUrl;
-    var shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
-    shareModal.show();
+
+    // Copy to clipboard automatically
+    navigator.clipboard.writeText(shareUrl).then(function () {
+      // Show the modal with the link
+      var shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+      shareModal.show();
+    }).catch(function (error) {
+      console.error("Failed to copy:", error);
+      // Still show the modal even if copy fails
+      var shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+      shareModal.show();
+    });
   }
 
   function copyToClipboard() {
     var copyText = document.getElementById("shareUrlInput");
-    copyText.select();
-    copyText.setSelectionRange(0, 99999);
-    navigator.clipboard.writeText(copyText.value).then(function() {
-      alert("Link copied to clipboard!");
-    }).catch(function(error) {
+    navigator.clipboard.writeText(copyText.value).then(function () {
+      // Show toast notification
+      var toastEl = document.getElementById('copyToast');
+      var toast = new bootstrap.Toast(toastEl, { delay: 2000 });
+      toast.show();
+    }).catch(function (error) {
       console.error("Failed to copy:", error);
     });
   }

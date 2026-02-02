@@ -1,10 +1,10 @@
 services:
   web:
     build: .
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8222 --workers 4 config.wsgi:application"
     volumes:
       - .:/app
     ports:
-      - "8000:8000"
+      - "8222:8222"
     env_file:
       - .env

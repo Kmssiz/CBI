@@ -227,6 +227,10 @@ def user_history(request):
 #################################################################################################################
 @login_required
 def clear_history(request, user_id):
+    if not request.user.role or request.user.role.name != "admin":
+        messages.error(request, "Permission denied. Admin access required.")
+        return redirect('home')
+    
     if request.method == "POST":
         UserHistory.objects.filter(user_id=user_id).delete()  
     return redirect('user_history')
@@ -266,6 +270,10 @@ def home_view(request):
 #################################################################################################################
 @login_required
 def user_management(request):
+    if not request.user.role or request.user.role.name != "admin":
+        messages.error(request, "Permission denied. Admin access required.")
+        return redirect('home')
+    
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread_count = notifications.filter(is_read=False).count()
     users = CustomUser.objects.all()
@@ -287,6 +295,10 @@ def user_management(request):
 #################################################################################################################
 @login_required
 def manage_roles(request):
+    if not request.user.role or request.user.role.name != "admin":
+        messages.error(request, "Permission denied. Admin access required.")
+        return redirect('home')
+    
     roles = Role.objects.all()
     all_permissions = Permission.objects.all()  
     users = CustomUser.objects.all()
@@ -324,6 +336,10 @@ def manage_roles(request):
 #################################################################################################################
 @login_required
 def create_role(request):
+    if not request.user.role or request.user.role.name != "admin":
+        messages.error(request, "Permission denied. Admin access required.")
+        return redirect('home')
+    
     if request.method == "POST":
         role_name = request.POST.get("role_name", "").strip()
         role_description = request.POST.get("role_description", "").strip()
@@ -350,6 +366,10 @@ def create_role(request):
 #################################################################################################################
 @login_required
 def edit_role(request, role_id):
+    if not request.user.role or request.user.role.name != "admin":
+        messages.error(request, "Permission denied. Admin access required.")
+        return redirect('home')
+    
     role = get_object_or_404(Role, id=role_id)
     all_permissions = Permission.objects.all()
 
@@ -379,6 +399,10 @@ def edit_role(request, role_id):
 #################################################################################################################
 @login_required
 def remove_role(request, role_id):
+    if not request.user.role or request.user.role.name != "admin":
+        messages.error(request, "Permission denied. Admin access required.")
+        return redirect('home')
+    
     role = get_object_or_404(Role, id=role_id)
 
     if CustomUser.objects.filter(role=role).exists():
@@ -394,6 +418,10 @@ def remove_role(request, role_id):
 #################################################################################################################
 @login_required
 def permissions_list(request, role_id):
+    if not request.user.role or request.user.role.name != "admin":
+        messages.error(request, "Permission denied. Admin access required.")
+        return redirect('home')
+    
     role = get_object_or_404(Role, id=role_id)
     permissions_list=Permission.objects.all()
     all_permissions = role.permissions.all()

@@ -91,17 +91,35 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>Copy the link below and share it:</p>
-                <input type="text" class="form-control" id="shareUrlInput" readonly>
+                <p><i class="fas fa-check-circle text-success me-2"></i>Link copied to clipboard!</p>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="shareUrlInput" readonly>
+                    <button class="btn btn-outline-primary" type="button" onclick="copyToClipboard()">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="copyToClipboard()">Copy</button>
             </div>
         </div>
     </div>
 </div>
 <!-- Share URL Modal end -->
+
+<!-- Toast for copy notification -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="copyToast" class="toast align-items-center text-white bg-success border-0" role="alert"
+        aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-check-circle me-2"></i>Link copied to clipboard!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
+        </div>
+    </div>
+</div>
 
 <!-- Print-Specific CSS -->
 <style>
@@ -157,16 +175,27 @@
     function copyShareUrl() {
         var shareUrl = window.location.href;
         document.getElementById("shareUrlInput").value = shareUrl;
-        var shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
-        shareModal.show();
+
+        // Copy to clipboard automatically
+        navigator.clipboard.writeText(shareUrl).then(function () {
+            // Show the modal with the link
+            var shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+            shareModal.show();
+        }).catch(function (error) {
+            console.error("Failed to copy:", error);
+            // Still show the modal even if copy fails
+            var shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+            shareModal.show();
+        });
     }
 
     function copyToClipboard() {
         var copyText = document.getElementById("shareUrlInput");
-        copyText.select();
-        copyText.setSelectionRange(0, 99999);
         navigator.clipboard.writeText(copyText.value).then(function () {
-            alert("Link copied to clipboard!");
+            // Show toast notification
+            var toastEl = document.getElementById('copyToast');
+            var toast = new bootstrap.Toast(toastEl, { delay: 2000 });
+            toast.show();
         }).catch(function (error) {
             console.error("Failed to copy:", error);
         });

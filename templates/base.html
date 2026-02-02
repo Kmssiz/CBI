@@ -97,7 +97,6 @@
 
           <!-- These items are accessible to all authenticated users -->
           {% if user.is_authenticated %}
-          {% if permissions.view_report %}
           {% comment %}
           <!-- TEMPORARILY HIDDEN - Reports link -->
           <li class="pc-item">
@@ -121,13 +120,6 @@
               <span class="pc-mtext">Department View</span>
             </a>
           </li>
-          {% elif user.default_view == 'business' %}
-          <li class="pc-item">
-            <a href="{% url 'powerbi_report:custom_business' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="briefcase"></i></span>
-              <span class="pc-mtext">Business View</span>
-            </a>
-          </li>
           {% elif user.default_view == 'department' %}
           <li class="pc-item">
             <a href="{% url 'powerbi_report:custom_department' %}" class="pc-link">
@@ -136,14 +128,13 @@
             </a>
           </li>
           {% else %}
-          <!-- Default to business view if not set -->
+          <!-- Default to business view for all users -->
           <li class="pc-item">
             <a href="{% url 'powerbi_report:custom_business' %}" class="pc-link">
               <span class="pc-micon"><i data-feather="briefcase"></i></span>
               <span class="pc-mtext">Business View</span>
             </a>
           </li>
-          {% endif %}
           {% endif %}
           <!--Navigation 2-->
           <li class="pc-item pc-caption">
@@ -345,21 +336,21 @@
   </footer>
 
   <!-- [Page Specific JS] start -->
-  <script src="{% static 'assets/js/plugins/apexcharts.min.js'%}"></script>
-  <script src="{% static 'assets/js/plugins/jsvectormap.min.js' %}"></script>
-  <script src="{% static 'assets/js/plugins/world.js' %}"></script>
-  <script src="{% static 'assets/js/pages/dashboard-default.js' %}"></script>
+  {% block page_scripts %}
+  <!-- Dashboard-specific scripts - only loaded on pages that define this block -->
+  {% endblock %}
   <!-- [Page Specific JS] end -->
-  <!-- Required Js -->
+
+  <!-- Required Js - jQuery must be loaded first -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="{% static 'assets/js/plugins/popper.min.js' %}"></script>
   <script src="{% static 'assets/js/plugins/simplebar.min.js' %}"></script>
   <script src="{% static 'assets/js/plugins/bootstrap.min.js' %}"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
   <script src="{% static 'assets/js/fonts/custom-font.js' %}"></script>
   <script src="{% static 'assets/js/script.js' %}"></script>
   <script src="{% static 'assets/js/theme.js' %}"></script>
   <script src="{% static 'assets/js/plugins/feather.min.js' %}"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     const themeToggle = document.getElementById('theme-toggle');
