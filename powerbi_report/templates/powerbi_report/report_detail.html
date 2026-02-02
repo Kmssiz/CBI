@@ -1,209 +1,204 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Report Details{% endblock %}
+{% block title %}Détails du rapport{% endblock %}
+
+{% block header_title %}Détails du rapport{% endblock %}
+{% block header_subtitle %}Informations détaillées et configuration pour {{ report.Name }}{% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <a href="{% url 'powerbi_report:report_list' %}" class="hover:text-primary transition-colors">Rapports Power BI</a>
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <span class="text-slate-400">Détails : {{ report.Name }}</span>
+{% endblock %}
 
 {% block content %}
-<!-- [ Main Content ] start -->
-<div class="pc-container">
-  <div class="pc-content">
-    <!-- [ Breadcrumb ] start -->
-    <div class="page-header">
-      <div class="page-block">
-        <div class="row align-items-center">
-          <div class="col-md-12">
-            <div class="page-header-title">
-              <h5 class="mb-0">{{ report.Name }} Report Details</h5>
-            </div>
-          </div>
-          <div class="col-md-12">
-            <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-              <li class="breadcrumb-item"><a href="{% url 'powerbi_report:report_list' %}">Reports</a></li>
-              <li class="breadcrumb-item active" aria-current="page">{{ report.Name }}</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- [ Breadcrumb ] end -->
-
+<div class="px-8 py-6">
     <!-- Display messages -->
     {% if messages %}
-    <div class="mt-3">
+    <div class="mb-6">
       {% for message in messages %}
-      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
-        <i class="feather icon-check-circle"></i>
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      <div class="flex items-center gap-3 p-4 rounded-xl {% if message.tags == 'error' %}bg-red-500/10 border border-red-500/20 text-red-400{% else %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% endif %} alert-dismissible fade show" role="alert">
+        <span class="material-symbols-outlined text-[20px]">{% if message.tags == 'error' %}error{% else %}check_circle{% endif %}</span>
+        <span class="text-sm font-medium">{{ message }}</span>
+        <button type="button" class="ml-auto text-current opacity-50 hover:opacity-100 transition-opacity" data-bs-dismiss="alert">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
       </div>
       {% endfor %}
     </div>
     {% endif %}
 
-    <div class="row mb-3">
-      <div class="col-md-12">
-  
-        <a href="{% url 'powerbi_report:report_list' %}" class="btn btn-outline-secondary" >
-          <i class="feather icon-arrow-left"></i> Back
+    <!-- Back Button -->
+    <div class="mb-6">
+        <a href="{% url 'powerbi_report:report_list' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-surface-dark border border-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-sm font-bold shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span> Retour à la liste
         </a>
-      </div>
     </div>
 
     <!-- [ Report Details Card ] start -->
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5>{{ report.Name }}</h5>
-         <!-- Edit Description Button -->
-         <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editDescriptionModal">
-          Edit Description
-        </button>
-      </div>
-      <div class="card-body">
-        <p><strong>ID:</strong> {{ report.Id }}</p>
-        <p><strong>Description:</strong> {{ report.Description|default:"No description available." }}</p>
-        <p><strong>Path:</strong> {{ report.Path }}</p>
-        <p><strong>Size:</strong> {{ report.Size|default:"Unknown" }} bytes</p>
-        
-      
-       
-
-        <!-- Edit Description Modal -->
-        <div class="modal fade" id="editDescriptionModal" tabindex="-1" aria-labelledby="editDescriptionModalLabel" aria-hidden="true">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <form method="POST" action="{% url 'powerbi_report:edit_report_description' report.Id %}">
-                {% csrf_token %}
-                <div class="modal-header">
-                  <h5 class="modal-title" id="editDescriptionModalLabel">Edit Description</h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-xl overflow-hidden glass-panel mb-8">
+        <div class="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-white/5">
+            <div class="flex items-center gap-3">
+                <div class="size-10 rounded-lg bg-yellow-400/10 flex items-center justify-center border border-yellow-400/20">
+                    <span class="material-symbols-outlined text-yellow-500">description</span>
                 </div>
-                <div class="modal-body">
-                  <div class="mb-3">
-                    <label for="description" class="form-label">Description</label>
-                    <textarea id="description" name="description" class="form-control" rows="3">{{ report.Description }}</textarea>
-                  </div>
+                <div>
+                    <h5 class="text-lg font-bold text-white tracking-tight">{{ report.Name }}</h5>
+                    <p class="text-xs text-slate-500 font-mono">{{ report.Id }}</p>
                 </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                  <button type="submit" class="btn btn-primary">Update Description</button>
-                </div>
-              </form>
             </div>
-          </div>
+            <button type="button" class="px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2" data-bs-toggle="modal" data-bs-target="#editDescriptionModal">
+                <span class="material-symbols-outlined text-[18px]">edit</span> Modifier Description
+            </button>
         </div>
-      </div>
+        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <div class="p-4 rounded-xl bg-background-dark/50 border border-slate-800">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Description</label>
+                    <p class="text-sm text-slate-300 leading-relaxed">{{ report.Description|default:"Aucune description disponible pour ce rapport." }}</p>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div class="p-4 rounded-xl bg-background-dark/50 border border-slate-800">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Chemin d'accès</label>
+                    <div class="flex items-center gap-2 text-slate-300">
+                        <span class="material-symbols-outlined text-[18px] text-slate-500">folder</span>
+                        <span class="text-sm font-mono truncate" title="{{ report.Path }}">{{ report.Path }}</span>
+                    </div>
+                </div>
+                <div class="p-4 rounded-xl bg-background-dark/50 border border-slate-800">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Taille</label>
+                    <div class="flex items-center gap-2 text-slate-300">
+                        <span class="material-symbols-outlined text-[18px] text-slate-500">data_usage</span>
+                        <span class="text-sm font-mono">{{ report.Size|default:"Inconnu" }} bytes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <!-- [ Report Details Card ] end -->
 
-<!-- Add Refresh Plan Modal -->
-<div class="modal fade" id="addRefreshPlanModal" tabindex="-1" aria-labelledby="addRefreshPlanModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="POST" action="{% url 'powerbi_report:add_refresh_plan' report.Id %}">
+    <!-- [ Refresh Plans List ] start -->
+    <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-xl overflow-hidden glass-panel">
+        <div class="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-white/5">
+            <h5 class="text-lg font-bold text-white tracking-tight">Plans de rafraîchissement</h5>
+            <button type="button" class="px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2" data-bs-toggle="modal" data-bs-target="#addRefreshPlanModal">
+                <span class="material-symbols-outlined text-[18px]">add_task</span> Ajouter un plan
+            </button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-900/50 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/50">
+                        <th class="px-6 py-4">Description</th>
+                        <th class="px-6 py-4">Dernière exécution</th>
+                        <th class="px-6 py-4">Statut</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/50">
+                    {% for plan in refresh_plans %}
+                    <tr class="hover:bg-white/5 transition-all">
+                        <td class="px-6 py-4 text-sm text-slate-300 font-medium">{{ plan.Description|default:"Aucune description" }}</td>
+                        <td class="px-6 py-4 text-sm text-slate-400">{{ plan.LastRunTime|default:"Jamais" }}</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border {% if plan.LastStatus == 'Success' %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20{% else %}bg-amber-500/10 text-amber-400 border-amber-500/20{% endif %}">
+                                {{ plan.LastStatus|default:"Inconnu" }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <form method="POST" class="flex items-center justify-end gap-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="refresh_plan_id" value="{{ plan.Id }}">
+                                <button type="submit" name="action" value="refresh" class="px-3 py-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[14px]">refresh</span> Actualiser
+                                </button>
+                                <button type="submit" name="action" value="delete" class="px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[14px]">delete</span> Supprimer
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center text-slate-500 italic">Aucun plan de rafraîchissement configuré pour ce rapport.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- [ Refresh Plans List ] end -->
+</div>
+
+<!-- Edit Description Modal -->
+<div class="modal fade" id="editDescriptionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel">
+      <form method="POST" action="{% url 'powerbi_report:edit_report_description' report.Id %}">
         {% csrf_token %}
-        <div class="modal-header">
-          <h5 class="modal-title" id="addRefreshPlanModalLabel">Add Refresh Plan</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
+            <h5 class="text-lg font-bold text-white tracking-tight">Modifier la description</h5>
+            <button type="button" class="text-slate-500 hover:text-white transition-colors" data-bs-dismiss="modal">
+                <span class="material-symbols-outlined text-[24px]">close</span>
+            </button>
         </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="refresh_description" class="form-label">Description</label>
-            <input type="text" class="form-control" id="refresh_description" name="description" value="{{ report.Name }}" required>
-          </div>
-          <div class="mb-3">
-            <label for="catalog_item_path" class="form-label">Path</label>
-            <input type="text" class="form-control" id="catalog_item_path" name="catalog_item_path" value="{{ report.Path }}" required>
-          </div>
-          <div class="mb-3">
-            <label for="start_datetime" class="form-label">Start DateTime</label>
-            <input type="datetime-local" class="form-control" id="start_datetime" name="start_datetime" value="" required>
-          </div>
-          <div class="mb-3">
-            <label for="days_interval" class="form-label">Days Interval</label>
-            <input type="number" class="form-control" id="days_interval" name="days_interval" value="1" min="1" required>
-          </div>
+        <div class="p-6 space-y-4">
+            <div class="space-y-2">
+                <label for="description" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Description</label>
+                <textarea id="description" name="description" rows="4" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-3 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all resize-none">{{ report.Description }}</textarea>
+            </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-primary">Add Refresh Plan</button>
+        <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
+            <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-primary/20">Enregistrer</button>
         </div>
       </form>
     </div>
   </div>
 </div>
-<!-- [ Add Refresh Plan] end -->
 
-    <!-- [ Refresh Plans List ] start -->
-    <div class="card mt-4">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5>Refresh Plans</h5>
-         <!-- Add Refresh Plan Button -->
-         <button type="button" class="btn  btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addRefreshPlanModal">
-          Add Refresh Plan
-        </button>
-
-      </div>
-      <div class="card-body">
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th>Last Run</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for plan in refresh_plans %}
-            <tr>
-              <td>{{ plan.Description|default:"No description" }}</td>
-              <td>{{ plan.LastRunTime|default:"Never" }}</td>
-              <td>{{ plan.LastStatus|default:"Unknown" }}</td>
-              
-              <td>
-                <form method="POST">
-                    {% csrf_token %}
-                    <input type="hidden" name="refresh_plan_id" value="{{ plan.Id }}">
-                    <button type="submit" name="action" value="refresh" class="btn btn-outline-primary btn-sm">
-                        <i class="feather icon-refresh-cw"></i> Refresh
-                    </button>
-                    <button type="submit" name="action" value="delete" class="btn btn-outline-danger btn-sm">
-                        <i class="feather icon-trash"></i> Delete
-                    </button>
-                </form>
-              </td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="4" class="text-center">No refresh plans found.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+<!-- Add Refresh Plan Modal -->
+<div class="modal fade" id="addRefreshPlanModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel">
+      <form method="POST" action="{% url 'powerbi_report:add_refresh_plan' report.Id %}">
+        {% csrf_token %}
+        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
+            <h5 class="text-lg font-bold text-white tracking-tight">Nouveau plan de rafraîchissement</h5>
+            <button type="button" class="text-slate-500 hover:text-white transition-colors" data-bs-dismiss="modal">
+                <span class="material-symbols-outlined text-[24px]">close</span>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="space-y-2">
+                <label for="refresh_description" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Description</label>
+                <input type="text" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="refresh_description" name="description" value="{{ report.Name }}" required>
+            </div>
+            <div class="space-y-2">
+                <label for="catalog_item_path" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Chemin du rapport</label>
+                <input type="text" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-500 focus:ring-0 outline-none cursor-not-allowed" id="catalog_item_path" name="catalog_item_path" value="{{ report.Path }}" readonly>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label for="start_datetime" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Date de début</label>
+                    <input type="datetime-local" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="start_datetime" name="start_datetime" required>
+                </div>
+                <div class="space-y-2">
+                    <label for="days_interval" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Intervalle (jours)</label>
+                    <input type="number" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="days_interval" name="days_interval" value="1" min="1" required>
+                </div>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
+            <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-primary/20">Ajouter le plan</button>
+        </div>
+      </form>
     </div>
-    <!-- [ Refresh Plans List ] end -->
   </div>
 </div>
-<!-- [ Main Content ] end -->
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Select all alert elements
-    const alerts = document.querySelectorAll('.alert');
-    
-    // Loop through each alert
-    alerts.forEach(alert => {
-        // Set timeout to hide alert after 3 seconds (3000ms)
-        setTimeout(() => {
-            // Use jQuery to close the alert
-            $(alert).alert('close');
-
-        }, 3000);
-
-    });
-});
-</script>
 
 {% endblock %}

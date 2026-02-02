@@ -1,114 +1,107 @@
 {% extends 'base.html' %}
-{% load static %}
-{% block title %}Report{% endblock %}
+{% block title %}Rapport{% endblock %}
+
+{% block header_title %}
+    {% with breadcrumbs|last as last_breadcrumb %}
+        {{ last_breadcrumb.name }}
+    {% endwith %}
+{% endblock %}
+{% block header_subtitle %}Visualisation du rapport Power BI{% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:report_list_hierarchy' %}">Rapports</a>
+  {% for breadcrumb in breadcrumbs %}
+    <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+    {% if not forloop.last %}
+    <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=breadcrumb.url %}">{{ breadcrumb.name }}</a>
+    {% else %}
+    <span class="text-slate-400">{{ breadcrumb.name }}</span>
+    {% endif %}
+  {% endfor %}
+{% endblock %}
 
 {% block content %}
-<div class="pc-container">
-  <div class="pc-content">
-    <!-- [ Breadcrumb ] start -->
-    <div class="page-header">
-      <div class="page-block">
-        <div class="row align-items-center">
-          <div class="col-md-12">
-            <div class="page-header-title">
-              {% with breadcrumbs|last as last_breadcrumb %}
-              <h5 class="mb-0">Report {{ last_breadcrumb.name }}</h5>
-              {% endwith %}
-            </div>
-          </div>
-          <div class="col-md-12">
-            <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-              <li class="breadcrumb-item"><a href="{% url 'powerbi_report:report_list_hierarchy' %}">Reports</a></li>
-              {% for breadcrumb in breadcrumbs %}
-              <li class="breadcrumb-item">
-                <a href="#">{{ breadcrumb.name }}</a>
-              </li>
-              {% endfor %}
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- [ Breadcrumb ] end -->
+<div class="px-8 py-6 h-full flex flex-col">
 
-    <div class="row mb-4">
-      <div class="col d-flex justify-content-start">
-        <button id="backBtn" class="btn btn-outline-secondary me-2" onclick="goBack()">
-          <i class="fas fa-arrow-left"></i> Back
+
+    <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+      <div>
+        <button id="backBtn" onclick="goBack()" class="flex items-center gap-2 px-4 py-2 bg-surface-dark border border-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-sm font-bold shadow-sm">
+          <span class="material-symbols-outlined text-[18px]">arrow_back</span> Retour
         </button>
       </div>
-      <div class="col d-flex justify-content-end">
-        <button id="printBtn" class="btn btn-outline-primary me-2" onclick="printReport()">
-          <i class="fas fa-print"></i> Print
+      
+      <div class="flex flex-wrap gap-2">
+        <button id="printBtn" onclick="printReport()" class="flex items-center gap-2 px-4 py-2 bg-surface-dark border border-slate-800 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 text-sm font-bold transition-all shadow-sm">
+          <span class="material-symbols-outlined text-[18px]">print</span> Imprimer
         </button>
-        <button id="shareBtn" class="btn btn-outline-primary me-2" onclick="copyShareUrl()">
-          <i class="fas fa-share"></i> Share
+        <button id="shareBtn" onclick="toggleShareModal()" class="flex items-center gap-2 px-4 py-2 bg-surface-dark border border-slate-800 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 text-sm font-bold transition-all shadow-sm">
+          <span class="material-symbols-outlined text-[18px]">share</span> Partager
         </button>
-        <button id="fullscreenBtn" class="btn btn-outline-primary me-2" onclick="toggleFullScreen()">
-          <i class="fas fa-expand"></i>
+        <button id="fullscreenBtn" onclick="toggleFullScreen()" class="flex items-center justify-center size-10 bg-surface-dark border border-slate-800 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all shadow-sm">
+          <span class="material-symbols-outlined text-[20px]">fullscreen</span>
         </button>
         {% if permissions.view_powerbireport and permissions.change_powerbireport %}
-
-        <a href="{% url 'powerbi_report:download_report' report_id=report_id %}" class="btn btn-outline-primary me-2"
-          id="downloadBtn">
-          <i class="fas fa-download"></i> Download
+        <a href="{% url 'powerbi_report:download_report' report_id=report_id %}" id="downloadBtn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-primary/20">
+          <span class="material-symbols-outlined text-[18px]">download</span> Télécharger
         </a>
-        {% endif%}
+        {% endif %}
       </div>
     </div>
 
-    <!-- Report Embed Section -->
-    <div class="d-flex justify-content-center align-items-center vh-100">
+    <div class="flex-grow bg-surface-dark border border-slate-800 rounded-2xl overflow-hidden relative min-h-[600px] shadow-2xl glass-panel">
       {% if embed_url %}
-      <iframe id="reportIframe" src="{{ embed_url }}" width="90%" height="90%" frameborder="0" allowfullscreen
+      <iframe id="reportIframe" src="{{ embed_url }}" class="w-full h-full border-none" allowfullscreen
         title="Power BI Report">
       </iframe>
       {% else %}
-      <div class="text-center">
-        <p class="text-danger fw-bold">⚠ Failed to load the report. Please try again later.</p>
+      <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
+        <div class="size-20 bg-red-400/10 rounded-2xl flex items-center justify-center text-red-400 mb-4 border border-red-500/20">
+          <span class="material-symbols-outlined text-[40px]">error</span>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Erreur de chargement</h3>
+        <p class="text-slate-500 max-w-sm">Impossible de charger le rapport Power BI. Veuillez réessayer plus tard ou contacter l'administrateur.</p>
       </div>
       {% endif %}
     </div>
   </div>
-</div>
 
 <!-- Share URL Modal -->
-<div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="shareModalLabel">Share Report Link</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p><i class="fas fa-check-circle text-success me-2"></i>Link copied to clipboard!</p>
-        <div class="input-group">
-          <input type="text" class="form-control" id="shareUrlInput" readonly>
-          <button class="btn btn-outline-primary" type="button" onclick="copyToClipboard()">
-            <i class="fas fa-copy"></i>
-          </button>
+<div id="shareModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+  <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel max-w-md w-full transform transition-all scale-95 opacity-0" id="shareModalContent">
+    <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
+        <h5 class="text-lg font-bold text-white tracking-tight">Partager le lien du rapport</h5>
+        <button type="button" class="text-slate-500 hover:text-white transition-colors" onclick="toggleShareModal()">
+            <span class="material-symbols-outlined text-[24px]">close</span>
+        </button>
+    </div>
+    <div class="p-6 space-y-4">
+        <div class="space-y-2">
+            <label for="shareUrlInput" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Lien de partage</label>
+            <div class="flex gap-2">
+                <input type="text" class="flex-1 bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-mono" id="shareUrlInput" readonly>
+                <button class="px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-xltransition-all flex items-center justify-center rounded-xl" type="button" onclick="copyToClipboard()">
+                    <span class="material-symbols-outlined text-[20px]">content_copy</span>
+                </button>
+            </div>
+            
         </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
+        <p class="text-xs text-emerald-400 font-medium hidden flex items-center gap-1.5" id="shareSuccessMsg">
+             <span class="material-symbols-outlined text-[16px]">check_circle</span> Lien copié dans le presse-papier !
+        </p>
+    </div>
+    <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end bg-white/5">
+        <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" onclick="toggleShareModal()">Fermer</button>
     </div>
   </div>
 </div>
-<!-- Share URL Modal end -->
 
-<!-- Toast for copy notification -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-  <div id="copyToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive"
-    aria-atomic="true">
-    <div class="d-flex">
-      <div class="toast-body">
-        <i class="fas fa-check-circle me-2"></i>Link copied to clipboard!
-      </div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
-        aria-label="Close"></button>
-    </div>
+<!-- Toast Notification -->
+<div id="copyToast" class="fixed bottom-6 right-6 z-50 hidden transform transition-all translate-y-10 opacity-0">
+  <div class="flex items-center gap-3 px-4 py-3 bg-emerald-500 border border-emerald-400 rounded-xl text-white shadow-lg shadow-emerald-500/20">
+    <span class="material-symbols-outlined text-[20px]">check_circle</span>
+    <span class="text-sm font-bold">Lien copié avec succès !</span>
   </div>
 </div>
 
@@ -163,33 +156,75 @@
     }
   }
 
-  function copyShareUrl() {
-    var shareUrl = window.location.href;
-    document.getElementById("shareUrlInput").value = shareUrl;
+  const shareModal = document.getElementById('shareModal');
+  const shareModalContent = document.getElementById('shareModalContent');
+  const shareUrlInput = document.getElementById('shareUrlInput');
+  const shareSuccessMsg = document.getElementById('shareSuccessMsg');
+  const copyToast = document.getElementById('copyToast');
 
-    // Copy to clipboard automatically
-    navigator.clipboard.writeText(shareUrl).then(function () {
-      // Show the modal with the link
-      var shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
-      shareModal.show();
+  function toggleShareModal() {
+    if (shareModal.classList.contains('hidden')) {
+        // Open
+        shareModal.classList.remove('hidden');
+        shareModal.classList.add('flex');
+        
+        // Populate URL
+        shareUrlInput.value = window.location.href;
+        
+        // Reset message
+        shareSuccessMsg.classList.add('hidden');
+
+        // Animation
+        setTimeout(() => {
+            shareModalContent.classList.remove('scale-95', 'opacity-0');
+            shareModalContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    } else {
+        // Close
+        shareModalContent.classList.remove('scale-100', 'opacity-100');
+        shareModalContent.classList.add('scale-95', 'opacity-0');
+        
+        setTimeout(() => {
+            shareModal.classList.add('hidden');
+            shareModal.classList.remove('flex');
+        }, 300);
+    }
+  }
+
+  // Close modal on outside click
+  shareModal.addEventListener('click', function(e) {
+      if (e.target === shareModal) {
+          toggleShareModal();
+      }
+  });
+
+  function copyToClipboard() {
+    navigator.clipboard.writeText(shareUrlInput.value).then(function () {
+      // Show success message in modal
+      shareSuccessMsg.classList.remove('hidden');
+      
+      // Show toast
+      showToast();
+      
+      // Select the text visually
+      shareUrlInput.select();
     }).catch(function (error) {
       console.error("Failed to copy:", error);
-      // Still show the modal even if copy fails
-      var shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
-      shareModal.show();
     });
   }
 
-  function copyToClipboard() {
-    var copyText = document.getElementById("shareUrlInput");
-    navigator.clipboard.writeText(copyText.value).then(function () {
-      // Show toast notification
-      var toastEl = document.getElementById('copyToast');
-      var toast = new bootstrap.Toast(toastEl, { delay: 2000 });
-      toast.show();
-    }).catch(function (error) {
-      console.error("Failed to copy:", error);
-    });
+  function showToast() {
+    copyToast.classList.remove('hidden');
+    setTimeout(() => {
+        copyToast.classList.remove('translate-y-10', 'opacity-0');
+    }, 10);
+
+    setTimeout(() => {
+        copyToast.classList.add('translate-y-10', 'opacity-0');
+        setTimeout(() => {
+            copyToast.classList.add('hidden');
+        }, 300);
+    }, 3000);
   }
 
   function printReport() {

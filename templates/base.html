@@ -13,16 +13,64 @@
   <link rel="icon" href="{% static 'assets/images/favicon.svg' %}" />
 
   <!-- [Fonts & Icons] -->
-  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;500;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{% static 'assets/fonts/tabler-icons.min.css' %}" />
   <link rel="stylesheet" href="{% static 'assets/fonts/feather.css' %}" />
   <link rel="stylesheet" href="{% static 'assets/fonts/fontawesome.css' %}" />
   <link rel="stylesheet" href="{% static 'assets/fonts/material.css' %}" />
 
+  <!-- [Tailwind CSS] -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#137fec",
+            "background-dark": "#0a0f14",
+            "surface-dark": "#121922",
+            "accent-gold": "#d4af37",
+            "accent-teal": "#2d6a4f",
+          },
+          fontFamily: {
+            "display": ["Manrope", "sans-serif"]
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+
   <!-- [Template CSS] -->
   <link rel="stylesheet" href="{% static 'assets/css/style.css' %}" id="main-style-link" />
   <link rel="stylesheet" href="{% static 'assets/css/style-preset.css' %}" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+  <style type="text/tailwindcss">
+    @layer base {
+      body {
+        font-family: 'Manrope', sans-serif;
+      }
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    }
+    .bg-mesh {
+      background-image: radial-gradient(at 0% 0%, rgba(19, 127, 236, 0.05) 0px, transparent 50%),
+                        radial-gradient(at 100% 100%, rgba(212, 175, 55, 0.03) 0px, transparent 50%);
+    }
+    /* Override Able Pro sidebar if needed, but we might replace it entirely */
+    .pc-sidebar {
+        z-index: 1050;
+    }
+  </style>
 
 
   <!-- Google Analytics -->
@@ -38,303 +86,228 @@
   </script>
 </head>
 
-<body data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" data-pc-theme="light">
-  <div class="loader-bg">
-    <div class="loader-track">
-      <div class="loader-fill"></div>
-    </div>
-  </div>
-  <!-- [ Pre-loader ] End -->
+
+<body data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" data-pc-theme="light" class="bg-background-dark text-slate-300 min-h-screen font-display overflow-x-hidden">
+  <!-- Sidebar Overlay (Mobile) -->
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1040] hidden lg:hidden transition-opacity duration-300 opacity-0"></div>
+
+  <div class="flex h-screen w-full relative">
 
   <!-- [ Sidebar Menu ] start -->
-  <nav class="pc-sidebar">
-    <div class="navbar-wrapper">
-      <div class="m-header">
-        <a href="{% url 'home' %}" class="b-brand text-primary">
-          <img src="{% static 'assets/images/mlogo.gif' %}" alt="logo"
-            style="width: 140px; height: auto; margin-top:20px;" />
-        </a>
-      </div>
-      <div class="navbar-content">
-        <ul class="pc-navbar">
-          <!--Navigation 1-->
-          <li class="pc-item pc-caption">
-            <label>Navigation</label>
-          </li>
-
-          {% if user.is_authenticated %}
-
-          {% if permissions.view_dashboard or permissions.view_refresh %}
-          <li class="pc-item">
-            <a href="{% url 'powerbi_report:dashboard' %}" class="pc-link">
-              <span class="pc-micon">
-                <i data-feather="home"></i>
-              </span>
-              <span class="pc-mtext">Dashboard</span>
-            </a>
-          </li>
-          {% endif %}
-
-          {% if permissions.view_customuser %}
-          <li class="pc-item">
-            <a href="{% url 'users_view' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="users"></i></span>
-              <span class="pc-mtext">Gestion des utilisateurs</span>
-            </a>
-          </li>
-          {% endif %}
-
-          {% if permissions.view_powerbireport %}
-          <li class="pc-item">
-            <a href="{% url 'powerbi_report:report_list' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="folder"></i></span>
-              <span class="pc-mtext">Gestion des rapports</span>
-            </a>
-          </li>
-          {% endif %}
-
-          {% comment %} Business/Department Views - Admin sees both, users see their default {% endcomment %}
-          {% if permissions.view_dashboard %}
-          <!-- Admins/Superusers see both views -->
-          <li class="pc-item">
-            <a href="{% url 'powerbi_report:custom_business' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="briefcase"></i></span>
-              <span class="pc-mtext">Tableau de bord</span>
-            </a>
-          </li>
-          <li class="pc-item">
-            <a href="{% url 'powerbi_report:custom_department' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="users"></i></span>
-              <span class="pc-mtext">Tableau de bord</span>
-            </a>
-          </li>
-          {% else %}
-          <!-- Regular users see only their assigned view -->
-          {% if user.default_view == 'department' %}
-          <li class="pc-item">
-            <a href="{% url 'powerbi_report:custom_department' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="users"></i></span>
-              <span class="pc-mtext">Vue Département</span>
-            </a>
-          </li>
-          {% else %}
-          <li class="pc-item">
-            <a href="{% url 'powerbi_report:custom_business' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="briefcase"></i></span>
-              <span class="pc-mtext">Vue Métier</span>
-            </a>
-          </li>
-          {% endif %}
-          {% endif %}
-
-          <!-- Bibliothèque - visible to all authenticated users -->
-          <li class="pc-item">
-            <a href="{% url 'powerbi_report:custom_biblio' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="book"></i></span>
-              <span class="pc-mtext">Bibliothèque</span>
-            </a>
-          </li>
-
-          <!--Navigation 2-->
-          <li class="pc-item pc-caption">
-            <label>Paramètres</label>
-          </li>
-          <li class="pc-item">
-            <a href="{% url 'profile' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="user"></i></span>
-              <span class="pc-mtext">Profil</span>
-            </a>
-          </li>
-
-          {% if permissions.view_notification %}
-          <li class="pc-item">
-            <a href="{% url 'notifications' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="bell"></i></span>
-              <span class="pc-mtext">Notifications</span>
-            </a>
-          </li>
-          {% endif %}
-
-          {% if permissions.view_userhistory %}
-          <li class="pc-item">
-            <a href="{% url 'user_history' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="clock"></i></span>
-              <span class="pc-mtext">Historique</span>
-            </a>
-          </li>
-          {% endif %}
-
-          <li class="pc-item">
-            <a href="{% url 'logout' %}" class="pc-link">
-              <span class="pc-micon"><i data-feather="log-out"></i></span>
-              <span class="pc-mtext">Déconnexion</span>
-            </a>
-          </li>
-
-          <!--Navigation 3 - Control Panel for admins -->
-          {% if permissions.view_customuser and permissions.view_role %}
-          <li class="pc-item pc-caption">
-            <label>Contrôle</label>
-          </li>
-          <li class="pc-item">
-            <a href="{% url 'admin:index' %}" target="_blank" class="pc-link">
-              <span class="pc-micon"><i data-feather="server"></i></span>
-              <span class="pc-mtext">Panneau de contrôle</span>
-            </a>
-          </li>
-          {% endif %}
-
-          {% endif %}
-        </ul>
-      </div>
+  <aside class="pc-sidebar w-64 flex flex-col border-r border-slate-800/50 bg-[#070b0f] z-[1050] fixed lg:relative h-full -translate-x-full lg:translate-x-0 transition-transform duration-300 overflow-hidden" id="sidebar">
+    <div class="p-6 flex items-center gap-3 border-b border-slate-800/10">
+      <a href="{% url 'home' %}" class="flex items-center gap-2">
+        <div class="size-8 text-primary">
+          <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+            <path clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fill-rule="evenodd"></path>
+          </svg>
+        </div>
+        <span class="text-lg font-bold tracking-tight text-white">BI & Analytics</span>
+      </a>
     </div>
-  </nav>
+
+    <div class="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
+      {% if user.is_authenticated %}
+        
+        <p class="px-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Navigation</p>
+        
+        {% if permissions.view_dashboard or permissions.view_refresh %}
+        <a href="{% url 'powerbi_report:dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'dashboard' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+          <span class="material-symbols-outlined text-[20px]">home</span>
+          <span class="text-sm font-medium">Dashboard</span>
+        </a>
+        {% endif %}
+
+        {% if permissions.view_customuser %}
+        <a href="{% url 'users_view' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'users_view' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+          <span class="material-symbols-outlined text-[20px]">group</span>
+          <span class="text-sm font-medium">Utilisateurs</span>
+        </a>
+        {% endif %}
+
+        {% if permissions.view_powerbireport %}
+        <a href="{% url 'powerbi_report:report_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'report_list' in request.path %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+          <span class="material-symbols-outlined text-[20px]">folder_managed</span>
+          <span class="text-sm font-medium">Gestion Rapports</span>
+        </a>
+        {% endif %}
+
+        <div class="h-4"></div>
+        <p class="px-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Vues Power BI</p>
+
+        {% if permissions.view_dashboard %}
+          <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/business' in request.path %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+            <span class="material-symbols-outlined text-[20px]">business_center</span>
+            <span class="text-sm font-medium">Société</span>
+          </a>
+          <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/department' in request.path %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+            <span class="material-symbols-outlined text-[20px]">groups</span>
+            <span class="text-sm font-medium">Pôle</span>
+          </a>
+        {% else %}
+          {% if user.default_view == 'department' %}
+            <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/department' in request.path %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+              <span class="material-symbols-outlined text-[20px]">groups</span>
+              <span class="text-sm font-medium">Vue Département</span>
+            </a>
+          {% else %}
+            <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/business' in request.path %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+              <span class="material-symbols-outlined text-[20px]">business_center</span>
+              <span class="text-sm font-medium">Vue Métier</span>
+            </a>
+          {% endif %}
+        {% endif %}
+
+        <a href="{% url 'powerbi_report:custom_biblio' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/biblio' in request.path %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+          <span class="material-symbols-outlined text-[20px]">library_books</span>
+          <span class="text-sm font-medium">Bibliothèque</span>
+        </a>
+
+        <div class="h-4"></div>
+        <p class="px-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Paramètres</p>
+
+        <a href="{% url 'profile' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'profile' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+          <span class="material-symbols-outlined text-[20px]">person_outline</span>
+          <span class="text-sm font-medium">Profil</span>
+        </a>
+
+        {% if permissions.view_notification %}
+        <a href="{% url 'notifications' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'notifications' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+          <span class="material-symbols-outlined text-[20px]">notifications</span>
+          <span class="text-sm font-medium">Notifications</span>
+        </a>
+        {% endif %}
+
+        {% if permissions.view_userhistory %}
+        <a href="{% url 'user_history' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'user_history' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+          <span class="material-symbols-outlined text-[20px]">history</span>
+          <span class="text-sm font-medium">Historique</span>
+        </a>
+        {% endif %}
+
+        {% if permissions.view_customuser and permissions.view_role %}
+        <a href="{% url 'admin:index' %}" target="_blank" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-all group">
+          <span class="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+          <span class="text-sm font-medium">Admin Panel</span>
+        </a>
+        {% endif %}
+
+      {% endif %}
+    </div>
+
+  </aside>
   <!-- [ Sidebar Menu ] end -->
 
 
-  <header class="pc-header">
-    <div class="header-wrapper">
-      <div class="me-auto pc-mob-drp">
-        <ul class="list-unstyled">
-          <li class="pc-h-item pc-sidebar-collapse">
-            <a href="#" class="pc-head-link ms-0" id="sidebar-hide">
-              <i data-feather="menu"></i>
-            </a>
-          </li>
-          <li class="pc-h-item pc-sidebar-popup">
-            <a href="#" class="pc-head-link ms-0" id="mobile-collapse">
-              <i data-feather="menu"></i>
-            </a>
-          </li>
-        </ul>
-      </div>
 
-      <!-- right side menu -->
-
-      <div class="ms-auto">
-        <ul class="list-unstyled">
-          {% if user.is_authenticated %}
-          <!-- Notifications Dropdown -->
-          <li class="dropdown pc-h-item">
-            <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button"
-              aria-expanded="false">
-              <i data-feather="bell"></i>
-              {% if unread %}
-              <span class="badge bg-success pc-h-badge">{{ unread }}</span>
-              {% endif %}
-            </a>
-            <div class="dropdown-menu dropdown-notification dropdown-menu-end pc-h-dropdown">
-              <div class="dropdown-header d-flex align-items-center justify-content-between">
-                <h5 class="m-0">Notifications</h5>
-                <form action="{% url 'mark_notifications' %}" method="post" class="d-inline">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-link btn-sm">Tout marquer comme lu</button>
-                </form>
-              </div>
-              <div class="dropdown-body text-wrap header-notification-scroll position-relative"
-                style="max-height: calc(100vh - 215px)">
-                {% if notifications %}
-                {% for notification in notifications %}
-                <div class="card mb-0">
-                  <div class="card-body">
-                    <div class="d-flex">
-                      <div class="flex-grow-1 ms-3">
-                        <a href="{% url 'notifications' %}" style="text-decoration: none;" onclick="markAsRead(this)">
-                          <span class="float-end text-sm text-muted"> {{ notification.created_at|timesince }}</span>
-                          <p class="mb-0">{{ notification.message }}</p>
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {% endfor %}
-                {% else %}
-                <p class="text-muted">Aucune notification non lue.</p>
-                {% endif %}
-              </div>
-              <div class="text-center py-2">
-                <form action="{% url 'delete_all' %}" method="post" class="d-inline">
-                  {% csrf_token %}
-                  <button type="submit" class="link-danger" style="border:none; background:none;">Effacer toutes les
-                    notifications</button>
-                </form>
-              </div>
-            </div>
-          </li>
-          {% endif %}
-
-          <!-- Profile Dropdown -->
-          {% if user.is_authenticated %}
-          <li class="dropdown pc-h-item header-user-profile">
-            <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button"
-              aria-expanded="false">
-              {% if user.profile_image %}
-              <img src="{{ user.profile_image.url }}" alt="User Avatar" class="user-avtar wid-35"
-                style="border-radius: 50%; z-index: 100;" />
-              {% else %}
-              <i data-feather="user"></i>
-              {% endif %}
-            </a>
-            <div class="dropdown-menu dropdown-user-profile dropdown-menu-end pc-h-dropdown p-0 overflow-hidden">
-              <div class="dropdown-header d-flex align-items-center justify-content-between bg-primary">
-                <div class="d-flex my-2">
-                  <div class="flex-shrink-0">
-                    {% if user.profile_image %}
-                    <img src="{{ user.profile_image.url }}" alt="User Avatar" class="user-avtar wid-35" />
-                    {% else %}
-                    <img src="{% static 'assets/images/user/avatar.jpg' %}" alt="User Avatar"
-                      class="user-avtar wid-35" />
-                    {% endif %}
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="text-white mb-1">{{ user.get_full_name|default:user.username }}</h6>
-                    <span class="text-white text-opacity-75">{{ user.ad2000 }}</span>
-                  </div>
-                </div>
-              </div>
-              <div class="dropdown-body">
-                <div class="profile-notification-scroll position-relative" style="max-height: calc(100vh - 225px)">
-                  <a href="{% url 'profile' %}" class="dropdown-item">
-                    <span>
-                      <svg class="pc-icon text-muted me-2">
-                        <use xlink:href="#custom-setting-outline"></use>
-                      </svg>
-                      <span>Paramètres</span>
-                    </span>
-                  </a>
-                  <div class="d-grid my-2">
-                    <button class="btn bg-red-500">
-                      <a href="{% url 'logout' %}" class="pc-link">
-                        <span class="pc-micon text-red-100"><i data-feather="log-out"></i></span>
-                        <span class="text-red-100">Déconnexion</span>
-                      </a>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </li>
-          {% endif %}
-        </ul>
-      </div>
-    </div>
-  </header>
-
-  {% block content %}
-  {% endblock %}
-
-  <footer class="pc-footer">
-    <div class="footer-wrapper container-fluid">
-      <div class="row">
-        <div class="col my-1"></div>
-        <div class="col-auto my-1">
-          <ul class="list-inline footer-link mb-0">
-            <li class="list-inline-item"><a href="{% url 'home' %}">Accueil</a></li>
-          </ul>
+  <main class="flex-1 flex flex-col relative bg-mesh overflow-auto">
+    <header class="h-20 flex items-center justify-between px-4 lg:px-8 border-b border-slate-800/50 backdrop-blur-md sticky top-0 z-10 shrink-0">
+      <div class="flex items-center gap-4">
+        <button id="mobile-menu-toggle" class="lg:hidden p-2 text-slate-400 hover:text-white transition-colors">
+          <span class="material-symbols-outlined text-[24px]">menu</span>
+        </button>
+        <div>
+          <h1 class="text-lg lg:text-2xl font-black text-white tracking-tight">{% block header_title %}{% endblock %}</h1>
+          <p class="text-[10px] lg:text-xs text-slate-500 mt-0.5">{% block header_subtitle %}{% endblock %}</p>
         </div>
       </div>
+      
+      <div class="flex items-center gap-6">
+        {% if user.is_authenticated %}
+          <!-- Notifications -->
+          <div class="dropdown">
+            <button class="relative text-slate-400 hover:text-white transition-colors" data-bs-toggle="dropdown">
+              <span class="material-symbols-outlined text-[24px]">notifications</span>
+              {% if unread %}
+                <span class="absolute -top-1 -right-1 size-4 bg-primary text-[10px] font-bold text-white rounded-full flex items-center justify-center">{{ unread }}</span>
+              {% endif %}
+            </button>
+            <div class="dropdown-menu dropdown-menu-end p-0 bg-surface-dark border border-slate-800 shadow-2xl overflow-hidden w-80">
+              <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-white/5">
+                <h5 class="text-sm font-bold text-white m-0">Notifications</h5>
+                <form action="{% url 'mark_notifications' %}" method="post" class="m-0">
+                  {% csrf_token %}
+                  <button type="submit" class="text-[10px] uppercase tracking-wider font-bold text-primary hover:text-blue-400 transition-colors">Tout marquer comme lu</button>
+                </form>
+              </div>
+              <div class="max-h-[400px] overflow-y-auto">
+                {% if notifications %}
+                  {% for notification in notifications %}
+                    <a href="{% url 'notifications' %}" class="block p-4 border-b border-slate-800/50 hover:bg-white/5 transition-all">
+                      <div class="flex gap-3">
+                        <div class="size-2 mt-1.5 rounded-full bg-primary shrink-0"></div>
+                        <div>
+                          <p class="text-xs text-slate-300 leading-relaxed">{{ notification.message }}</p>
+                          <span class="text-[10px] text-slate-500 font-medium mt-1 block">{{ notification.created_at|timesince }}</span>
+                        </div>
+                      </div>
+                    </a>
+                  {% endfor %}
+                {% else %}
+                  <div class="p-8 text-center">
+                    <span class="material-symbols-outlined text-slate-700 text-[40px] mb-2">notifications_off</span>
+                    <p class="text-xs text-slate-500">Aucune notification</p>
+                  </div>
+                {% endif %}
+              </div>
+              <div class="p-3 text-center border-t border-slate-800 bg-white/5">
+                <form action="{% url 'delete_all' %}" method="post" class="m-0">
+                  {% csrf_token %}
+                  <button type="submit" class="text-[10px] uppercase tracking-wider font-bold text-red-400 hover:text-red-300 transition-colors">Effacer tout</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Profile -->
+          <div class="dropdown">
+            <button class="flex items-center gap-3 p-1 rounded-full hover:bg-white/5 transition-all text-left" data-bs-toggle="dropdown">
+              <div class="size-9 rounded-full bg-primary/20 border border-primary/20 flex items-center justify-center text-sm font-bold text-primary">
+                {% if user.profile_image %}
+                  <img src="{{ user.profile_image.url }}" alt="AV" class="size-full rounded-full object-cover">
+                {% else %}
+                  {{ user.username|slice:":1"|upper }}
+                {% endif %}
+              </div>
+              <div class="hidden md:flex flex-col">
+                <span class="text-xs font-bold text-white">{{ user.get_full_name|default:user.username }}</span>
+                <span class="text-[10px] text-slate-500">{{ user.ad2000 }}</span>
+              </div>
+              <span class="material-symbols-outlined text-slate-500 text-[18px]">expand_more</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end p-2 bg-surface-dark border border-slate-800 shadow-2xl rounded-xl w-56">
+              <li>
+                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-all" href="{% url 'profile' %}">
+                  <span class="material-symbols-outlined text-[20px]">settings</span>
+                  <span class="text-xs font-bold">Paramètres Profil</span>
+                </a>
+              </li>
+              <li class="my-1 border-t border-slate-800"></li>
+              <li>
+                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-all" href="{% url 'logout' %}">
+                  <span class="material-symbols-outlined text-[20px]">logout</span>
+                  <span class="text-xs font-bold">Déconnexion</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        {% endif %}
+      </div>
+    </header>
+
+    <div class="flex-1 overflow-auto">
+      {% block content %}
+      {% endblock %}
     </div>
-  </footer>
+
+    <footer class="p-6 border-t border-slate-800/30">
+      <div class="flex items-center gap-4 text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+        <a class="hover:text-primary transition-colors" href="{% url 'home' %}">Accueil</a>
+        {% block breadcrumbs_footer %}{% endblock %}
+      </div>
+    </footer>
+  </main>
+</div>
 
   <!-- [Page Specific JS] start -->
   {% block page_scripts %}
@@ -382,6 +355,39 @@
     function markAsRead(link) {
       link.classList.add('read-notification'); // Add the class to change the color
     }
+  </script>
+
+  <script>
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const toggle = document.getElementById('mobile-menu-toggle');
+
+    function toggleSidebar() {
+      sidebar.classList.toggle('-translate-x-full');
+      overlay.classList.toggle('hidden');
+      setTimeout(() => {
+        overlay.classList.toggle('opacity-0');
+      }, 0);
+    }
+
+    if (toggle) {
+      toggle.addEventListener('click', toggleSidebar);
+    }
+
+    if (overlay) {
+      overlay.addEventListener('click', toggleSidebar);
+    }
+
+    // Close sidebar on window resize if it's open and we transition to desktop
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 1024) {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.add('hidden');
+        overlay.classList.add('opacity-0');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+      }
+    });
   </script>
 
   <script>

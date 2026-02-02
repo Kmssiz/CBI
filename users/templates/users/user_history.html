@@ -1,189 +1,100 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}User History{% endblock %}
+
+{% block title %}Historique des Actions{% endblock %}
+
+{% block header_title %}Historique d'Activité{% endblock %}
+{% block header_subtitle %}Suivi des actions effectuées sur la plateforme{% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <a href="{% url 'users_view' %}" class="hover:text-primary transition-colors">Gestion des Utilisateurs</a>
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <span class="text-slate-400">Historique d'Activité</span>
+{% endblock %}
+
 {% block content %}
-
-<style>
-    .card {
-        border: none;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s;
-    }
-
-    .card:hover {
-        transform: translateY(-2px);
-    }
-
-    .card-header {
-        background: #f8f9fa;
-        border-bottom: 1px solid #e3e6f0;
-        padding: 1.25rem;
-    }
-
-    .card-header h5 {
-        color: #1a3c34;
-        font-weight: 600;
-    }
-
-    .table tbody tr:hover {
-        background: #f1f8ff;
-    }
-
-    .badge-secondary {
-        background: #17a2b8;
-        /* Updated to a vibrant teal */
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 12px;
-        font-size: 0.7rem;
-        font-weight: 500;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        /* Subtle shadow for depth */
-        transition: background 0.3s ease;
-    }
-
-    .badge-secondary:hover {
-        background: #138496;
-        /* Slightly darker teal on hover for interactivity */
-    }
-
-    .no-history {
-        background: #f8f9fa;
-        border-radius: 12px;
-        padding: 2rem;
-        text-align: center;
-        color: #5a5c69;
-    }
-
-    .no-history p {
-        font-size: 1.1rem;
-        font-weight: 500;
-    }
-
-    /* Back to Top Button Styles */
-    .back-to-top {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        display: none;
-        background: #17a2b8;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        font-size: 1.2rem;
-        cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        transition: opacity 0.3s ease, background 0.3s ease;
-        z-index: 1000;
-    }
-
-    .back-to-top:hover {
-        background: #138496;
-    }
-</style>
-
-<!-- [ Main Content ] start -->
-<div class="pc-container">
-    <div class="pc-content">
-        <!-- [ breadcrumb ] start -->
-        <div class="page-header">
-            <div class="page-block">
-                <div class="row align-items-center">
-                    <div class="col-md-12">
-                        <div class="page-header-title">
-                            <h5 class="mb-0">User History</h5>
-                        </div>
-                    </div>
-                    <div class="col-md-12">
-                        <ul class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-                            <li class="breadcrumb-item"><a href="{% url 'users_view' %}">User Management</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">User History</li>
-                        </ul>
-                    </div>
-                </div>
+<div class="px-8 py-6">
+    <!-- [ History Section ] start -->
+    {% if history %}
+    <div class="bg-surface-dark border border-slate-800 rounded-3xl overflow-hidden shadow-xl shadow-black/20">
+        <div class="px-8 py-6 border-b border-slate-800/50 flex items-center justify-between bg-white/[0.02]">
+            <h3 class="font-bold text-white tracking-tight">Journal des Événements</h3>
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total: {{ history|length }}</span>
             </div>
         </div>
-        <!-- [ breadcrumb ] end -->
-
-        <!-- [ History Section ] start -->
-        {% if history %}
-        <div class="row">
-            <div class="col-md-12">
-                <div class="card shadow-sm">
-
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle">
-                                <thead>
-                                    <tr>
-                                        <th>User</th>
-                                        <th style="width:200px;">Date</th>
-                                        <th>Action</th>
-                                        <th>Time Ago</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for record in history %}
-                                    <tr>
-                                        <td>{{ record.user.username }}</td>
-                                        <td>{{ record.timestamp|date:"F j, Y, g:i A" }}</td>
-                                        <td>{{ record.action }}</td>
-                                        <td><span class="badge badge-secondary">{{ record.timestamp|timesince }}
-                                                ago</span></td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-800/50 bg-white/[0.01]">
+                        <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Utilisateur</th>
+                        <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Action</th>
+                        <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Date & Heure</th>
+                        <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Il y a</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/30">
+                    {% for record in history %}
+                    <tr class="hover:bg-white/[0.02] transition-colors group">
+                        <td class="px-8 py-5">
+                            <div class="flex items-center gap-3">
+                                <div class="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                                    <span class="material-symbols-outlined text-[18px]">person</span>
+                                </div>
+                                <span class="text-sm font-bold text-slate-200">{{ record.user.username }}</span>
+                            </div>
+                        </td>
+                        <td class="px-8 py-5">
+                            <span class="text-sm text-slate-400 group-hover:text-white transition-colors">{{ record.action }}</span>
+                        </td>
+                        <td class="px-8 py-5">
+                            <div class="flex flex-col">
+                                <span class="text-sm text-slate-300 font-medium">{{ record.timestamp|date:"d F Y" }}</span>
+                                <span class="text-[10px] text-slate-500 font-bold uppercase">{{ record.timestamp|date:"H:i A" }}</span>
+                            </div>
+                        </td>
+                        <td class="px-8 py-5 text-right">
+                            <span class="px-3 py-1 bg-slate-800 text-slate-400 rounded-full text-[10px] font-bold uppercase tracking-wider group-hover:bg-primary/20 group-hover:text-primary transition-all">
+                                {{ record.timestamp|timesince }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        {% else %}
-        <div class="row">
-            <div class="col-md-12">
-                <br />
-                <div class="col-12 no-history d-flex flex-column align-items-center justify-content-center">
-                    <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
-                        type="module"></script>
-                    <dotlottie-player src="https://lottie.host/592b34b7-dc64-4037-bba3-091de84d669c/uTncCsVnRH.lottie"
-                        background="transparent" speed="1" style="width: 300px; height: 300px" loop
-                        autoplay></dotlottie-player>
-                    <p class="mt-2 text-center">No history available.</p>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-        <!-- [ History Section ] end -->
     </div>
+    {% else %}
+    <div class="flex flex-col items-center justify-center py-20 bg-surface-dark border border-slate-800 rounded-3xl border-dashed">
+        <div class="size-24 rounded-full bg-slate-900 flex items-center justify-center mb-6">
+            <span class="material-symbols-outlined text-[48px] text-slate-700">history</span>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Aucun historique</h3>
+        <p class="text-slate-500 max-w-sm text-center">Il n'y a pour l'instant aucun enregistrement d'activité pour les utilisateurs.</p>
+    </div>
+    {% endif %}
+    <!-- [ History Section ] end -->
 </div>
-<!-- [ Main Content ] end -->
 
 <!-- Back to Top Button -->
-<button class="back-to-top" onclick="scrollToTop()">↑</button>
+<button id="backToTop" class="fixed bottom-8 right-8 size-12 bg-primary text-white rounded-2xl shadow-lg shadow-primary/30 flex items-center justify-center opacity-0 translate-y-4 pointer-events-none transition-all hover:scale-110 active:scale-95 z-50">
+    <span class="material-symbols-outlined">arrow_upward</span>
+</button>
 
 <script>
-    // Show/hide back-to-top button based on scroll position
-    window.addEventListener('scroll', function () {
-        const backToTopButton = document.querySelector('.back-to-top');
+    const backToTop = document.getElementById('backToTop');
+    window.addEventListener('scroll', () => {
         if (window.scrollY > 300) {
-            backToTopButton.style.display = 'block';
+            backToTop.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
         } else {
-            backToTopButton.style.display = 'none';
+            backToTop.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
         }
     });
 
-    // Smooth scroll to top
-    function scrollToTop() {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
-    }
+    backToTop.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
 </script>
-
 {% endblock %}

@@ -1,239 +1,201 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Missing Users for Report {% endblock %}
+
+{% block title %}Utilisateurs Manquants : Rapport{% endblock %}
+
+{% block header_title %}Utilisateurs Manquants{% endblock %}
+{% block header_subtitle %}Gérez les permissions pour les utilisateurs n'ayant pas encore accès à ce rapport{% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <a href="{% url 'powerbi_report:report_list' %}" class="hover:text-primary transition-colors">Rapports</a>
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <a href="{% url 'powerbi_report:report_permissions' report_id %}" class="hover:text-primary transition-colors">Permissions du Rapport</a>
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <span class="text-slate-400">Utilisateurs Manquants</span>
+{% endblock %}
+
 {% block content %}
-<div class="pc-container">
-  <div class="pc-content">
-    <!-- Breadcrumb -->
-    <div class="page-header">
-      <div class="page-block">
-        <div class="row align-items-center">
-          <div class="col-md-12">
-            <div class="page-header-title">
-              <h5 class="mb-0">Missing Users for Report </h5>
-            </div>
-          </div>
-          <div class="col-md-12">
-            <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-              <li class="breadcrumb-item"><a href="{% url 'powerbi_report:report_list' %}">Reports</a></li>
-              <li class="breadcrumb-item"><a href="{% url 'powerbi_report:report_permissions' report_id %}">Report Permissions</a></li>
-              <li class="breadcrumb-item active" aria-current="page">Missing Users</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- Breadcrumb end -->
+<div class="px-8 py-6">
     <!-- Display messages -->
     {% if messages %}
-    <div class="mt-3">
+    <div class="mb-6">
       {% for message in messages %}
-      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
-        <i class="feather icon-check-circle"></i>
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      <div class="flex items-center gap-3 p-4 rounded-xl {% if message.tags == 'error' %}bg-red-500/10 border border-red-500/20 text-red-400{% else %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% endif %} alert-dismissible fade show" role="alert">
+        <span class="material-symbols-outlined text-[20px]">{% if message.tags == 'error' %}error{% else %}check_circle{% endif %}</span>
+        <span class="text-sm font-medium">{{ message }}</span>
+        <button type="button" class="ml-auto text-current opacity-50 hover:opacity-100 transition-opacity" data-bs-dismiss="alert">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
       </div>
       {% endfor %}
     </div>
     {% endif %}
 
-    <!-- Back Button -->
-    <div class="mb-3">
-      <a href="{% url 'powerbi_report:report_permissions' report_id %}" class="btn btn-outline-secondary">
-        <i class="feather icon-arrow-left"></i> Back
-      </a>
-    </div>
+    <!-- [ Control Bar ] start -->
+    <div class="flex flex-wrap items-center justify-between gap-6 mb-8">
+        <div class="flex items-center gap-4">
+            <a href="{% url 'powerbi_report:report_permissions' report_id %}" class="size-10 flex items-center justify-center bg-surface-dark border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-all hover:bg-white/5 shadow-sm">
+                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            </a>
+            <div class="relative min-w-[300px]">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
+                <input type="text" id="userSearch" placeholder="Rechercher des utilisateurs..." class="w-full bg-surface-dark border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-white placeholder:text-slate-600 focus:border-primary/50 transition-all outline-none">
+            </div>
+        </div>
 
-    <!-- Action Bar -->
-    <div class="d-flex justify-content-between mb-3">
-      <input type="text" class="form-control w-50" placeholder="Search missing users..." id="userSearch">
-      <div>
-        
-        <button id="addSelectedBtn" class="btn btn-outline-success" style="display: none;" onclick="submitSelectedUsers()">
-          Add Selected Users
+        <button id="addSelectedBtn" class="items-center gap-2 px-6 py-2.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-sm font-bold hover:bg-emerald-500/20 transition-all hidden" onclick="submitSelectedUsers()">
+            <span class="material-symbols-outlined text-[20px]">group_add</span> Ajouter les utilisateurs sélectionnés
         </button>
-      </div>
     </div>
 
     <!-- Missing Users Table -->
-    <div class="row">
-      <div class="col-md-12">
-        <div class="card">
-          <div class="card-body">
-            <h6 class="mb-4">Users without Permission for this Report</h6>
-            {% if missing_users %}
-              <div class="table-responsive">
-                <form id="selectedUsersForm" method="post" action="{% url 'powerbi_report:add_selected_users_to_report' report_id %}">
-
-                  {% csrf_token %}
-                  <table class="table table-hover" id="userTable">
-                    <thead class="thead-dark">
-                      <tr>
-                        <th><input type="checkbox" id="selectAll"></th>
-                        <th>User</th>
-                        <th>Email</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {% for user in missing_users %}
-                      <tr style="display: none;">
-                        <td style="display: none;"><input type="checkbox" class="userCheckbox" name="selected_users" value="{{ user.ad2000|default:user.username }}"></td>
-                        <td style="display: none;">{{ user.get_full_name|default:user.username }}</td>
-                        <td style="display: none;">{{ user.email }}</td>
-                        <td style="display: none;" >
-                          <form method="post" action="{% url 'powerbi_report:add_users_to_report' report_id user.ad2000|default:user.username %}" style="display:inline-block;">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-outline-success">Add Permission</button>
-                          </form>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td><input type="checkbox" class="userCheckbox" name="selected_users" value="{{ user.ad2000|default:user.username }}"></td>
-                        <td>{{ user.get_full_name|default:user.username }}</td>
-                        <td>{{ user.email }}</td>
-                        <td>
-                          <form method="post" action="{% url 'powerbi_report:add_users_to_report' report_id user.ad2000|default:user.username %}" style="display:inline-block;">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-outline-success">Add Permission</button>
-                          </form>
-                        </td>
-                      </tr>
-
-                      {% endfor %}
-                    </tbody>
-                  </table>
-                </form>
-              </div>
-            {% else %}
-              <div class="alert alert-warning" role="alert">
-                All users have permission for this report.
-              </div>
-            {% endif %}
-          </div>
+    {% if missing_users %}
+    <div class="bg-surface-dark border border-slate-800 rounded-3xl overflow-hidden shadow-xl shadow-black/20">
+        <div class="px-8 py-6 border-b border-slate-800/50 flex items-center justify-between bg-white/[0.02]">
+            <h3 class="font-bold text-white tracking-tight text-sm uppercase tracking-widest">Utilisateurs sans accès</h3>
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total: {{ missing_users|length }}</span>
         </div>
-      </div>
+        
+        <form id="selectedUsersForm" method="post" action="{% url 'powerbi_report:add_selected_users_to_report' report_id %}">
+            {% csrf_token %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse" id="userTable">
+                    <thead>
+                        <tr class="border-b border-slate-800/50 bg-white/[0.01]">
+                            <th class="px-8 py-4 w-12 text-center">
+                                <input type="checkbox" id="selectAll" class="rounded border-slate-700 bg-slate-900 accent-primary">
+                            </th>
+                            <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Utilisateur</th>
+                            <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Adresse E-mail</th>
+                            <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/30">
+                        {% for user in missing_users %}
+                        <tr class="hover:bg-white/[0.02] transition-colors group">
+                            <td class="px-8 py-5 text-center">
+                                <input type="checkbox" class="userCheckbox rounded border-slate-700 bg-slate-900 accent-primary" name="selected_users" value="{{ user.ad2000|default:user.username }}">
+                            </td>
+                            <td class="px-8 py-5">
+                                <div class="flex items-center gap-3">
+                                    <div class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                                        <span class="material-symbols-outlined text-[20px]">person</span>
+                                    </div>
+                                    <span class="text-sm font-bold text-slate-200">{{ user.get_full_name|default:user.username }}</span>
+                                </div>
+                            </td>
+                            <td class="px-8 py-5">
+                                <span class="text-xs text-slate-500 font-medium">{{ user.email }}</span>
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <form method="post" action="{% url 'powerbi_report:add_users_to_report' report_id user.ad2000|default:user.username %}" class="inline-block m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-bold hover:bg-emerald-500/20 transition-all">
+                                        <span class="material-symbols-outlined text-[16px]">add</span> Ajouter
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
     </div>
-    <!-- Missing Users Table end -->
-  </div>
+    {% else %}
+    <div class="flex flex-col items-center justify-center py-24 bg-surface-dark border border-slate-800 rounded-3xl border-dashed">
+        <div class="size-24 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-6 text-emerald-400 border border-emerald-500/20">
+            <span class="material-symbols-outlined text-[48px]">check_circle</span>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Tous les utilisateurs ont accès</h3>
+        <p class="text-slate-500 max-w-sm text-center">Aucun utilisateur manquant n'a été trouvé pour ce rapport.</p>
+    </div>
+    {% endif %}
 </div>
 
-<!-- Loading Prompt -->
-<div id="loadingPrompt" class="loading-overlay">
-  <div class="loading-content">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
+<!-- Loading Overlay -->
+<div id="loadingPrompt" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[10000]">
+    <div class="bg-surface-dark border border-slate-800 rounded-3xl p-8 max-w-xs w-full text-center shadow-2xl">
+        <div class="inline-block size-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
+        <h4 class="text-white font-bold mb-1">Traitement en cours</h4>
+        <p class="text-slate-500 text-xs">Veuillez patienter quelques instants...</p>
     </div>
-    <p>Processing request... Please wait.</p>
-  </div>
 </div>
 
 <script>
-  // Search filter for missing users table
-  document.getElementById('userSearch').addEventListener('input', function() {
-    const searchValue = this.value.toLowerCase();
-    const rows = document.querySelectorAll('#userTable tbody tr');
-    rows.forEach(row => {
-      const userName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-      row.style.display = userName.includes(searchValue) ? '' : 'none';
+    document.addEventListener('DOMContentLoaded', function() {
+        const userSearch = document.getElementById('userSearch');
+        const userTable = document.getElementById('userTable');
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.userCheckbox');
+        const addSelectedBtn = document.getElementById('addSelectedBtn');
+        const loadingPrompt = document.getElementById('loadingPrompt');
+
+        // Search Filter
+        if (userSearch && userTable) {
+            userSearch.addEventListener('input', function() {
+                const searchValue = this.value.toLowerCase();
+                const rows = userTable.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchValue) ? '' : 'none';
+                });
+            });
+        }
+
+        // Selection Management
+        function updateAddButton() {
+            const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+            if (addSelectedBtn) {
+                addSelectedBtn.classList.toggle('hidden', !anyChecked);
+                addSelectedBtn.classList.toggle('flex', anyChecked);
+            }
+        }
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                checkboxes.forEach(cb => {
+                    const row = cb.closest('tr');
+                    if (row.style.display !== 'none') {
+                        cb.checked = this.checked;
+                    }
+                });
+                updateAddButton();
+            });
+        }
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+                const allVisibleChecked = Array.from(checkboxes)
+                    .filter(c => c.closest('tr').style.display !== 'none')
+                    .every(c => c.checked);
+                if (selectAll) selectAll.checked = allVisibleChecked;
+                updateAddButton();
+            });
+        });
+
+        // Form Submission with Loading
+        window.submitSelectedUsers = function() {
+            if (loadingPrompt) loadingPrompt.classList.remove('hidden');
+            document.getElementById('selectedUsersForm').submit();
+        };
+
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            form.addEventListener('submit', () => {
+                if (loadingPrompt) loadingPrompt.classList.remove('hidden');
+            });
+        });
+
+        // Auto-close alerts
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }, 5000);
+        });
     });
-  });
-
-  // Show "Add Selected Users" button when at least one checkbox is checked
-  const checkboxes = document.querySelectorAll('.userCheckbox');
-  const selectAll = document.getElementById('selectAll');
-  const addSelectedBtn = document.getElementById('addSelectedBtn');
-
-  function updateSelectedButton() {
-    const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
-    addSelectedBtn.style.display = anyChecked ? 'inline-block' : 'none';
-  }
-
-  checkboxes.forEach(checkbox => {
-    checkbox.addEventListener('change', updateSelectedButton);
-  });
-
-  // "Select All" functionality
-  selectAll.addEventListener('change', function() {
-    checkboxes.forEach(checkbox => {
-      checkbox.checked = selectAll.checked;
-    });
-    updateSelectedButton();
-  });
-
-  // Submit selected users
-  function submitSelectedUsers() {
-    document.getElementById('selectedUsersForm').submit();
-  }
-  function showLoading() {
-    document.getElementById("loadingPrompt").style.display = "flex";
-  }
-
-  function hideLoading() {
-    document.getElementById("loadingPrompt").style.display = "none";
-  }
-
-  // Example: Show loading on button click
-  document.addEventListener("DOMContentLoaded", function () {
-    const actionButtons = document.querySelectorAll(".btn-action");
-
-    actionButtons.forEach(button => {
-      button.addEventListener("click", showLoading);
-    });
-
-    // Simulate processing (hide after 3 seconds)
-    setTimeout(hideLoading, 1000);
-  });
 </script>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Select all alert elements
-    const alerts = document.querySelectorAll('.alert');
-    
-    // Loop through each alert
-    alerts.forEach(alert => {
-        // Set timeout to hide alert after 3 seconds (3000ms)
-        setTimeout(() => {
-            // Use jQuery to close the alert
-            $(alert).alert('close');
-
-        }, 3000);
-
-    });
-});
-</script>
-
-<style>
-  .loading-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6); /* Softer dark overlay */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-  }
-
-  .loading-content {
-    text-align: center;
-    background: rgba(255, 255, 255, 0.9); /* Light background */
-    color: #007bff; /* Primary blue text */
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-  }
-
-  .spinner-border {
-    width: 3rem;
-    height: 3rem;
-    margin-bottom: 10px;
-    color: #007bff !important; /* Blue spinner */
-  }
-</style>
-
 {% endblock %}

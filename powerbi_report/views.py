@@ -26,6 +26,7 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
+from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import Count
 from django.db.models.functions import TruncMonth, TruncDay, TruncDate, TruncHour
@@ -505,8 +506,16 @@ def report_list_flat(request):
     log_history(request.user, "Viewed Power BI report list (flat)")
     permissions = get_user_permissions(request.user)
 
+    # Sort reports by name
+    reports.sort(key=lambda x: x.get("Name", "").lower())
+
+    # Pagination
+    paginator = Paginator(reports, 10)  # Show 10 reports per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     return render(request, 'powerbi_report/report_list_flat.html', {
-        'reports': reports,
+        'reports': page_obj,
         'notifications': notifications,
         'unread': unread,
         'permissions': permissions,
@@ -1979,15 +1988,21 @@ def users_no_reports_view(request):
                     extracted = allowed_user.split("\\")[-1].lower()
                     users_with_permissions.add(extracted)
 
-        users = [user for user in users if user.ad2000.lower() not in users_with_permissions]
+        users = [user for user in users if user.ad2000 and user.ad2000.lower() not in users_with_permissions]
+
+    # Pagination
+    paginator = Paginator(users, 10)  # Show 10 users per page
+    page_number = request.GET.get('page')
+    users = paginator.get_page(page_number)
+    
+    roles = Role.objects.all()
 
     return render(request, 'users/user_management.html', {
         'notifications': notifications,
         'unread': unread,
         'users': users,
+        'roles': roles,
         'permissions': permissions,
-
-
     })
 
 

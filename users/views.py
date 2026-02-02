@@ -15,6 +15,7 @@ from guardian.shortcuts import assign_perm, remove_perm
 from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import Permission, Group
+from django.core.paginator import Paginator
 
 from .ldap_utils import connexion_ad2000, get_ad_users
 from .utils import log_history, get_user_permissions
@@ -276,7 +277,13 @@ def user_management(request):
     
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread_count = notifications.filter(is_read=False).count()
-    users = CustomUser.objects.all()
+    users_list = CustomUser.objects.all().order_by('id')
+    
+    # Pagination
+    paginator = Paginator(users_list, 10)  # Show 10 users per page
+    page_number = request.GET.get('page')
+    users = paginator.get_page(page_number)
+    
     roles = Role.objects.all()
     log_history(request.user, "Accessed user management page")
 

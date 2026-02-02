@@ -1,35 +1,19 @@
-{% extends 'base.html' %}
-{% load static %}
+{% block title %}Rapports{% endblock %}
 
-{% block title %}Reports{% endblock %}
+{% block header_title %}Gestion des Rapports{% endblock %}
+{% block header_subtitle %}Organisez et gérez vos rapports Power BI sur le serveur{% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:report_list_hierarchy' %}">Rapports</a>
+  {% for breadcrumb in breadcrumbs %}
+    <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+    <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=breadcrumb.url %}">{{ breadcrumb.name }}</a>
+  {% endfor %}
+{% endblock %}
 
 {% block content %}
-<div class="pc-container">
-  <div class="pc-content">
-    <div class="page-header">
-      <div class="page-block">
-        <div class="row align-items-center">
-          <div class="col-md-12">
-            <div class="page-header-title">
-              <h5 class="mb-0">Reports</h5>
-            </div>
-          </div>
-          <div class="col-md-12">
-            <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-              <li class="breadcrumb-item"><a href="{% url 'powerbi_report:report_list_hierarchy' %}">Reports</a></li>
-              {% for breadcrumb in breadcrumbs %}
-              <li class="breadcrumb-item">
-                <a href="{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=breadcrumb.url %}">
-                  {{ breadcrumb.name }}
-                </a>
-              </li>
-              {% endfor %}
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
+<div class="px-8 py-6">
 
     <!-- Display messages -->
     {% if messages %}
@@ -48,44 +32,46 @@
 
 
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
+
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
       {% if current_path %}
       <a href="javascript:window.history.length > 1 ? history.back() : '{% url 'powerbi_report:report_list_hierarchy' %}'"
-        class="btn btn-outline-secondary">
-        <i class="feather icon-arrow-left"></i> Back
+        class="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-sm font-bold rounded-lg transition-all border border-white/5">
+        <span class="material-symbols-outlined text-[18px]">arrow_back</span> Retour
       </a>
       {% else %}
       <div></div>
       {% endif %}
-      <div>
-        {% if permissions.add_powerbireport %}
 
-        {% if current_path %}
-        <a href="{% url 'powerbi_report:report_folders_list_folder' folder_path=current_path|default:'' %}"
-          class="btn btn-outline-purple">
-          <i class="feather icon-eye"></i> Show All
-        </a>
-        {% else %}
-        <a href="{% url 'powerbi_report:report_folders_list' %}" class="btn btn-outline-purple">
-          <i class="feather icon-eye"></i> Show All
-        </a>
+      <div class="flex flex-wrap gap-3">
+        {% if permissions.add_powerbireport %}
+          {% if current_path %}
+          <a href="{% url 'powerbi_report:report_folders_list_folder' folder_path=current_path|default:'' %}"
+            class="flex items-center gap-2 px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-sm font-bold rounded-lg transition-all border border-purple-500/20">
+            <span class="material-symbols-outlined text-[20px]">visibility</span> Tout afficher
+          </a>
+          {% else %}
+          <a href="{% url 'powerbi_report:report_folders_list' %}"
+            class="flex items-center gap-2 px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-sm font-bold rounded-lg transition-all border border-purple-500/20">
+            <span class="material-symbols-outlined text-[20px]">visibility</span> Tout afficher
+          </a>
+          {% endif %}
         {% endif %}
-        {% endif %}
+
         {% if not current_path %}
-        <a href="{% url 'powerbi_report:report_list_flat' %}" class="btn btn-outline-primary">
-          <i class="feather icon-list"></i> Flat View
+        <a href="{% url 'powerbi_report:report_list_flat' %}" class="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary text-sm font-bold rounded-lg transition-all border border-primary/20">
+          <span class="material-symbols-outlined text-[20px]">list</span> Vue Liste
         </a>
         {% endif %}
-        {% if permissions.add_powerbireport %}
 
-        <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#createFolderModal">
-          <i class="feather icon-plus"></i> Create New Folder
+        {% if permissions.add_powerbireport %}
+        <button class="flex items-center gap-2 px-4 py-2 bg-accent-teal/10 hover:bg-accent-teal/20 text-emerald-400 text-sm font-bold rounded-lg transition-all border border-accent-teal/20" data-bs-toggle="modal" data-bs-target="#createFolderModal">
+          <span class="material-symbols-outlined text-[20px]">create_new_folder</span> Nouveau Dossier
         </button>
-        <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#uploadReportModal">
-          <i class="feather icon-upload"></i> Upload Report
+        <button class="flex items-center gap-2 px-4 py-2 bg-accent-gold/10 hover:bg-accent-gold/20 text-accent-gold text-sm font-bold rounded-lg transition-all border border-accent-gold/20" data-bs-toggle="modal" data-bs-target="#uploadReportModal">
+          <span class="material-symbols-outlined text-[20px]">upload</span> Téléverser
         </button>
         {% endif %}
-
       </div>
     </div>
 
@@ -152,55 +138,55 @@
 
 
 
-    <div class="row">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {% for folder, contents in folder_structure.items %}
       {% if contents.items %}
-      <!-- Folder -->
-      <div class="col-md-4">
-        <div class="card mb-4">
-          <a href="{% if current_path %}{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=current_path|add:'/'|add:folder %}{% else %}{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=folder %}{% endif %}"
-            class="folder-link">
-            <div class="card-body d-flex align-items-center justify-content-between">
-              <div class="d-flex align-items-center">
-                <i class="feather icon-folder mr-3" style="font-size: 24px; color: #FFD700;"></i>
-                <h5 class="mb-0" style="margin-left: 30px;">{{ folder }}</h5>
-              </div>
-
-            </div>
-          </a>
-        </div>
+      <!-- Folder Card -->
+      <div class="group relative bg-surface-dark/40 border border-slate-800/50 rounded-2xl p-6 hover:bg-white/5 hover:border-primary/30 transition-all duration-300">
+        <a href="{% if current_path %}{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=current_path|add:'/'|add:folder %}{% else %}{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=folder %}{% endif %}"
+          class="block">
+          <div class="size-14 rounded-xl bg-accent-gold/10 flex items-center justify-center text-accent-gold mb-4 group-hover:scale-110 transition-transform">
+            <span class="material-symbols-outlined text-[32px]">folder</span>
+          </div>
+          <h3 class="text-base font-bold text-white mb-1 truncate">{{ folder }}</h3>
+          <p class="text-xs text-slate-500">Dossier serveur</p>
+        </a>
       </div>
       {% else %}
-      <!-- Report -->
-      <div class="col-md-4">
-        <div class="card mb-4">
-          <a href="{% url 'powerbi_report:embed_report' report_path=current_path|add:'/'|add:folder %}">
-            <div class="card-body d-flex align-items-center justify-content-between">
-              <div class="d-flex align-items-center">
-                <i class="feather icon-bar-chart text-warning mr-3 " style="font-size: 24px;"></i>
-                <h5 class="mb-0" style="margin-left: 30px;">{{ folder }}</h5>
-              </div>
-
-            </div>
-          </a>
-        </div>
+      <!-- Report Card -->
+      <div class="group relative bg-surface-dark/40 border border-slate-800/50 rounded-2xl p-6 hover:bg-white/5 hover:border-primary/30 transition-all duration-300">
+        <a href="{% url 'powerbi_report:embed_report' report_path=current_path|add:'/'|add:folder %}" class="block">
+          <div class="size-14 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
+            <span class="material-symbols-outlined text-[32px]">bar_chart</span>
+          </div>
+          <h3 class="text-base font-bold text-white mb-1 truncate">{{ folder }}</h3>
+          <p class="text-xs text-slate-500">Rapport Power BI</p>
+        </a>
       </div>
       {% endif %}
       {% empty %}
-      <div class="d-flex flex-column align-items-center justify-content-center" style="height: 100%;">
-        <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
-          type="module"></script>
-        <br /><br /><br /><br />
-        <dotlottie-player src="https://lottie.host/32f49128-c968-4a1a-81ab-f1ea5dc06556/KFFsAaw2Fi.lottie"
-          background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay>
-        </dotlottie-player>
-        <p class="text-center">No reports available.</p>
+      <div class="col-span-full py-20 flex flex-col items-center text-center">
+        <div class="relative mb-8 text-slate-700">
+          <div class="relative w-48 h-48 flex items-center justify-center">
+            <div class="absolute inset-0 bg-primary/5 rounded-full blur-3xl"></div>
+            <div class="absolute w-32 h-32 border-2 border-primary/20 rounded-2xl rotate-12"></div>
+            <span class="material-symbols-outlined !text-[64px] opacity-20 relative z-10">description</span>
+          </div>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Aucun contenu trouvé</h3>
+        <p class="text-slate-500 text-sm max-w-sm mb-8 leading-relaxed">
+          Il n'y a actuellement aucun dossier ou rapport dans ce répertoire sur le serveur.
+        </p>
+        {% if permissions.add_powerbireport %}
+        <button class="flex items-center gap-2 px-5 py-2.5 bg-accent-gold/10 hover:bg-accent-gold/20 text-accent-gold text-sm font-bold rounded-lg transition-all border border-accent-gold/20" data-bs-toggle="modal" data-bs-target="#uploadReportModal">
+          <span class="material-symbols-outlined text-[20px]">upload</span> Téléverser le premier rapport
+        </button>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
 
   </div>
-</div>
 <script>
 
   document.addEventListener("DOMContentLoaded", function () {

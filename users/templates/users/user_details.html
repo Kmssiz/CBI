@@ -1,104 +1,139 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}User Details{% endblock %}
+
+{% block title %}Détails de l'Utilisateur : {{ user_detail.username }}{% endblock %}
+
+{% block header_title %}Profil Utilisateur{% endblock %}
+{% block header_subtitle %}Informations détaillées et paramètres du compte{% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <a href="{% url 'users_view' %}" class="hover:text-primary transition-colors">Gestion des Utilisateurs</a>
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <span class="text-slate-400">Détails de l'Utilisateur</span>
+{% endblock %}
+
 {% block content %}
+<div class="px-8 py-10">
+    <div class="max-w-5xl mx-auto">
+        <!-- [ Control Bar ] start -->
+        <div class="mb-8">
+            <button onclick="window.history.back()" class="flex items-center gap-2 text-slate-400 hover:text-white transition-all group">
+                <span class="material-symbols-outlined text-[20px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
+                <span class="text-sm font-bold">Retour à la liste</span>
+            </button>
+        </div>
 
-<div class="pc-container">
-  <div class="pc-content">
-    <!-- [ Breadcrumb ] start -->
-    <div class="page-header">
-      <div class="page-block">
-        <div class="row align-items-center">
-          <div class="col-md-12">
-            <div class="page-header-title">
-              <h5 class="mb-0">User Details</h5>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left: Profile Overview -->
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-surface-dark border border-slate-800 rounded-3xl p-8 text-center shadow-xl shadow-black/20">
+                    <div class="relative inline-block mb-6">
+                        <div class="size-32 rounded-full border-4 border-primary/20 p-1">
+                            {% if user_detail.profile_image %}
+                                <img src="{{ user_detail.profile_image.url }}" alt="Avatar" class="size-full rounded-full object-cover">
+                            {% else %}
+                                <div class="size-full rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                    <span class="material-symbols-outlined text-[48px]">person</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <span class="absolute bottom-1 right-1 size-5 rounded-full border-4 border-surface-dark {% if user_detail.status == 'Active' %}bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]{% else %}bg-red-500{% endif %}"></span>
+                    </div>
+                    
+                    <h2 class="text-xl font-bold text-white mb-1 tracking-tight">{{ user_detail.get_full_name|default:user_detail.username }}</h2>
+                    <p class="text-sm text-slate-500 mb-6">{{ user_detail.email }}</p>
+                    
+                    <div class="inline-flex px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                        {{ user_detail.role.name|default:"Sans Rôle" }}
+                    </div>
+                </div>
+
+                <div class="bg-surface-dark border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl shadow-black/20">
+                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest px-2">Statistiques rapides</h4>
+                    <div class="grid grid-cols-2 gap-3 mt-4">
+                        <div class="p-4 bg-white/[0.02] border border-slate-800/50 rounded-2xl text-center">
+                            <span class="block text-xs text-slate-500 mb-1">Rejoint</span>
+                            <span class="text-sm font-bold text-white">{{ user_detail.date_joined|date:"M Y" }}</span>
+                        </div>
+                        <div class="p-4 bg-white/[0.02] border border-slate-800/50 rounded-2xl text-center">
+                            <span class="block text-xs text-slate-500 mb-1">Statut</span>
+                            <span class="text-sm font-bold {% if user_detail.status == 'Active' %}text-emerald-400{% else %}text-red-400{% endif %}">
+                                {{ user_detail.status|default:"Inconnu" }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-          <div class="col-md-12">
-            <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-              <li class="breadcrumb-item"><a href="{% url 'users_view' %}">User Management</a></li>
-              <li class="breadcrumb-item active" aria-current="page">User Details</li>
-            </ul>
-          </div>
+
+            <!-- Right: Detailed Info -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-surface-dark border border-slate-800 rounded-3xl overflow-hidden shadow-xl shadow-black/20">
+                    <div class="px-8 py-6 border-b border-slate-800/50 flex items-center justify-between bg-white/[0.02]">
+                        <h3 class="font-bold text-white tracking-tight">Informations de Compte</h3>
+                        <span class="material-symbols-outlined text-slate-500 text-[20px]">badge</span>
+                    </div>
+                    
+                    <div class="p-8 space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nom Complet</label>
+                                <p class="text-slate-200 font-medium">{{ user_detail.get_full_name|default:"Non renseigné" }}</p>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nom d'Utilisateur</label>
+                                <p class="text-slate-200 font-medium">{{ user_detail.username }}</p>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Adresse E-mail</label>
+                                <p class="text-slate-200 font-medium">{{ user_detail.email }}</p>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Rôle Système</label>
+                                <p class="text-slate-200 font-medium">{{ user_detail.role.name|default:"N/A" }}</p>
+                            </div>
+                        </div>
+
+                        <div class="h-px bg-slate-800/50 my-8"></div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Dernière Connexion</label>
+                                <p class="text-slate-400 text-sm">
+                                    {% if user_detail.last_login %}
+                                        {{ user_detail.last_login|date:"d F Y, H:i" }}
+                                    {% else %}
+                                        Jamais connecté
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Date d'Inscription</label>
+                                <p class="text-slate-400 text-sm">{{ user_detail.date_joined|date:"d F Y" }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Default View Info (Optional) -->
+                {% if user_detail.default_view %}
+                <div class="bg-surface-dark border border-slate-800 rounded-3xl p-8 flex items-center justify-between shadow-xl shadow-black/20">
+                    <div class="flex items-center gap-4">
+                        <div class="size-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 border border-cyan-500/20">
+                            <span class="material-symbols-outlined">visibility</span>
+                        </div>
+                        <div>
+                            <h4 class="text-white font-bold tracking-tight">Vue par défaut</h4>
+                            <p class="text-xs text-slate-500 mt-0.5">La vue préférée de cet utilisateur lors de l'accès aux rapports.</p>
+                        </div>
+                    </div>
+                    <span class="px-4 py-1.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-full text-xs font-bold uppercase tracking-widest">
+                        {% if user_detail.default_view == 'business' %}Métier{% else %}Département{% endif %}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
         </div>
-      </div>
     </div>
-    <!-- [ Breadcrumb ] end -->
-
-    <!-- [ Profile Section ] start -->
-    <div class="row">
-      <div class="col-md-4">
-        <div class="card">
-          <div class="card-body text-center">
-            {% if user_detail.profile_image %}
-              <img src="{{ user_detail.profile_image.url }}" alt="User Avatar" class="rounded-circle" style="width: 150px; height: 150px;" id="profileImage">
-            {% else %}
-              <img src="{% static 'assets/images/user/avatar.jpg' %}" alt="User Avatar" class="rounded-circle" style="width: 150px; height: 150px;" id="profileImage">
-            {% endif %}
-            <h5 class="mt-3">{{ user_detail.get_full_name|default:user_detail.username }}</h5>
-            <p class="text-muted">{{ user_detail.email }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-8">
-        <div class="card">
-          <div class="card-header">
-            <h5>User Information</h5>
-          </div>
-          <div class="card-body">
-            <ul class="list-group">
-                <li class="list-group-item">
-                    <strong>Full Name:</strong> {{ user_detail.get_full_name|default:user_detail.username }}
-                </li>
-                <li class="list-group-item">
-                    <strong>Role:</strong> 
-                    {% if user_detail.role %} 
-                        {{ user_detail.role.name|title }} 
-                    {% else %}
-                        <span class="text-muted">No Role Assigned</span>
-                    {% endif %}
-                </li>
-                <li class="list-group-item">
-                    <strong>Status:</strong> 
-                    {% if user_detail.status == "Active" %}
-                        <span class="text-success">{{ user_detail.status }}</span>
-                    {% elif user_detail.status == "Inactive" %}
-                        <span class="text-danger">{{ user_detail.status }}</span>
-                    {% else %}
-                        <span class="text-warning">{{ user_detail.status|default:"Unknown" }}</span>
-                    {% endif %}
-                </li>
-                <li class="list-group-item">
-                    <strong>Joined:</strong> {{ user_detail.date_joined|date:"F j, Y" }}
-                </li>
-                <li class="list-group-item">
-                    <strong>Last Login:</strong> 
-                    {% if user_detail.last_login %}
-                        {{ user_detail.last_login|date:"F j, Y, g:i a" }}
-                    {% else %}
-                        <span class="text-muted">Never logged in</span>
-                    {% endif %}
-                </li>
-            </ul>
-        </div>
-        
-        </div>
-      </div>
-    </div>
-    <!-- [ Profile Section ] end -->
-
-    <div class="row mt-3">
-        <div class="col-md-12">
-          <button onclick="window.history.back()" class="btn btn-outline-secondary">
-            <i class="feather icon-arrow-left"></i> Back
-          </button>
-        </div>
-      </div>
-      
-
-  </div>
 </div>
-
 {% endblock %}

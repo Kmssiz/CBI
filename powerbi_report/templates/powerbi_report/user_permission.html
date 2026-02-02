@@ -1,31 +1,21 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}User Permissions{% endblock %}
-{% block content %}
 
-<!-- [ Main Content ] start -->
-<div class="pc-container">
-  <div class="pc-content">
-    <!-- [ Breadcrumb ] start -->
-    <div class="page-header">
-      <div class="page-block">
-        <div class="row align-items-center">
-          <div class="col-md-12">
-            <div class="page-header-title">
-              <h5 class="mb-0"> {{ full_name }} Permissions</h5>
-            </div>
-          </div>
-          <div class="col-md-12">
-            <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-              <li class="breadcrumb-item"><a href="{% url 'users_view' %}">User Management</a></li>
-              <li class="breadcrumb-item active" aria-current="page">User Permissions</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- [ Breadcrumb ] end -->
+{% block title %}Permissions de l'Utilisateur{% endblock %}
+
+{% block header_title %}Permissions de {{ full_name }}{% endblock %}
+{% block header_subtitle %}Gérez les rapports accessibles pour {{ full_name }} ({{ selected_user }}){% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <a class="hover:text-primary transition-colors" href="{% url 'users_view' %}">Utilisateurs</a>
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <span class="text-slate-400">Permissions de {{ selected_user }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="px-8 py-6">
+
 <!-- Display messages -->
     {% if messages %}
     <div class="mt-3">
@@ -33,123 +23,135 @@
       <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
         <i class="feather icon-check-circle"></i>
         {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
       </div>
       {% endfor %}
     </div>
     {% endif %}
-    <!-- [ Header: Back Button ] start -->
-    <div class="row mb-2">
-      <div class="col-md-12">
-        <a href="{% url 'users_view' %}" class="btn btn-outline-secondary">
-          <i class="feather icon-arrow-left"></i> Back
-        </a>
-      </div>
-    </div>
-    <!-- [ Header: Back Button ] end -->
 
-    <!-- [ Header: Search, Filters, and Buttons ] start -->
-    <div class="row mb-3">
-      <div class="col-md-12">
-        <!-- Search, Filters, and Clear Button -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div class="input-group w-50" style="max-width:400px;">
-            <input type="text" class="form-control" placeholder="Search reports by name..." id="reportSearch">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+      <a href="{% url 'users_view' %}" class="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-sm font-bold rounded-lg transition-all border border-white/5">
+        <span class="material-symbols-outlined text-[18px]">arrow_back</span> Retour
+      </a>
+    </div>
+
+
+    <div class="bg-surface-dark/40 border border-slate-800/50 rounded-2xl p-6 mb-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+        <div class="lg:col-span-3">
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Rechercher</label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
+            <input type="text" id="reportSearch" placeholder="Nom du rapport..." class="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2.5 pl-10 pr-4 text-white placeholder:text-slate-600 focus:border-primary/50 transition-all outline-none">
           </div>
-          <div class="d-flex align-items-center" style="margin-left:10px;">
-            <div class="row g-3" style="flex: 1;">
-              <div class="col-md-4">
-                <select class="form-select" id="poleFilter" style="min-width: 200px;">
-                  <option value="">All Pôles</option>
-                </select>
-              </div>
-              <div class="col-md-4">
-                <select class="form-select" id="sousDirectionFilter" style="min-width: 200px;">
-                  <option value="">All Société</option>
-                </select>
-              </div>
-              <div class="col-md-4">
-                <select class="form-select" id="directionFilter" style="min-width: 200px;">
-                  <option value="">All Directions</option>
-                </select>
-              </div>
-            </div>
-            <button type="button" class="btn btn-outline-secondary ms-3" id="clearFilters">
-              <i class="feather icon-x"></i> Clear
+        </div>
+
+        <div class="lg:col-span-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Pôle</label>
+            <select id="poleFilter" class="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-white focus:border-primary/50 transition-all outline-none appearance-none">
+              <option value="">Tous les Pôles</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Société</label>
+            <select id="sousDirectionFilter" class="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-white focus:border-primary/50 transition-all outline-none appearance-none">
+              <option value="">Toutes les Sociétés</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Direction</label>
+            <select id="directionFilter" class="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-white focus:border-primary/50 transition-all outline-none appearance-none">
+              <option value="">Toutes les Directions</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="lg:col-span-4 flex gap-2">
+          <button type="button" id="clearFilters" class="flex-grow flex items-center justify-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold rounded-xl transition-all border border-white/5">
+            <span class="material-symbols-outlined text-[18px]">filter_alt_off</span>
+          </button>
+          <a href="{% url 'powerbi_report:missing_permissions' selected_user %}" class="flex-[2] flex items-center justify-center gap-2 px-4 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold rounded-xl transition-all border border-primary/20">
+            <span class="material-symbols-outlined text-[18px]">add</span> Ajouter
+          </a>
+          <form method="post" action="{% url 'powerbi_report:remove_all_permissions' selected_user %}" class="flex-[2]">
+            {% csrf_token %}
+            <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-400/10 hover:bg-red-400/20 text-red-400 text-xs font-bold rounded-xl transition-all border border-red-400/20">
+              <span class="material-symbols-outlined text-[18px]">delete_sweep</span> Tout Retirer
             </button>
-            <a href="{% url 'powerbi_report:missing_permissions' selected_user %}" class="btn btn-outline-success ms-2">
-              Add Permission
-            </a>
-            <form method="post" action="{% url 'powerbi_report:remove_all_permissions' selected_user %}" style="display:inline-block;">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-outline-danger ms-2">
-                Remove All Permissions
-              </button>
-            </form>
-          </div>
-        </div>
-        
-      </div>
-    </div>
-    <!-- [ Header: Search, Filters, and Buttons ] end -->
-
-    <!-- [ Main Content: Allowed Reports Table with Checkboxes ] start -->
-    <div class="row">
-      <div class="col-md-12">
-        <div class="card">
-          <div class="card-body">
-            <h6 class="mb-4">Reports Allowed for {{ full_name }} ({{ selected_user }})</h6>
-            {% if reports %}
-              <div class="text-start mb-3">
-                <button id="removeSelectedBtn" type="button" class="btn btn-outline-danger" style="display: none;">
-                  Remove Selected Permissions
-                </button>
-              </div>
-              <form id="removeSelectedForm" method="post" action="{% url 'powerbi_report:remove_selected_permissions' selected_user %}">
-                {% csrf_token %}
-                <div class="table-responsive">
-                  <table class="table table-hover" id="reportTable">
-                    <thead class="thead-dark">
-                      <tr>
-                        <th><input type="checkbox" id="selectAll"></th>
-                        <th>Report Name</th>
-                        <th>Path</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {% for report in reports %}
-                      <tr>
-                        <td>
-                          <input type="checkbox" name="report_ids" value="{{ report.Id }}" class="reportCheckbox">
-                        </td>
-                        <td>{{ report.Name }}</td>
-                        <td title="{{ report.Path }}">{{ report.Path|truncatechars:40 }}</td>
-                        <td>
-                          
-                          <form method="post" action="{% url 'powerbi_report:remove_permission_from_server' report.Id selected_user %}" style="display:inline-block;">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
-                          </form>
-                        </td>
-                      </tr>
-
-                     
-                      {% endfor %}
-                    </tbody>
-                  </table>
-                </div>
-              </form>
-            {% else %}
-              <div class="alert alert-warning" role="alert">
-                No reports have been granted permission for this user.
-              </div>
-            {% endif %}
-          </div>
+          </form>
         </div>
       </div>
     </div>
-    <!-- [ Main Content ] end -->
+
+
+    <div class="bg-surface-dark/40 border border-slate-800/50 rounded-3xl overflow-hidden shadow-2xl">
+      <div class="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+        <h3 class="text-sm font-bold text-white uppercase tracking-widest">Rapports Autorisés</h3>
+        <button id="removeSelectedBtn" type="button" class="flex items-center gap-2 px-4 py-2 bg-red-400/10 hover:bg-red-400/20 text-red-400 text-sm font-bold rounded-lg transition-all border border-red-400/20" style="display: none;">
+          <span class="material-symbols-outlined text-[20px]">delete_sweep</span> Retirer la sélection
+        </button>
+      </div>
+
+      {% if reports %}
+      <form id="removeSelectedForm" method="post" action="{% url 'powerbi_report:remove_selected_permissions' selected_user %}">
+        {% csrf_token %}
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse" id="reportTable">
+            <thead>
+              <tr class="bg-white/[0.01]">
+                <th class="px-6 py-4 border-b border-white/5 w-12 text-center">
+                  <input type="checkbox" id="selectAll" class="rounded border-slate-700 bg-slate-900">
+                </th>
+                <th class="px-6 py-4 border-b border-white/5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nom du Rapport</th>
+                <th class="px-6 py-4 border-b border-white/5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Chemin</th>
+                <th class="px-6 py-4 border-b border-white/5 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+              {% for report in reports %}
+              <tr class="hover:bg-white/[0.02] transition-colors group">
+                <td class="px-6 py-4 text-center">
+                  <input type="checkbox" name="report_ids" value="{{ report.Id }}" class="reportCheckbox rounded border-slate-700 bg-slate-900">
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                      <span class="material-symbols-outlined text-[18px]">bar_chart</span>
+                    </div>
+                    <span class="text-sm font-semibold text-white group-hover:text-primary transition-colors">{{ report.Name }}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="text-xs text-slate-500 bg-slate-900/50 px-2.5 py-1 rounded-md border border-slate-800" title="{{ report.Path }}">{{ report.Path|truncatechars:60 }}</span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <form method="post" action="{% url 'powerbi_report:remove_permission_from_server' report.Id selected_user %}" class="inline-block">
+                      {% csrf_token %}
+                      <button type="submit" class="inline-flex items-center gap-2 px-3 py-1.5 bg-red-400/10 hover:bg-red-400/20 text-red-400 text-xs font-bold rounded-lg transition-all border border-red-400/20">
+                        <span class="material-symbols-outlined text-[16px]">delete</span>
+                      </button>
+                    </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </form>
+      {% else %}
+      <div class="py-20 flex flex-col items-center text-center">
+        <div class="size-20 bg-amber-400/10 rounded-2xl flex items-center justify-center text-amber-400 mb-4">
+          <span class="material-symbols-outlined text-[40px]">warning</span>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Aucun rapport autorisé</h3>
+        <p class="text-slate-500 max-w-sm">Cet utilisateur n'a actuellement aucun accès configuré pour les rapports Power BI.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
   </div>
 </div>
 
@@ -504,13 +506,5 @@
     color: #007bff !important;
   }
 </style>
-
-<!-- Bootstrap CSS -->
-<link href="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
-
-<!-- Bootstrap JS and dependencies -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/js/bootstrap.min.js"></script>
 
 {% endblock %}

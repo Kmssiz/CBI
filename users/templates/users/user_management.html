@@ -1,229 +1,226 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Gestion des utilisateurs{% endblock %}
+
+{% block title %}Gestion des Utilisateurs{% endblock %}
+
+{% block header_title %}Gestion des Utilisateurs{% endblock %}
+{% block header_subtitle %}Gérez les rôles, les vues par défaut et les accès des utilisateurs{% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <span class="text-slate-400">Gestion des Utilisateurs</span>
+{% endblock %}
+
 {% block content %}
-
-<div class="pc-container">
-  <div class="pc-content">
-    <!-- Breadcrumb -->
-    <div class="page-header">
-      <div class="page-block">
-        <div class="row align-items-center">
-          <div class="col-md-12">
-            <div class="page-header-title">
-              <h5 class="mb-0">Gestion des utilisateurs</h5>
-            </div>
-          </div>
-          <div class="col-md-12">
-            <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="{% url 'home' %}">Accueil</a></li>
-              <li class="breadcrumb-item active" aria-current="page">Gestion des utilisateurs</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- [ Breadcrumb ] end -->
-
+<div class="px-8 py-6">
     <!-- Display messages -->
     {% if messages %}
-    <div class="mt-3">
+    <div class="mb-6">
       {% for message in messages %}
-      <div
-        class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show"
-        role="alert">
-        <i class="feather icon-check-circle"></i>
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      <div class="flex items-center gap-3 p-4 rounded-xl {% if message.tags == 'error' %}bg-red-500/10 border border-red-500/20 text-red-400{% else %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% endif %} alert-dismissible fade show" role="alert">
+        <span class="material-symbols-outlined">{% if message.tags == 'error' %}error{% else %}check_circle{% endif %}</span>
+        <span class="text-sm font-medium">{{ message }}</span>
+        <button type="button" class="ml-auto text-current opacity-50 hover:opacity-100 transition-opacity" data-bs-dismiss="alert">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
       </div>
       {% endfor %}
     </div>
     {% endif %}
 
     <!-- [ Search and Filter Section ] start -->
-    <div class="row mb-4">
-      <div class="col-md-12">
-        <div class="row g-3 align-items-center">
-          <!-- Search Field with Icon -->
-          <div class="col-md-3">
-            <div class="input-group">
-              <input type="text" class="form-control" placeholder="Rechercher par nom..." id="userSearch">
+    <div class="flex flex-wrap items-center justify-between gap-6 mb-8">
+        <div class="flex items-center gap-4 flex-1 min-w-[300px]">
+            <div class="relative flex-1 max-w-sm">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
+                <input type="text" id="userSearch" class="w-full pl-10 pr-4 py-2 bg-surface-dark border border-slate-800 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all text-slate-300" placeholder="Rechercher par nom...">
             </div>
-          </div>
-          <!-- Role Filter -->
-          <div class="col-md-2">
-            <select class="form-select" id="roleFilter">
-              <option value="">Tous les rôles</option>
-              {% for role in roles %}
-              <option value="{{ role.name|lower }}">{{ role.name }}</option>
-              {% endfor %}
+            
+            <select id="roleFilter" class="bg-surface-dark border border-slate-800 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-slate-300">
+                <option value="">Tous les rôles</option>
+                {% for role in roles %}
+                <option value="{{ role.name|lower }}">{{ role.name }}</option>
+                {% endfor %}
             </select>
-          </div>
-          <!-- Status Filter -->
-          <div class="col-md-2">
-            <select class="form-select" id="statusFilter">
-              <option value="">Tous les statuts</option>
-              <option value="active">Actif</option>
-              <option value="not active">Inactif</option>
+
+            <select id="statusFilter" class="bg-surface-dark border border-slate-800 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-slate-300">
+                <option value="">Tous les statuts</option>
+                <option value="active">Actif</option>
+                <option value="not active">Inactif</option>
             </select>
-          </div>
-          <!-- Sync LDAP Users Button -->
-          <div class="col-md-2">
-            <button class="btn btn-outline-secondary" onclick="window.location.href='{% url 'sync_users' %}'">
-              <i class="feather icon-refresh-cw me-1"></i> Synchroniser
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button class="flex items-center gap-2 px-4 py-2 border border-slate-800 hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-400" onclick="window.location.href='{% url 'sync_users' %}'">
+                <span class="material-symbols-outlined text-[18px]">sync</span> Synchroniser
             </button>
-            <!-- Manage Roles Button -->
+            
             {% if permissions.view_role %}
-            <button class="btn custom-success" onclick="window.location.href='{% url 'manage_roles' %}'">
-              <i class="feather icon-user-check"></i> Gérer les rôles
+            <button class="flex items-center gap-2 px-4 py-2 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/5 rounded-lg text-sm font-bold transition-all" onclick="window.location.href='{% url 'manage_roles' %}'">
+                <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span> Rôles
             </button>
             {% endif %}
-          </div>
-          <!-- Filter Buttons -->
-          <div class="col-md-3 d-flex">
-            <button class="btn btn-outline-danger me-2 flex-fill" id="filterNoPermission"
-              onclick="filterNoPermission()">
-              <i class="feather icon-ban me-1"></i> Nouveaux utilisateurs
-            </button>
-            <button class="btn btn-outline-primary flex-fill" id="showAll">
-              <i class="feather icon-refresh-cw me-1"></i> Tous
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- [ Search and Filter Section ] end -->
 
-    <br />
+            <button class="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg text-sm font-bold transition-all" id="filterNoPermission" onclick="filterNoPermission()">
+                <span class="material-symbols-outlined text-[18px]">person_add</span> Nouveaux
+            </button>
+            
+            <button class="p-2 bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-all" id="showAll">
+                <span class="material-symbols-outlined text-[20px]">refresh</span>
+            </button>
+        </div>
+    </div>
+
     <!-- [ User List Section ] start -->
-    <div class="row">
-      {% if users %}
-      <div class="col-md-12">
-        <div class="card">
-          <div class="card-header">
-            <h5>Utilisateurs récents</h5>
-          </div>
-          <div class="card-body px-0 py-3">
-            <div class="table-responsive">
-              <table class="table table-hover" id="userTable">
-                <thead>
-                  <tr>
-                    <th>Utilisateur</th>
-                    <th>Email</th>
-                    <th>Rôle</th>
-                    <th>Vue par défaut</th>
-                    <th>Statut</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {% for user in users %}
-                  <tr data-permission="true" data-user-id="{{ user.id }}" data-user-role="{{ user.role }}"
-                    data-user-view="{{ user.default_view }}">
-                    <td>{{ user.AD2000|default:user.get_full_name }}</td>
-                    <td>{{ user.email }}</td>
-                    <td class="user-role">{{ user.role }}</td>
-                    <td>
-                      {% if user.default_view == 'business' %}
-                      <span class="badge bg-primary">Métier</span>
-                      {% else %}
-                      <span class="badge bg-info">Département</span>
-                      {% endif %}
-                    </td>
-
-                    <td>
-                      {% if user.status == 'Active' %}
-                      <span class="status-dot bg-success"></span> Actif
-                      {% else %}
-                      <span class="status-dot bg-danger"></span> Inactif
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if permissions.change_powerbireport %}
-                      {% if user.ad2000 %}
-                      <a href="{% url 'powerbi_report:user_permission' user.ad2000 %}"
-                        class="btn btn-outline-permission btn-sm me-1">
-                        Accès aux rapports
-                      </a>
-                      {% else %}
-                      <span class="text-muted"></span>
-                      {% endif %}
-                      {% endif %}
-
-                      <a href="{% url 'user_details' %}?user_id={{ user.id }}" class="btn btn-outline-info btn-sm me-1">
-                        Info
-                      </a>
-
-                      {% if permissions.view_userhistory %}
-                      <a href="{% url 'user_history' %}" class="btn btn-outline-secondary btn-sm me-1">
-                        Historique
-                      </a>
-                      {% endif %}
-
-                      {% if permissions.change_customuser %}
-                      <button class="btn btn-outline-warning btn-sm"
-                        onclick="openEditModal({{ user.id }}, '{{ user.role.id }}', '{{ user.default_view }}')">
-                        Modifier
-                      </button>
-                      {% endif %}
-
-
-                    </td>
-                  </tr>
-                  {% endfor %}
-
-                </tbody>
-
-              </table>
-            </div>
-          </div>
+    <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
+            <h2 class="font-bold text-white tracking-tight">Utilisateurs récents</h2>
+            <span class="text-[10px] font-bold px-2 py-1 bg-primary/20 text-primary rounded uppercase tracking-wider">Total: {{ users.paginator.count }}</span>
         </div>
-      </div>
-      {% else %}
-      <div class="text-center">Aucun utilisateur trouvé.</div>
-      {% endif %}
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse" id="userTable">
+                <thead>
+                    <tr class="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/50">
+                        <th class="px-6 py-4">Utilisateur</th>
+                        <th class="px-6 py-4">Email</th>
+                        <th class="px-6 py-4">Rôle</th>
+                        <th class="px-6 py-4 text-center">Vue par défaut</th>
+                        <th class="px-6 py-4 text-center">Statut</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/50">
+                    {% for user in users %}
+                    <tr class="hover:bg-white/5 transition-all group" data-permission="true" data-user-id="{{ user.id }}" data-user-role="{{ user.role }}" data-user-view="{{ user.default_view }}">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary border border-primary/20">
+                                    {{ user.username|slice:":1"|upper }}
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold text-white">{{ user.AD2000|default:user.get_full_name }}</span>
+                                    <span class="text-[10px] text-slate-500 uppercase tracking-tighter">{{ user.username }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-500">{{ user.email }}</td>
+                        <td class="px-6 py-4">
+                            <span class="text-sm font-medium text-slate-400">{{ user.role|default:"None" }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex px-2 py-1 rounded-md {% if user.default_view == 'business' %}bg-primary/10 text-primary{% else %}bg-cyan-500/10 text-cyan-400{% endif %} text-[10px] font-bold uppercase tracking-wider">
+                                {% if user.default_view == 'business' %}Métier{% else %}Département{% endif %}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider">
+                                <span class="w-1.5 h-1.5 rounded-full {% if user.status == 'Active' %}bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]{% else %}bg-red-500{% endif %}"></span>
+                                <span class="{% if user.status == 'Active' %}text-emerald-400{% else %}text-red-400{% endif %}">
+                                    {% if user.status == 'Active' %}Actif{% else %}Inactif{% endif %}
+                                </span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center justify-end gap-2">
+                                {% if permissions.change_powerbireport and user.ad2000 %}
+                                <a href="{% url 'powerbi_report:user_permission' user.ad2000 %}" class="px-3 py-1.5 bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 border border-pink-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Accès</a>
+                                {% endif %}
+                                
+                                <a href="{% url 'user_details' %}?user_id={{ user.id }}" class="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Info</a>
+                                
+                                {% if permissions.view_userhistory %}
+                                <a href="{% url 'user_history' %}" class="px-3 py-1.5 bg-slate-800 text-slate-400 hover:text-white border border-slate-700 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Histoire</a>
+                                {% endif %}
+
+                                {% if permissions.change_customuser %}
+                                <button class="px-3 py-1.5 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" onclick="openEditModal({{ user.id }}, '{{ user.role.id }}', '{{ user.default_view }}')">Modifier</button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-slate-600 font-medium">Aucun utilisateur trouvé.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="px-6 py-4 border-t border-slate-800/50 flex items-center justify-between bg-white/5">
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Affichage de {{ users.start_index }} à {{ users.end_index }} sur {{ users.paginator.count }} utilisateurs</p>
+            <div class="flex items-center gap-2">
+                {% if users.has_previous %}
+                <a href="?page={{ users.previous_page_number }}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700">
+                    <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                </a>
+                {% else %}
+                <button class="size-8 rounded bg-slate-800/50 flex items-center justify-center text-slate-600 border border-slate-800 opacity-50 cursor-not-allowed" disabled>
+                    <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                </button>
+                {% endif %}
+
+                {% for i in users.paginator.page_range %}
+                    {% if users.number == i %}
+                        <span class="size-8 rounded bg-primary flex items-center justify-center text-white text-[11px] font-black border border-primary shadow-[0_0_15px_rgba(19,127,236,0.3)]">{{ i }}</span>
+                    {% elif i > users.number|add:'-3' and i < users.number|add:'3' %}
+                        <a href="?page={{ i }}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white text-[11px] font-bold border border-slate-700 transition-all">{{ i }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if users.has_next %}
+                <a href="?page={{ users.next_page_number }}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700">
+                    <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                </a>
+                {% else %}
+                <button class="size-8 rounded bg-slate-800/50 flex items-center justify-center text-slate-600 border border-slate-800 opacity-50 cursor-not-allowed" disabled>
+                    <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                </button>
+                {% endif %}
+            </div>
+        </div>
     </div>
-    <!-- [ User List Section ] end -->
-  </div>
 </div>
 
 <!-- Edit Modal -->
-<div class="modal" id="editModal" tabindex="-1" role="dialog" style="display: none;">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <form id="editUserForm" method="post" action="{% url 'user_edit' 0 %}">
-        {% csrf_token %}
-        <div class="modal-header">
-          <h5 class="modal-title">Modifier les paramètres utilisateur</h5>
-          <button type="button" class="close" onclick="closeEditModal()"
-            style="border: none; background: none; font-size: 1.5rem; color: red;">&times;</button>
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl">
+            <form id="editUserForm" method="post" action="{% url 'user_edit' 0 %}">
+                {% csrf_token %}
+                <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between">
+                    <h5 class="text-lg font-bold text-white tracking-tight">Modifier les paramètres</h5>
+                    <button type="button" class="text-slate-500 hover:text-white transition-colors" onclick="closeEditModal()">
+                        <span class="material-symbols-outlined text-[24px]">close</span>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <input type="hidden" name="user_id" id="editUserId">
+                    <div class="space-y-2">
+                        <label for="editUserRole" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Rôle Utilisateur</label>
+                        <select name="role" id="editUserRole" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all">
+                            {% for role in roles %}
+                            <option value="{{ role.id }}">{{ role.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="editUserView" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Vue par défaut</label>
+                        <select name="default_view" id="editUserView" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all">
+                            <option value="business">Vue Métier</option>
+                            <option value="department">Vue Département</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
+                    <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" onclick="closeEditModal()">Annuler</button>
+                    <button type="submit" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-primary/20">Enregistrer</button>
+                </div>
+            </form>
         </div>
-        <div class="modal-body">
-          <input type="hidden" name="user_id" id="editUserId">
-          <div class="form-group mb-3">
-            <label for="role">Rôle</label>
-            <select name="role" id="editUserRole" class="form-control">
-              {% for role in roles %}
-              <option value="{{ role.id }}">{{ role.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="default_view">Vue par défaut</label>
-            <select name="default_view" id="editUserView" class="form-control">
-              <option value="business">Vue Métier</option>
-              <option value="department">Vue Département</option>
-            </select>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Enregistrer</button>
-          <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Annuler</button>
-        </div>
-      </form>
     </div>
-  </div>
 </div>
 
 <!-- Loading Prompt -->
@@ -249,11 +246,12 @@
     const form = document.getElementById('editUserForm');
     form.action = "{% url 'user_edit' 0 %}".replace('/0/', '/' + userId + '/');
 
-    document.getElementById('editModal').style.display = 'block';
+    // Use jQuery for Bootstrap 4
+    $('#editModal').modal('show');
   }
 
   function closeEditModal() {
-    document.getElementById('editModal').style.display = 'none';
+    $('#editModal').modal('hide');
   }
 
   // Combined filter function
@@ -356,66 +354,7 @@
 </script>
 
 <style>
-  .btn-outline-permission {
-    color: #e83e8c;
-    border-color: #e83e8c;
-  }
-
-  .btn-outline-permission:hover {
-    background-color: #e83e8c;
-    color: #fff;
-  }
-
-  .custom-success {
-    color: #28a745;
-    border-color: #28a745;
-  }
-
-  .custom-success:hover {
-    background-color: #28a745;
-    color: #fff;
-  }
-
-  /* Modal styles */
-  .modal {
-    display: none;
-    position: fixed;
-    z-index: 1050;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background-color: rgba(0, 0, 0, 0.5);
-  }
-
-  .modal-dialog {
-    margin: 10% auto;
-    max-width: 500px;
-  }
-
-  .modal-content {
-    background-color: #fff;
-    border-radius: 4px;
-    padding: 20px;
-  }
-
-  .modal-header,
-  .modal-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .modal-header {
-    border-bottom: 1px solid #dee2e6;
-  }
-
-  .modal-footer {
-    border-top: 1px solid #dee2e6;
-    margin-top: 20px;
-  }
-
+  /* Loading styles */
   .loading-overlay {
     display: none;
     position: fixed;
@@ -423,39 +362,21 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    /* Softer dark overlay */
-    display: flex;
+    background: rgba(10, 15, 20, 0.8);
+    backdrop-blur: 4px;
     justify-content: center;
     align-items: center;
-    z-index: 1050;
+    z-index: 2000;
   }
 
   .loading-content {
     text-align: center;
-    background: rgba(255, 255, 255, 0.9);
-    /* Light background */
-    color: #007bff;
-    /* Primary blue text */
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-  }
-
-  .spinner-border {
-    width: 3rem;
-    height: 3rem;
-    margin-bottom: 10px;
-    color: #007bff !important;
-    /* Blue spinner */
-  }
-
-  .status-dot {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    margin-right: 5px;
+    color: #137fec;
+    background: #121922;
+    padding: 32px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   }
 </style>
 

@@ -3,40 +3,24 @@
 
 {% block title %}{{ view_title }}{% endblock %}
 
+{% block header_title %}{{ view_title }}{% endblock %}
+{% block header_subtitle %}Gérez vos dossiers et rapports Power BI{% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_'|add:view_type %}">{{ view_title }}</a>
+  {% for folder in breadcrumbs %}
+    <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+    {% if not forloop.last %}
+      <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=folder.id %}">{{ folder.name }}</a>
+    {% else %}
+      <span class="text-slate-400">{{ folder.name }}</span>
+    {% endif %}
+  {% endfor %}
+{% endblock %}
+
 {% block content %}
-<div class="pc-container">
-    <div class="pc-content">
-        <div class="page-header">
-            <div class="page-block">
-                <div class="row align-items-center">
-                    <div class="col-md-12">
-                        <div class="page-header-title">
-                            <h5 class="mb-0">{{ view_title }}</h5>
-                        </div>
-                    </div>
-                    <div class="col-md-12">
-                        <ul class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{% url 'home' %}">Accueil</a></li>
-                            <li class="breadcrumb-item">
-                                <a href="{% url 'powerbi_report:custom_'|add:view_type %}">{{ view_title }}</a>
-                            </li>
-                            {% for folder in breadcrumbs %}
-                            {% if not forloop.last %}
-                            <li class="breadcrumb-item">
-                                <a
-                                    href="{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=folder.id %}">
-                                    {{ folder.name }}
-                                </a>
-                            </li>
-                            {% else %}
-                            <li class="breadcrumb-item active">{{ folder.name }}</li>
-                            {% endif %}
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="px-8 py-6">
 
         <!-- Display messages -->
         {% if messages %}
@@ -89,142 +73,136 @@
         </div>
 
         <!-- Subfolders and Reports Grid -->
-        <div class="row">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {% for folder in subfolders %}
             <!-- Subfolder Card -->
-            <div class="col-md-4 col-lg-3">
-                <div class="card mb-4 folder-card position-relative">
-                    <a href="{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=folder.id %}"
-                        class="folder-link text-decoration-none stretched-link">
-                        <div class="card-body d-flex align-items-center justify-content-between">
-                            <div class="d-flex align-items-center">
-                                <i class="feather icon-folder" style="font-size: 28px; color: #FFD700;"></i>
-                                <h6 class="mb-0 ms-3 text-dark">{{ folder.name }}</h6>
-                            </div>
-                        </div>
-                    </a>
-                    {% if user.is_superuser %}
-                    <div class="dropdown position-absolute top-50 end-0 translate-middle-y me-3" style="z-index: 2;">
-                        <button class="btn p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="feather icon-more-vertical"></i>
+            <div class="group relative bg-surface-dark/40 border border-slate-800/50 rounded-2xl p-6 hover:bg-white/5 hover:border-primary/30 transition-all duration-300">
+                <a href="{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=folder.id %}"
+                    class="block">
+                    <div class="size-14 rounded-xl bg-accent-gold/10 flex items-center justify-center text-accent-gold mb-4 group-hover:scale-110 transition-transform">
+                        <span class="material-symbols-outlined text-[32px]">folder</span>
+                    </div>
+                    <h3 class="text-base font-bold text-white mb-1 truncate">{{ folder.name }}</h3>
+                    <p class="text-xs text-slate-500">Dossier de rapports</p>
+                </a>
+                
+                {% if user.is_superuser %}
+                <div class="absolute top-4 right-4">
+                    <div class="dropdown">
+                        <button class="text-slate-600 hover:text-white transition-colors" data-bs-toggle="dropdown">
+                            <span class="material-symbols-outlined text-[20px]">more_vert</span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
+                        <ul class="dropdown-menu dropdown-menu-end p-2 bg-surface-dark border border-slate-800 shadow-2xl rounded-xl w-48">
                             <li>
-                                <a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-all" href="#" data-bs-toggle="modal"
                                     data-bs-target="#editFolderModal"
                                     onclick="setEditFolderData({{ folder.id }}, '{{ folder.name|escapejs }}')">
-                                    <i class="feather icon-edit-2 me-2"></i> Renommer
+                                    <span class="material-symbols-outlined text-[18px]">edit</span> Renommer
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-all" href="#" data-bs-toggle="modal"
                                     data-bs-target="#moveFolderModal"
                                     onclick="setMoveFolderData({{ folder.id }}, '{{ folder.name|escapejs }}')">
-                                    <i class="feather icon-move me-2"></i> Déplacer
+                                    <span class="material-symbols-outlined text-[18px]">move_item</span> Déplacer
                                 </a>
                             </li>
+                            <li class="my-1 border-t border-slate-800"></li>
                             <li>
-                                <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
+                                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-all" href="#" data-bs-toggle="modal"
                                     data-bs-target="#deleteFolderModal"
                                     onclick="setDeleteFolderData({{ folder.id }}, '{{ folder.name|escapejs }}')">
-                                    <i class="feather icon-trash-2 me-2"></i> Supprimer
+                                    <span class="material-symbols-outlined text-[18px]">delete</span> Supprimer
                                 </a>
                             </li>
                         </ul>
                     </div>
-                    {% endif %}
                 </div>
+                {% endif %}
             </div>
             {% endfor %}
 
             {% for report in reports %}
             <!-- Report Card -->
-            <div class="col-md-4 col-lg-3">
-                <div class="card mb-4 report-card position-relative">
-                    <a href="{% url 'powerbi_report:embed_custom_report' view_type=view_type folder_id=current_folder.id report_id=report.id %}"
-                        class="report-link text-decoration-none stretched-link">
-                        <div class="card-body d-flex align-items-center justify-content-between">
-                            <div class="d-flex align-items-center">
-                                <i class="feather icon-bar-chart-2" style="font-size: 28px; color: #17a2b8;"></i>
-                                <h6 class="mb-0 ms-3 text-dark">{{ report.name }}</h6>
-                            </div>
-                        </div>
-                    </a>
-                    {% if user.is_superuser %}
-                    <div class="dropdown position-absolute top-50 end-0 translate-middle-y me-3" style="z-index: 2;">
-                        <button class="btn p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="feather icon-more-vertical"></i>
+            <div class="group relative bg-surface-dark/40 border border-slate-800/50 rounded-2xl p-6 hover:bg-white/5 hover:border-primary/30 transition-all duration-300">
+                <a href="{% url 'powerbi_report:embed_custom_report' view_type=view_type folder_id=current_folder.id report_id=report.id %}"
+                    class="block">
+                    <div class="size-14 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
+                        <span class="material-symbols-outlined text-[32px]">bar_chart</span>
+                    </div>
+                    <h3 class="text-base font-bold text-white mb-1 truncate">{{ report.name }}</h3>
+                    <p class="text-xs text-slate-500 truncate">{{ report.path }}</p>
+                </a>
+
+                {% if user.is_superuser %}
+                <div class="absolute top-4 right-4">
+                    <div class="dropdown">
+                        <button class="text-slate-600 hover:text-white transition-colors" data-bs-toggle="dropdown">
+                            <span class="material-symbols-outlined text-[20px]">more_vert</span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
+                        <ul class="dropdown-menu dropdown-menu-end p-2 bg-surface-dark border border-slate-800 shadow-2xl rounded-xl w-56">
                             <li>
-                                <a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-all" href="#" data-bs-toggle="modal"
                                     data-bs-target="#editReportNameModal"
                                     onclick="setEditReportNameData('{{ report.pbirs_id }}', '{{ report.name|escapejs }}')">
-                                    <i class="feather icon-edit-2 me-2"></i> Renommer
+                                    <span class="material-symbols-outlined text-[18px]">edit</span> Renommer
                                 </a>
                             </li>
-                            <!--
+                            <li class="my-1 border-t border-slate-800"></li>
                             <li>
-                                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#moveReportModal"
-                                    onclick="setMoveReportData('{{ report.id }}', '{{ report.name|escapejs }}')">
-                                    <i class="feather icon-move me-2"></i> Move
-                                </a>
-                            </li>
-                            -->
-                            <li>
-                                <div class="dropdown-divider"></div>
-                            </li>
-                            <li>
-                                <a class="dropdown-item text-danger" href="#"
+                                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-all" href="#"
                                     onclick="removeReportFromFolder({{ current_folder.id }}, {{ report.id }})">
-                                    <i class="feather icon-x me-2"></i> Retirer du dossier
+                                    <span class="material-symbols-outlined text-[18px]">close</span> Retirer du dossier
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
+                                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-all" href="#" data-bs-toggle="modal"
                                     data-bs-target="#deleteReportModal"
                                     onclick="setDeleteReportData('{{ report.pbirs_id }}', '{{ report.name|escapejs }}')">
-                                    <i class="feather icon-trash-2 me-2"></i> Supprimer du serveur
+                                    <span class="material-symbols-outlined text-[18px]">delete_forever</span> Supprimer du serveur
                                 </a>
                             </li>
                         </ul>
                     </div>
-                    {% endif %}
-                    <div class="card-footer text-muted small">
-                        <i class="feather icon-folder-location"></i> {{ report.path }}
-                    </div>
                 </div>
+                {% endif %}
             </div>
             {% endfor %}
 
             {% if not subfolders and not reports %}
-            <div class="col-12">
-                <div class="d-flex flex-column align-items-center justify-content-center py-5">
-                    <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
-                        type="module"></script>
-                    <dotlottie-player src="https://lottie.host/32f49128-c968-4a1a-81ab-f1ea5dc06556/KFFsAaw2Fi.lottie"
-                        background="transparent" speed="1" style="width: 250px; height: 250px;" loop autoplay>
-                    </dotlottie-player>
-                    <p class="text-muted mt-3">
-                        {% if current_folder %}
-                        Aucun rapport dans ce dossier.
-                        {% if user.is_superuser %}
-                        <a href="#" data-bs-toggle="modal" data-bs-target="#assignReportModal">Ajouter des rapports</a>
-                        {% endif %}
-                        {% else %}
-                        Aucun dossier disponible.
-                        {% if user.is_superuser %}
-                        <a href="#" data-bs-toggle="modal" data-bs-target="#createFolderModal">Créer votre premier
-                            dossier</a>
-                        {% endif %}
-                        {% endif %}
-                    </p>
+            <div class="col-span-full py-20 flex flex-col items-center text-center">
+                <div class="relative mb-8 text-slate-700">
+                    <div class="relative w-48 h-48 flex items-center justify-center">
+                        <div class="absolute inset-0 bg-primary/5 rounded-full blur-3xl"></div>
+                        <div class="absolute w-32 h-32 border-2 border-primary/20 rounded-2xl rotate-12"></div>
+                        <span class="material-symbols-outlined !text-[64px] opacity-20 relative z-10">folder_open</span>
+                    </div>
                 </div>
+                <h3 class="text-xl font-bold text-white mb-2">{% if current_folder %}Dossier vide{% else %}Aucun dossier{% endif %}</h3>
+                <p class="text-slate-500 text-sm max-w-sm mb-8 leading-relaxed">
+                    {% if current_folder %}
+                    Aucun rapport n'est assigné à ce dossier pour le moment. Utilisez le bouton "Ajouter un rapport" pour commencer.
+                    {% else %}
+                    Commencez par créer votre premier dossier pour organiser vos rapports Power BI.
+                    {% endif %}
+                </p>
+                {% if user.is_superuser %}
+                    <div class="flex gap-4">
+                        {% if current_folder %}
+                        <button class="flex items-center gap-2 px-5 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary text-sm font-bold rounded-lg transition-all border border-primary/20" data-bs-toggle="modal" data-bs-target="#assignReportModal">
+                            <span class="material-symbols-outlined text-[20px]">add</span> Ajouter des rapports
+                        </button>
+                        {% else %}
+                        <button class="flex items-center gap-2 px-5 py-2.5 bg-accent-teal/10 hover:bg-accent-teal/20 text-emerald-400 text-sm font-bold rounded-lg transition-all border border-accent-teal/20" data-bs-toggle="modal" data-bs-target="#createFolderModal">
+                            <span class="material-symbols-outlined text-[20px]">create_new_folder</span> Créer un dossier
+                        </button>
+                        {% endif %}
+                    </div>
+                {% endif %}
             </div>
             {% endif %}
         </div>
     </div>
-</div>
 
 <!-- Modal: Create Folder -->
 <div class="modal fade" id="createFolderModal" tabindex="-1" aria-labelledby="createFolderModalLabel"

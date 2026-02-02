@@ -1,91 +1,132 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Reports{% endblock %}
+
+{% block title %}Rapports{% endblock %}
+
+{% block header_title %}Liste des Rapports{% endblock %}
+{% block header_subtitle %}Visualisez et accédez à tous vos rapports Power BI en mode liste{% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <span class="text-slate-400">Liste des Rapports</span>
+{% endblock %}
+
 {% block content %}
-<div class="pc-container">
-  <div class="pc-content">
-    <!-- [ Breadcrumb ] start -->
-    <div class="page-header">
-      <div class="page-block">
-        <div class="row align-items-center">
-          <div class="col-md-12">
-            <div class="page-header-title">
-              <h5 class="mb-0">Reports</h5>
+<div class="px-8 py-6">
+    <!-- [ Search and Controls ] start -->
+    <div class="flex flex-wrap items-center justify-between gap-6 mb-8">
+        <div class="flex items-center gap-4 flex-1 min-w-[300px]">
+            <div class="relative flex-1 max-w-sm">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
+                <input type="text" id="reportSearch" class="w-full pl-10 pr-4 py-2 bg-surface-dark border border-slate-800 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all text-slate-300" placeholder="Rechercher un rapport...">
             </div>
-          </div>
-          <div class="col-md-12">
-            <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-              <li class="breadcrumb-item active" aria-current="page">Reports</li>
-            </ul>
-          </div>
+            
+            <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-800 hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-400">
+                <span class="material-symbols-outlined text-[18px]">account_tree</span> Vue Hiérarchique
+            </a>
         </div>
-      </div>
     </div>
-    <!-- [ Breadcrumb ] end -->
 
-    <!-- [ Search Bar & Hierarchical View Button ] start -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <div class="flex-grow-1" style="max-width: 500px;">
-        <div class="input-group">
-          <input type="text" id="reportSearch" class="form-control" placeholder="Search reports by title...">
+    <!-- [ Reports Table ] start -->
+    <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
+            <h2 class="font-bold text-white tracking-tight">Tous les Rapports</h2>
+            <span class="text-[10px] font-bold px-2 py-1 bg-primary/20 text-primary rounded uppercase tracking-wider">Total: {{ reports.paginator.count }}</span>
         </div>
-      </div>
-      <div class="d-flex align-items-center">
-        <a href="{% url 'powerbi_report:custom_business' %}" class="btn btn-outline-primary ms-3">
-          <i class="feather icon-layers"></i> Hierarchical View
-        </a>
-      </div>
-    </div>
-    <!-- [ Search Bar & Hierarchical View Button ] end -->
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse" id="reportsTable">
+                <thead>
+                    <tr class="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/50">
+                        <th class="px-6 py-4">Nom du Rapport</th>
+                        <th class="px-6 py-4">Chemin</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/50">
+                    {% for report in reports %}
+                    <tr class="hover:bg-white/5 transition-all group report-card" data-path="{{ report.Path }}">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
+                                    <span class="material-symbols-outlined text-[18px]">bar_chart</span>
+                                </div>
+                                <span class="text-sm font-bold text-white group-hover:text-primary transition-colors">{{ report.Name }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-xs text-slate-500 font-mono">{{ report.Path }}</td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{% url 'powerbi_report:embed_report' report.Path %}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">
+                                <span class="material-symbols-outlined text-[16px]">visibility</span> Ouvrir
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center gap-4">
+                                <span class="material-symbols-outlined text-[48px] text-slate-700">folder_open</span>
+                                <p class="text-slate-500 font-medium">Aucun rapport trouvé.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
-    <!-- [ Reports Cards ] start -->
-    <div class="row" id="reportsContainer">
-      {% if reports %}
-      {% for report in reports %}
-      <div class="col-md-4 report-card" data-path="{{ report.Path }}">
-        <div class="card mb-4">
-          <a href="{% url 'powerbi_report:embed_report' report.Path %}" style="margin: auto;">
-            <div class="card-body">
-              <h5 class="card-title" style="margin: auto;">{{ report.Name }}</h5>
+        <!-- Pagination -->
+        <div class="px-6 py-4 border-t border-slate-800/50 flex items-center justify-between bg-white/5">
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Affichage de {{ reports.start_index }} à {{ reports.end_index }} sur {{ reports.paginator.count }} rapports</p>
+            <div class="flex items-center gap-2">
+                {% if reports.has_previous %}
+                <a href="?page={{ reports.previous_page_number }}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700">
+                    <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                </a>
+                {% else %}
+                <button class="size-8 rounded bg-slate-800/50 flex items-center justify-center text-slate-600 border border-slate-800 opacity-50 cursor-not-allowed" disabled>
+                    <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                </button>
+                {% endif %}
+
+                {% for i in reports.paginator.page_range %}
+                    {% if reports.number == i %}
+                    <span class="size-8 rounded bg-primary flex items-center justify-center text-white text-[11px] font-black border border-primary shadow-[0_0_15px_rgba(19,127,236,0.3)]">{{ i }}</span>
+                    {% elif i > reports.number|add:'-3' and i < reports.number|add:'3' %}
+                    <a href="?page={{ i }}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white text-[11px] font-bold border border-slate-700 transition-all">{{ i }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if reports.has_next %}
+                <a href="?page={{ reports.next_page_number }}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700">
+                    <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                </a>
+                {% else %}
+                <button class="size-8 rounded bg-slate-800/50 flex items-center justify-center text-slate-600 border border-slate-800 opacity-50 cursor-not-allowed" disabled>
+                    <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                </button>
+                {% endif %}
             </div>
-          </a>
         </div>
-      </div>
-      {% endfor %}
-      {% else %}
-      <div class="d-flex flex-column align-items-center justify-content-center" style="height: 100%;">
-        <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
-          type="module"></script>
-        <dotlottie-player src="https://lottie.host/32f49128-c968-4a1a-81ab-f1ea5dc06556/KFFsAaw2Fi.lottie"
-          background="transparent" speed="1" style="width: 300px; height: 300px;" loop autoplay>
-        </dotlottie-player>
-        <p class="text-center">No reports available.</p>
-      </div>
-      {% endif %}
     </div>
-    <!-- [ Reports Cards ] end -->
-  </div>
 </div>
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const reportSearch = document.getElementById('reportSearch');
-    const cards = document.querySelectorAll('.report-card');
+    const rows = document.querySelectorAll('#reportsTable tbody tr.report-card');
 
-    // Filter function - search only
     function filterReports() {
       const searchValue = reportSearch.value.toLowerCase();
 
-      cards.forEach(card => {
-        const titleElement = card.querySelector('.card-title');
+      rows.forEach(row => {
+        const titleElement = row.querySelector('span.text-sm');
         const titleText = titleElement ? titleElement.textContent.toLowerCase() : '';
         const matchesSearch = titleText.includes(searchValue);
-        card.style.display = matchesSearch ? '' : 'none';
+        row.style.display = matchesSearch ? '' : 'none';
       });
     }
 
-    // Event listener for search
     reportSearch.addEventListener('input', filterReports);
   });
 </script>

@@ -1,241 +1,216 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Gestion des rôles{% endblock %}
+
+{% block title %}Gestion des Rôles{% endblock %}
+
+{% block header_title %}Gestion des Rôles{% endblock %}
+{% block header_subtitle %}Configurez les niveaux d'accès et les permissions pour chaque profil{% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <a href="{% url 'users_view' %}" class="hover:text-primary transition-colors">Gestion des Utilisateurs</a>
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <span class="text-slate-400">Gestion des Rôles</span>
+{% endblock %}
+
 {% block content %}
-
-<div class="pc-container">
-  <div class="pc-content">
-    <!-- Breadcrumb -->
-    <div class="page-header">
-      <div class="page-block">
-        <div class="row align-items-center">
-          <div class="col-md-12">
-            <div class="page-header-title">
-              <h5 class="mb-0">
-                Gestion des rôles <i class="feather icon-sync"></i>
-              </h5>
-            </div>
-          </div>
-          <div class="col-md-12">
-            <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="{% url 'home' %}">Accueil</a></li>
-              <li class="breadcrumb-item active"><a href="{% url 'users_view' %}">Gestion des utilisateurs</a></li>
-              <li class="breadcrumb-item active" aria-current="page">Gestion des rôles</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- [ Breadcrumb ] end -->
-
+<div class="px-8 py-6">
     <!-- Display messages -->
     {% if messages %}
-    <div class="mt-3">
+    <div class="mb-6">
       {% for message in messages %}
-      <div
-        class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show"
-        role="alert">
-        <i class="feather icon-check-circle"></i>
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      <div class="flex items-center gap-3 p-4 rounded-xl {% if message.tags == 'error' %}bg-red-500/10 border border-red-500/20 text-red-400{% else %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% endif %} alert-dismissible fade show" role="alert">
+        <span class="material-symbols-outlined text-[20px]">{% if message.tags == 'error' %}error{% else %}check_circle{% endif %}</span>
+        <span class="text-sm font-medium">{{ message }}</span>
+        <button type="button" class="ml-auto text-current opacity-50 hover:opacity-100 transition-opacity" data-bs-dismiss="alert">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
       </div>
       {% endfor %}
     </div>
     {% endif %}
 
-    <div class="row mb-4">
-      <div class="col-md-12 d-flex justify-content-between align-items-center">
-        <a href="{% url 'users_view' %}" class="btn btn-outline-secondary"><i class="feather icon-arrow-left"></i>
-          Retour</a>
-        <div class="input-group w-50">
-          <input type="text" class="form-control" id="searchInput"
-            placeholder="Rechercher des rôles par nom ou description..." aria-label="Rechercher des rôles">
-
+    <!-- [ Control Bar ] start -->
+    <div class="flex flex-wrap items-center justify-between gap-6 mb-8">
+        <div class="flex items-center gap-4 flex-1 min-w-[300px]">
+            <a href="{% url 'users_view' %}" class="size-10 flex items-center justify-center bg-surface-dark border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-all hover:bg-white/5 shadow-sm">
+                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            </a>
+            
+            <div class="relative flex-1 max-w-sm">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
+                <input type="text" id="searchInput" class="w-full pl-10 pr-4 py-2 bg-surface-dark border border-slate-800 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all text-slate-300" placeholder="Rechercher un rôle...">
+            </div>
         </div>
-        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createRoleModal">
-          <i class="feather icon-plus"></i> Créer un rôle
+
+        <button class="flex items-center gap-2 px-6 py-2 bg-primary hover:bg-blue-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-primary/20" data-bs-toggle="modal" data-bs-target="#createRoleModal">
+            <span class="material-symbols-outlined text-[20px]">add</span> Créer un rôle
         </button>
-      </div>
     </div>
 
-    <!-- [ Role Management Section ] start -->
-    <div class="row">
-      <div class="col-md-12">
-        <div class="card">
-          <div class="card-header">
-            <h5>Rôles et permissions</h5>
-          </div>
-          <div class="card-body px-0 py-3">
-            <div class="table-responsive">
-              <table class="table table-hover" id="roleTable">
+    <!-- [ Roles Table ] start -->
+    <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
+            <h2 class="font-bold text-white tracking-tight">Rôles et Permissions</h2>
+            <span class="text-[10px] font-bold px-2 py-1 bg-primary/20 text-primary rounded uppercase tracking-wider">Total: {{ roles.count }}</span>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse" id="roleTable">
                 <thead>
-                  <tr>
-                    <th>Rôle</th>
-                    <th>Description</th>
-                    <th>Actions</th>
-                  </tr>
+                    <tr class="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/50">
+                        <th class="px-6 py-4">Nom du Rôle</th>
+                        <th class="px-6 py-4">Description</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
                 </thead>
-                <tbody>
-                  {% for role in roles %}
-                  <tr>
-                    <td>{{ role.name }}</td>
-                    <td>{{ role.description }}</td>
-                    <td>
-                      {% if role.name|lower != 'admin' %}
-
-                      <a class="btn btn-outline-primary btn-sm" href="{% url 'permissions_list' role.id %}">Gérer les
-                        permissions</a>
-                      <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal"
-                        data-bs-target="#editRoleModal{{ role.id }}">
-                        <i class="feather icon-edit"></i> Modifier
-                      </button>
-                      <form method="POST" action="{% url 'remove_role' role.id %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-danger btn-sm">
-                          <i class="feather icon-trash"></i> Supprimer
-                        </button>
-                      </form>
-                      {% else %}
-                      <span class="text-muted">Rôle non modifiable</span>
-                      {% endif %}
-                    </td>
-                  </tr>
-                  {% endfor %}
+                <tbody class="divide-y divide-slate-800/50">
+                    {% for role in roles %}
+                    <tr class="hover:bg-white/5 transition-all group">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-500 border border-pink-500/20">
+                                    <span class="material-symbols-outlined text-[18px]">verified_user</span>
+                                </div>
+                                <span class="text-sm font-bold text-white">{{ role.name }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <p class="text-sm text-slate-500 line-clamp-1">{{ role.description|default:"Aucune description" }}</p>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center justify-end gap-2">
+                                {% if role.name|lower != 'admin' %}
+                                <a href="{% url 'permissions_list' role.id %}" class="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Détails</a>
+                                <button class="px-3 py-1.5 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" data-bs-toggle="modal" data-bs-target="#editRoleModal{{ role.id }}">Modifier</button>
+                                <form method="POST" action="{% url 'remove_role' role.id %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce rôle ?')">Supprimer</button>
+                                </form>
+                                {% else %}
+                                <span class="text-[10px] text-slate-600 font-bold uppercase tracking-wider mr-4 italic text-right">Système (Non Modifiable)</span>
+                                <a href="{% url 'permissions_list' role.id %}" class="px-3 py-1.5 bg-slate-800 text-slate-500 hover:text-white border border-slate-700 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Consulter</a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="px-6 py-12 text-center text-slate-600 font-medium italic">Aucun rôle configuré.</td>
+                    </tr>
+                    {% endfor %}
                 </tbody>
-              </table>
-            </div>
-          </div>
+            </table>
         </div>
-      </div>
     </div>
-    <!-- [ Role Management Section ] end -->
-
-    <!-- Create Role Modal -->
-    <div class="modal fade" id="createRoleModal" tabindex="-1" aria-labelledby="createRoleModalLabel"
-      aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="createRoleModalLabel">Créer un nouveau rôle</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <form method="POST" action="{% url 'create_role' %}">
-            {% csrf_token %}
-            <div class="modal-body">
-              <div class="mb-3">
-                <label for="role_name" class="form-label">Nom du rôle</label>
-                <input type="text" class="form-control" id="role_name" name="role_name" required>
-              </div>
-              <div class="mb-3">
-                <label for="role_description" class="form-label">Description du rôle</label>
-                <textarea class="form-control" id="role_description" name="role_description" rows="4"></textarea>
-              </div>
-              <div class="mb-3">
-                <label for="permissions" class="form-label">Attribuer les permissions par défaut</label>
-                <select class="form-select" id="permissions" name="permissions" multiple>
-                  {% for permission in all_permissions %}
-                  <option value="{{ permission.id }}">{{ permission.name }}</option>
-                  {% endfor %}
-                </select>
-                <small class="form-text text-muted">Maintenez Ctrl (Windows) ou Command (Mac) pour sélectionner
-                  plusieurs
-                  permissions.</small>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-              <button type="submit" class="btn btn-primary">Créer le rôle</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Edit Role Modal -->
-    {% for role in roles %}
-    <div class="modal fade" id="editRoleModal{{ role.id }}" tabindex="-1"
-      aria-labelledby="editRoleModalLabel{{ role.id }}" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="editRoleModalLabel{{ role.id }}">Modifier le rôle : {{ role.name }}</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <form method="POST" action="{% url 'edit_role' role.id %}">
-            {% csrf_token %}
-            <div class="modal-body">
-              <div class="mb-3">
-                <label for="role_name" class="form-label">Nom du rôle</label>
-                <input type="text" class="form-control" id="role_name" name="role_name" value="{{ role.name }}" {% if
-                  role.name|lower=='admin' %}readonly{% endif %} required>
-              </div>
-              <div class="mb-3">
-                <label for="role_description" class="form-label">Description du rôle</label>
-                <textarea class="form-control" id="role_description" name="role_description" rows="4" {% if
-                  role.name|lower=='admin' %}readonly{% endif %}>{{ role.description }}</textarea>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-              {% if role.name|lower != 'admin' %}
-              <button type="submit" class="btn btn-primary">Mettre à jour le rôle</button>
-              {% else %}
-              <span class="text-muted">Rôle non modifiable</span>
-              {% endif %}
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
 </div>
+
+<!-- Modals -->
+<!-- Create Role Modal -->
+<div class="modal fade" id="createRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+            <form method="POST" action="{% url 'create_role' %}">
+                {% csrf_token %}
+                <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
+                    <h5 class="text-lg font-bold text-white tracking-tight">Créer un nouveau rôle</h5>
+                    <button type="button" class="text-slate-500 hover:text-white transition-colors" data-bs-dismiss="modal">
+                        <span class="material-symbols-outlined text-[24px]">close</span>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="space-y-2">
+                        <label for="role_name" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Nom du rôle</label>
+                        <input type="text" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="role_name" name="role_name" required>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="role_description" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Description</label>
+                        <textarea class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="role_description" name="role_description" rows="3"></textarea>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="permissions" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Permissions par défaut</label>
+                        <select class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all h-32" id="permissions" name="permissions" multiple>
+                            {% for permission in all_permissions %}
+                            <option value="{{ permission.id }}">{{ permission.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-[10px] text-slate-600 italic mt-1">Maintenez Ctrl pour sélectionner plusieurs permissions.</p>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
+                    <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-primary/20">Créer le rôle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Role Modals -->
+{% for role in roles %}
+<div class="modal fade" id="editRoleModal{{ role.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+            <form method="POST" action="{% url 'edit_role' role.id %}">
+                {% csrf_token %}
+                <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
+                    <h5 class="text-lg font-bold text-white tracking-tight">Modifier le rôle : {{ role.name }}</h5>
+                    <button type="button" class="text-slate-500 hover:text-white transition-colors" data-bs-dismiss="modal">
+                        <span class="material-symbols-outlined text-[24px]">close</span>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="space-y-2">
+                        <label for="edit_role_name{{ role.id }}" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Nom du rôle</label>
+                        <input type="text" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all {% if role.name|lower == 'admin' %}opacity-50 cursor-not-allowed{% endif %}" id="edit_role_name{{ role.id }}" name="role_name" value="{{ role.name }}" {% if role.name|lower == 'admin' %}readonly{% endif %} required>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="edit_role_description{{ role.id }}" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Description</label>
+                        <textarea class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all {% if role.name|lower == 'admin' %}opacity-50 cursor-not-allowed{% endif %}" id="edit_role_description{{ role.id }}" name="role_description" rows="3" {% if role.name|lower == 'admin' %}readonly{% endif %}>{{ role.description }}</textarea>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
+                    <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
+                    {% if role.name|lower != 'admin' %}
+                    <button type="submit" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-primary/20">Mettre à jour</button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    // Select all alert elements
-    const alerts = document.querySelectorAll('.alert');
-
-    // Loop through each alert
-    alerts.forEach(alert => {
-      // Set timeout to hide alert after 3 seconds (3000ms)
-      setTimeout(() => {
-        // Use jQuery to close the alert
-        $(alert).alert('close');
-      }, 3000);
-    });
-
-    // Search bar functionality
     const searchInput = document.getElementById('searchInput');
-    const table = document.getElementById('roleTable');
-    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    const tableRows = document.querySelectorAll('#roleTable tbody tr');
 
     searchInput.addEventListener('input', function () {
       const filter = searchInput.value.toLowerCase();
 
-      for (let i = 0; i < rows.length; i++) {
-        const roleName = rows[i].getElementsByTagName('td')[0].textContent.toLowerCase();
-        const description = rows[i].getElementsByTagName('td')[1].textContent.toLowerCase();
+      tableRows.forEach(row => {
+        const roleNameElement = row.querySelector('td:first-child span.text-sm');
+        const roleName = roleNameElement ? roleNameElement.textContent.toLowerCase() : '';
+        const descElement = row.querySelector('td:nth-child(2) p');
+        const description = descElement ? descElement.textContent.toLowerCase() : '';
 
         if (roleName.includes(filter) || description.includes(filter)) {
-          rows[i].style.display = '';
+          row.style.display = '';
         } else {
-          rows[i].style.display = 'none';
+          row.style.display = 'none';
         }
-      }
+      });
+    });
+
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+      setTimeout(() => {
+        const bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+      }, 5000);
     });
   });
 </script>
-<style>
-  .btn-outline-permission {
-    color: #e83e8c;
-    border-color: #e83e8c;
-  }
-
-  .btn-outline-permission:hover {
-    background-color: #e83e8c;
-    color: #fff;
-  }
-</style>
 
 {% endblock %}

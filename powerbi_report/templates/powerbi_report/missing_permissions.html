@@ -1,139 +1,164 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Missing Permissions{% endblock %}
+
+{% block title %}Permissions Manquantes{% endblock %}
+
+{% block header_title %}Permissions Manquantes{% endblock %}
+{% block header_subtitle %}Gérez les accès aux rapports pour {{ full_name }} ({{ selected_username }}){% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <a class="hover:text-primary transition-colors" href="{% url 'users_view' %}">Utilisateurs</a>
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:user_permission' selected_username  %}">Permissions de {{ selected_username }}</a>
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <span class="text-slate-400">Permissions Manquantes</span>
+{% endblock %}
+
 {% block content %}
-
-<div class="pc-container">
-  <div class="pc-content">
-    <!-- Breadcrumb -->
-    <div class="page-header">
-      <div class="page-block">
-        <div class="row align-items-center">
-          <div class="col-md-12">
-            <h5 class="mb-0">Missing Permissions for {{full_name}} ({{ selected_username }})</h5>
-          </div>
-          <div class="col-md-12">
-            <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-              <li class="breadcrumb-item"><a href="{% url 'users_view' %}">User Management</a></li>
-              <li class="breadcrumb-item"><a href="{% url 'powerbi_report:user_permission' selected_username  %}">User Permissions</a></li>
-              <li class="breadcrumb-item active" aria-current="page">Missing Permissions</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- Breadcrumb end -->
-
+<div class="px-8 py-6">
     <!-- Display messages -->
     {% if messages %}
-    <div class="mt-3">
+    <div class="mb-6">
       {% for message in messages %}
-      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
-        <i class="feather icon-check-circle"></i>
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      <div class="flex items-center gap-3 p-4 rounded-xl {% if message.tags == 'error' %}bg-red-500/10 border border-red-500/20 text-red-400{% else %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% endif %} alert-dismissible fade show" role="alert">
+        <span class="material-symbols-outlined text-[20px]">{% if message.tags == 'error' %}error{% else %}check_circle{% endif %}</span>
+        <span class="text-sm font-medium">{{ message }}</span>
+        <button type="button" class="ml-auto text-current opacity-50 hover:opacity-100 transition-opacity" data-bs-dismiss="alert">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
       </div>
       {% endfor %}
     </div>
     {% endif %}
 
-    <!-- Action Bar -->
-    <!-- [ Back Button ] -->
-    <div class="mb-2">
-      <a href="{% url 'powerbi_report:user_permission' selected_username  %}" class="btn btn-outline-secondary">
-        <i class="feather icon-arrow-left"></i> Back
-      </a>
+    <div class="flex flex-wrap items-center justify-between gap-6 mb-8">
+        <div class="flex items-center gap-4">
+            <a href="{% url 'powerbi_report:user_permission' selected_username %}" class="size-10 flex items-center justify-center bg-surface-dark border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-all hover:bg-white/5 shadow-sm">
+                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            </a>
+            <h3 class="text-lg font-bold text-white tracking-tight">{{ full_name }} <span class="text-slate-500 font-medium ml-2 text-sm italic">({{ selected_username }})</span></h3>
+        </div>
     </div>
 
-    <!-- Actions and Filters Section -->
-    <div class="row mb-4">
-      <div class="col-md-12">
-        <!-- Search, Filters, and Clear Button -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div class="input-group w-50" style="max-width:500px;">
-            <input type="text" class="form-control" placeholder="Search reports by name..." id="reportSearch">
-          </div>
-          <div class="d-flex align-items-center" style="margin-left:10px;">
-            <div class="row g-3" style="flex: 1;">
-              <div class="col-md-4">
-                <select class="form-select" id="poleFilter" style="min-width: 300px;">
-                  <option value="">All Pôles</option>
-                </select>
-              </div>
-              <div class="col-md-4">
-                <select class="form-select" id="sousDirectionFilter" style="min-width: 300px;">
-                  <option value="">All Société</option>
-                </select>
-              </div>
-              <div class="col-md-4">
-                <select class="form-select" id="directionFilter" style="min-width: 300px;">
-                  <option value="">All Directions</option>
-                </select>
-              </div>
+    <!-- Filters Section -->
+    <div class="bg-surface-dark border border-slate-800 rounded-3xl p-6 mb-8 shadow-xl shadow-black/10">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+            <div class="lg:col-span-4 space-y-2">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Rechercher</label>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
+                    <input type="text" id="reportSearch" placeholder="Rechercher un rapport..." class="w-full bg-background-dark border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-white placeholder:text-slate-700 focus:border-primary/50 transition-all outline-none">
+                </div>
             </div>
-            <button type="button" class="btn btn-outline-secondary ms-3" id="clearFilters">
-              <i class="feather icon-x"></i> Clear
-            </button>
-          </div>
+
+            <div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Pôle</label>
+                    <select id="poleFilter" class="w-full bg-background-dark border border-slate-800 rounded-xl py-2.5 px-4 text-sm text-slate-300 focus:border-primary/50 transition-all outline-none appearance-none">
+                        <option value="">Tous les Pôles</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Société</label>
+                    <select id="sousDirectionFilter" class="w-full bg-background-dark border border-slate-800 rounded-xl py-2.5 px-4 text-sm text-slate-300 focus:border-primary/50 transition-all outline-none appearance-none">
+                        <option value="">Toutes les Sociétés</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Direction</label>
+                    <select id="directionFilter" class="w-full bg-background-dark border border-slate-800 rounded-xl py-2.5 px-4 text-sm text-slate-300 focus:border-primary/50 transition-all outline-none appearance-none">
+                        <option value="">Toutes les Directions</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2">
+                <button type="button" id="clearFilters" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-sm font-bold rounded-xl transition-all border border-slate-700">
+                    <span class="material-symbols-outlined text-[18px]">filter_alt_off</span> Réinitialiser
+                </button>
+            </div>
         </div>
-      </div>
     </div>
 
     <!-- Missing Reports Table -->
     {% if missing_reports %}
-    <form method="post" action="{% url 'powerbi_report:add_selected_permissions' selected_username %}" id="selectedReportsForm">
-      {% csrf_token %}
-      <div class="card">
-        <div class="card-body">
-          <!-- Add Selected Permissions Button Above -->
-          <button type="submit" class="btn btn-outline-success mb-3" id="addSelectedBtn" style="display: none;">
-            Add Selected Permissions
-          </button>
+    <form method="post" action="{% url 'powerbi_report:add_selected_permissions' selected_username %}" id="selectedReportsForm" class="m-0">
+        {% csrf_token %}
+        <div class="bg-surface-dark border border-slate-800 rounded-3xl overflow-hidden shadow-xl shadow-black/20">
+            <div class="px-8 py-6 border-b border-slate-800/50 flex flex-wrap items-center justify-between gap-4 bg-white/[0.02]">
+                <h3 class="text-sm font-bold text-white uppercase tracking-widest">Rapports Disponibles</h3>
+                <button type="submit" class="hidden items-center gap-2 px-6 py-2.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-sm font-bold hover:bg-emerald-500/20 transition-all shadow-lg" id="addSelectedBtn">
+                    <span class="material-symbols-outlined text-[20px]">playlist_add_check</span> Accorder les accès sélectionnés
+                </button>
+            </div>
 
-          <div class="table-responsive">
-            <table class="table table-hover" id="reportTable">
-              <thead class="thead-dark">
-                <tr>
-                  <th><input type="checkbox" id="selectAll"></th>
-                  <th>Report Name</th>
-                  <th>Path</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for report in missing_reports %}
-                <tr>
-                  <td><input type="checkbox" name="report_ids" value="{{ report.Id }}" class="reportCheckbox"></td>
-                  <td>{{ report.Name }}</td>
-                  <td title="{{ report.Path }}">{{ report.Path|truncatechars:40 }}</td>
-                  <td>
-                    <form method="post" action="{% url 'powerbi_report:add_permission_to_server' report.Id selected_username %}">
-                      {% csrf_token %}
-                      <button type="submit" class="btn btn-sm btn-outline-success">Add Permission</button>
-                    </form>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse" id="reportTable">
+                    <thead>
+                        <tr class="border-b border-slate-800/50 bg-white/[0.01]">
+                            <th class="px-8 py-4 w-12 text-center">
+                                <input type="checkbox" id="selectAll" class="rounded border-slate-700 bg-slate-900 accent-primary">
+                            </th>
+                            <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Rapport</th>
+                            <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Chemin Serveur</th>
+                            <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/30">
+                        {% for report in missing_reports %}
+                        <tr class="hover:bg-white/[0.02] transition-colors group">
+                            <td class="px-8 py-5 text-center">
+                                <input type="checkbox" name="report_ids" value="{{ report.Id }}" class="reportCheckbox rounded border-slate-700 bg-slate-900 accent-primary">
+                            </td>
+                            <td class="px-8 py-5">
+                                <div class="flex items-center gap-3">
+                                    <div class="size-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 group-hover:scale-110 transition-transform">
+                                        <span class="material-symbols-outlined text-[20px]">bar_chart</span>
+                                    </div>
+                                    <span class="text-sm font-bold text-slate-200 group-hover:text-white transition-colors">{{ report.Name }}</span>
+                                </div>
+                            </td>
+                            <td class="px-8 py-5">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] text-slate-500 bg-slate-900/50 px-3 py-1 rounded-lg border border-slate-800 max-w-md truncate" title="{{ report.Path }}">
+                                        {{ report.Path }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <form method="post" action="{% url 'powerbi_report:add_permission_to_server' report.Id selected_username %}" class="m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-bold hover:bg-emerald-500/20 transition-all opacity-0 group-hover:opacity-100">
+                                        <span class="material-symbols-outlined text-[16px]">add</span> Accorder
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-      </div>
     </form>
     {% else %}
-      <div class="alert alert-warning">All reports already have permission for this user.</div>
-    {% endif %}
-  </div>
-</div>
-<!-- Loading Prompt -->
-<div id="loadingPrompt" class="loading-overlay" style="display: none;">
-  <div class="loading-content">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
+    <div class="flex flex-col items-center justify-center py-24 bg-surface-dark border border-slate-800 rounded-3xl border-dashed">
+        <div class="size-24 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-6 text-emerald-400 border border-emerald-500/20">
+            <span class="material-symbols-outlined text-[48px]">verified</span>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Accès Complets</h3>
+        <p class="text-slate-500 max-w-sm text-center">Cet utilisateur possède déjà toutes les permissions disponibles sur le serveur.</p>
     </div>
-    <p>Processing request... Please wait.</p>
-  </div>
+    {% endif %}
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingPrompt" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[10000]">
+    <div class="bg-surface-dark border border-slate-800 rounded-3xl p-8 max-w-xs w-full text-center shadow-2xl">
+        <div class="inline-block size-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
+        <h4 class="text-white font-bold mb-1">Traitement en cours</h4>
+        <p class="text-slate-500 text-xs">Veuillez patienter quelques instants...</p>
+    </div>
 </div>
 
 <script>
@@ -157,7 +182,10 @@
 
     // Extract path components and build relationships
     rows.forEach(row => {
-      const path = row.querySelector('td:nth-child(3)').getAttribute('title');
+      const pathDisplay = row.querySelector('td:nth-child(3) span');
+      const path = pathDisplay ? pathDisplay.getAttribute('title') : '';
+      if (!path) return;
+      
       const parts = path.split('/').filter(part => part);
       const pole = parts[0] || '';
       let sousDirection = '';
@@ -168,19 +196,15 @@
           pathData[pole] = { sousDirections: new Set(), directions: {}, directDirections: new Set() };
         }
 
-        // Check if the second component starts with "direction" (case-insensitive)
         if (parts[1] && parts[1].toLowerCase().startsWith('direction')) {
-          // No Société, second component is a Direction
           direction = parts[1];
           pathData[pole].directDirections.add(direction);
           allDirections.add(direction);
         } else if (parts[1]) {
-          // Second component is a Société
           sousDirection = parts[1];
           pathData[pole].sousDirections.add(sousDirection);
           allSousDirections.add(sousDirection);
           if (parts[2] && parts[2].toLowerCase().startsWith('direction')) {
-            // Third component is a Direction
             direction = parts[2];
             if (!pathData[pole].directions[sousDirection]) {
               pathData[pole].directions[sousDirection] = new Set();
@@ -192,187 +216,79 @@
       }
     });
 
-    // Populate Pole filter
-    Object.keys(pathData).forEach(pole => {
-      const option = document.createElement('option');
-      option.value = pole;
-      option.textContent = pole;
-      poleFilter.appendChild(option);
+    // Populate Filters
+    Object.keys(pathData).sort().forEach(pole => {
+      const option = new Option(pole, pole);
+      poleFilter.add(option);
     });
 
-    // Populate all Sociétés and Directions initially
-    allSousDirections.forEach(sousDirection => {
-      const option = document.createElement('option');
-      option.value = sousDirection;
-      option.textContent = sousDirection;
-      sousDirectionFilter.appendChild(option);
-    });
-
-    allDirections.forEach(direction => {
-      const option = document.createElement('option');
-      option.value = direction;
-      option.textContent = direction;
-      directionFilter.appendChild(option);
-    });
-
-    // Function to populate Société filter based on selected Pole
     function populateSousDirectionFilter(selectedPole) {
-      sousDirectionFilter.innerHTML = '';
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
-      if (selectedPole && pathData[selectedPole]) {
-        defaultOption.textContent = `All Société of ${selectedPole}`;
-        if (pathData[selectedPole].sousDirections.size > 0) {
-          // Populate with Sociétés for the selected Pole
-          pathData[selectedPole].sousDirections.forEach(sousDirection => {
-            const option = document.createElement('option');
-            option.value = sousDirection;
-            option.textContent = sousDirection;
-            sousDirectionFilter.appendChild(option);
-          });
-          sousDirectionFilter.disabled = false;
-        } else {
-          // No Sociétés, disable Société dropdown
-          defaultOption.textContent = 'No Société Available';
-          sousDirectionFilter.disabled = true;
-        }
-      } else {
-        // Populate with all Sociétés when no Pole is selected
-        defaultOption.textContent = 'All Société';
-        allSousDirections.forEach(sousDirection => {
-          const option = document.createElement('option');
-          option.value = sousDirection;
-          option.textContent = sousDirection;
-          sousDirectionFilter.appendChild(option);
-        });
-        sousDirectionFilter.disabled = false;
-      }
-      sousDirectionFilter.appendChild(defaultOption);
-      sousDirectionFilter.value = ''; // Ensure default option is selected
+      sousDirectionFilter.innerHTML = '<option value="">Toutes les Sociétés</option>';
+      const source = selectedPole ? pathData[selectedPole].sousDirections : allSousDirections;
+      Array.from(source).sort().forEach(sd => {
+        sousDirectionFilter.add(new Option(sd, sd));
+      });
     }
 
-    // Function to populate Direction filter based on selected Pole and Société
     function populateDirectionFilter(selectedPole, selectedSousDirection) {
-      directionFilter.innerHTML = '';
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
-      defaultOption.textContent = 'All Directions';
-
+      directionFilter.innerHTML = '<option value="">Toutes les Directions</option>';
+      let source = new Set();
+      
       if (selectedPole && pathData[selectedPole]) {
-        if (selectedSousDirection && pathData[selectedPole].directions[selectedSousDirection]) {
-          // Populate with Directions for the selected Société only
-          defaultOption.textContent = `All Directions of ${selectedSousDirection}`;
-          pathData[selectedPole].directions[selectedSousDirection].forEach(direction => {
-            const option = document.createElement('option');
-            option.value = direction;
-            option.textContent = direction;
-            directionFilter.appendChild(option);
-          });
-          directionFilter.disabled = pathData[selectedPole].directions[selectedSousDirection].size === 0;
-        } else if (!selectedSousDirection) {
-          // Populate with Directions directly under the Pole or all Directions under the Pole
-          defaultOption.textContent = `All Directions of ${selectedPole}`;
-          const allPoleDirections = new Set();
-          // Include direct Directions under the Pole
-          pathData[selectedPole].directDirections.forEach(direction => {
-            allPoleDirections.add(direction);
-          });
-          // Include Directions under all Sociétés if no Société is selected
-          Object.values(pathData[selectedPole].directions).forEach(dirs => {
-            dirs.forEach(dir => allPoleDirections.add(dir));
-          });
-          allPoleDirections.forEach(direction => {
-            const option = document.createElement('option');
-            option.value = direction;
-            option.textContent = direction;
-            directionFilter.appendChild(option);
-          });
-          directionFilter.disabled = allPoleDirections.size === 0;
+        if (selectedSousDirection) {
+          source = pathData[selectedPole].directions[selectedSousDirection] || new Set();
         } else {
-          // No Directions for the selected Société
-          defaultOption.textContent = 'No Directions Available';
-          directionFilter.disabled = true;
+          pathData[selectedPole].directDirections.forEach(d => source.add(d));
+          Object.values(pathData[selectedPole].directions).forEach(dirs => dirs.forEach(d => source.add(d)));
         }
       } else {
-        // Populate with all Directions when no Pole is selected
-        allDirections.forEach(direction => {
-          const option = document.createElement('option');
-          option.value = direction;
-          option.textContent = direction;
-          directionFilter.appendChild(option);
-        });
-        directionFilter.disabled = allDirections.size === 0;
+        source = allDirections;
       }
-      directionFilter.appendChild(defaultOption);
-      directionFilter.value = ''; // Ensure default option is selected
+      
+      Array.from(source).sort().forEach(d => {
+        directionFilter.add(new Option(d, d));
+      });
     }
 
-    // Filter function to check checkboxes and show/hide rows
     function filterReports() {
-      const searchValue = reportSearch.value.toLowerCase();
-      const poleValue = poleFilter.value;
-      const sousDirectionValue = sousDirectionFilter.value;
-      const directionValue = directionFilter.value;
+      const search = reportSearch.value.toLowerCase();
+      const p = poleFilter.value;
+      const sd = sousDirectionFilter.value;
+      const d = directionFilter.value;
 
       rows.forEach(row => {
-        const reportName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-        const path = row.querySelector('td:nth-child(3)').getAttribute('title');
-        const checkbox = row.querySelector('.reportCheckbox');
+        const name = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const path = row.querySelector('td:nth-child(3) span').getAttribute('title');
         const parts = path.split('/').filter(part => part);
-
-        const matchesSearch = reportName.includes(searchValue);
-        const matchesPole = !poleValue || parts[0] === poleValue;
-        let matchesSousDirection = true;
-        let matchesDirection = true;
+        
+        const matchesSearch = name.includes(search);
+        const matchesPole = !p || parts[0] === p;
+        let matchesSD = true;
+        let matchesD = true;
 
         if (parts[1] && parts[1].toLowerCase().startsWith('direction')) {
-          // No Société, second component is Direction
-          matchesSousDirection = !sousDirectionValue;
-          matchesDirection = !directionValue || parts[1] === directionValue;
+          matchesSD = !sd;
+          matchesD = !d || parts[1] === d;
         } else {
-          // Second component is Société
-          matchesSousDirection = !sousDirectionValue || parts[1] === sousDirectionValue;
-          matchesDirection = !directionValue || (parts[2] && parts[2] === directionValue);
+          matchesSD = !sd || parts[1] === sd;
+          matchesD = !d || parts[2] === d;
         }
 
-        const isMatch = matchesSearch && matchesPole && matchesSousDirection && matchesDirection;
-
-        // Check checkbox if row matches filters, uncheck if it doesn't
-        if (checkbox) {
-          checkbox.checked = isMatch;
-        }
-
-        // Show or hide row based on filter match
-        row.style.display = isMatch ? '' : 'none';
+        const visible = matchesSearch && matchesPole && matchesSD && matchesD;
+        row.style.display = visible ? '' : 'none';
+        if (!visible) row.querySelector('.reportCheckbox').checked = false;
       });
-
-      // Update select-all checkbox and button visibility
-      selectAllCheckbox.checked = [...checkboxes].every(cb => cb.checked);
-      toggleButtonVisibility();
+      updateUI();
     }
 
-    // Clear filters function
-    function clearFilters() {
-      reportSearch.value = '';
-      poleFilter.value = '';
-      sousDirectionFilter.value = '';
-      directionFilter.value = '';
-      populateSousDirectionFilter('');
-      populateDirectionFilter('', '');
-
-      rows.forEach(row => {
-        const checkbox = row.querySelector('.reportCheckbox');
-        row.style.display = '';
-        if (checkbox) {
-          checkbox.checked = false;
+    function updateUI() {
+        const checked = document.querySelectorAll('.reportCheckbox:checked').length;
+        if (addSelectedBtn) {
+            addSelectedBtn.classList.toggle('hidden', checked === 0);
+            addSelectedBtn.classList.toggle('flex', checked > 0);
         }
-      });
-
-      selectAllCheckbox.checked = false;
-      toggleButtonVisibility();
     }
 
-    // Event listeners for filters
     poleFilter.addEventListener('change', function() {
       populateSousDirectionFilter(this.value);
       populateDirectionFilter(this.value, '');
@@ -386,106 +302,51 @@
 
     directionFilter.addEventListener('change', filterReports);
     reportSearch.addEventListener('input', filterReports);
-    clearFiltersBtn.addEventListener('click', clearFilters);
-
-    // Select all functionality & Toggle Button Visibility
-    function toggleButtonVisibility() {
-      if (addSelectedBtn) {
-        addSelectedBtn.style.display = document.querySelector('.reportCheckbox:checked') ? 'block' : 'none';
-      }
-    }
-
-    if (selectAllCheckbox && checkboxes.length > 0) {
-      selectAllCheckbox.addEventListener('change', function () {
-        checkboxes.forEach(checkbox => (checkbox.checked = this.checked));
-        toggleButtonVisibility();
-      });
-
-      checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function () {
-          selectAllCheckbox.checked = [...checkboxes].every(cb => cb.checked);
-          toggleButtonVisibility();
-        });
-      });
-    }
-
-    // Show loading overlay
-    function showLoading() {
-      if (loadingPrompt) {
-        loadingPrompt.style.display = 'flex';
-      }
-    }
-
-    // Hide loading overlay when the page is fully loaded
-    window.addEventListener('load', function () {
-      if (loadingPrompt) {
-        loadingPrompt.style.display = 'none';
-      }
+    
+    clearFiltersBtn.addEventListener('click', () => {
+        reportSearch.value = '';
+        poleFilter.value = '';
+        populateSousDirectionFilter('');
+        populateDirectionFilter('', '');
+        filterReports();
     });
 
-    // Add loading effect to "Add Permission" buttons
-    document.querySelectorAll('.btn-outline-success').forEach(button => {
-      button.addEventListener('click', showLoading);
-    });
-
-    // Confirmation before adding permissions
-    document.querySelectorAll('form[action*="powerbi_report"]').forEach(form => {
-      form.addEventListener('submit', function (event) {
-        const submitButton = this.querySelector('button[type="submit"]');
-        if (submitButton && submitButton.classList.contains('btn-outline-success')) {
-          const confirmAdd = confirm('Are you sure you want to add this permission?');
-          if (!confirmAdd) {
-            event.preventDefault();
+    if (selectAllCheckbox) {
+      selectAllCheckbox.addEventListener('change', function() {
+        rows.forEach(row => {
+          if (row.style.display !== 'none') {
+            row.querySelector('.reportCheckbox').checked = this.checked;
           }
-        }
+        });
+        updateUI();
       });
-    });
+    }
 
-    // Initialize filters
+    checkboxes.forEach(cb => cb.addEventListener('change', updateUI));
+
+    // Initialize
     populateSousDirectionFilter('');
     populateDirectionFilter('', '');
 
+    // Form Loading
+    document.querySelectorAll('form').forEach(f => {
+        f.addEventListener('submit', (e) => {
+            if (f.id === 'selectedReportsForm' || f.querySelector('button[type="submit"]').textContent.includes('Accorder')) {
+                if (!confirm('Confirmer l\'ajout des permissions ?')) {
+                    e.preventDefault();
+                    return;
+                }
+            }
+            if (loadingPrompt) loadingPrompt.classList.remove('hidden');
+        });
+    });
+
     // Auto-close alerts
-    setTimeout(function() {
-      let alerts = document.querySelectorAll('.alert');
-      alerts.forEach(alert => {
-        let bsAlert = new bootstrap.Alert(alert);
-        bsAlert.close();
-      });
+    setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(a => {
+            new bootstrap.Alert(a).close();
+        });
     }, 5000);
   });
 </script>
-
-<style>
-  .loading-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-  }
-
-  .loading-content {
-    text-align: center;
-    background: rgba(255, 255, 255, 0.9);
-    color: #007bff;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-  }
-
-  .spinner-border {
-    width: 3rem;
-    height: 3rem;
-    margin-bottom: 10px;
-    color: #007bff !important;
-  }
-</style>
-
 {% endblock %}

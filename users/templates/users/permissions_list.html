@@ -1,140 +1,131 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Manage Permissions for {{ role.name }}{% endblock %}
+
+{% block title %}Permissions du Rôle : {{ role.name }}{% endblock %}
+
+{% block header_title %}Configuration du Rôle{% endblock %}
+{% block header_subtitle %}Gérez les permissions pour le rôle {{ role.name }}{% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <a href="{% url 'users_view' %}" class="hover:text-primary transition-colors">Gestion des Utilisateurs</a>
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <a href="{% url 'manage_roles' %}" class="hover:text-primary transition-colors">Gestion des Rôles</a>
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <span class="text-slate-400">Permissions du Rôle</span>
+{% endblock %}
+
 {% block content %}
-
-<div class="pc-container">
-  <div class="pc-content">
-    <!-- Breadcrumb -->
-    <div class="page-header">
-      <div class="page-block">
-        <div class="row align-items-center">
-          <div class="col-md-12">
-            <div class="page-header-title">
-              <h5 class="mb-0">Manage Permissions for {{ role.name }} <i class="feather icon-lock"></i></h5>
-            </div>
-          </div>
-          <div class="col-md-12">
-            <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
-              <li class="breadcrumb-item"><a href="{% url 'users_view' %}">User Management</a></li>
-              <li class="breadcrumb-item"><a href="{% url 'manage_roles' %}">Role Management</a></li>
-              <li class="breadcrumb-item active" aria-current="page">Manage Permissions for {{ role.name }}</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- [ Breadcrumb ] end -->
-
+<div class="px-8 py-6">
     <!-- Display messages -->
     {% if messages %}
-    <div class="mt-3">
+    <div class="mb-6">
       {% for message in messages %}
-      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
-        <i class="feather icon-check-circle"></i>
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      <div class="flex items-center gap-3 p-4 rounded-xl {% if message.tags == 'error' %}bg-red-500/10 border border-red-500/20 text-red-400{% else %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% endif %} alert-dismissible fade show" role="alert">
+        <span class="material-symbols-outlined text-[20px]">{% if message.tags == 'error' %}error{% else %}check_circle{% endif %}</span>
+        <span class="text-sm font-medium">{{ message }}</span>
+        <button type="button" class="ml-auto text-current opacity-50 hover:opacity-100 transition-opacity" data-bs-dismiss="alert">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
       </div>
       {% endfor %}
     </div>
     {% endif %}
 
-    <!-- [ Permissions Management Section ] start -->
-    <div class="container mb-4">
-      <div class="d-flex justify-content-between mb-3">
-        <form method="post" class="mr-2">
-          {% csrf_token %}
-          <a href="{% url 'manage_roles' %}" class="btn btn-outline-secondary">
-            <i class="feather icon-arrow-left"></i> Back
-          </a>
-        </form>
-        <div>
-          <form method="post" class="d-inline">
-            {% csrf_token %}
-            <button type="submit" name="action" value="grant_all" class="btn btn-outline-success">
-              <i class="feather icon-plus"></i> Add All Permissions
-            </button>
-          </form>
-          <form method="post" class="d-inline">
-            {% csrf_token %}
-            <button type="submit" name="action" value="revoke_all" class="btn btn-outline-danger">
-              <i class="feather icon-minus"></i> Remove All Permissions
-            </button>
-          </form>
-        </div>
-      </div>
-
-
-<!-- list of permission -->
-      <div class="row mt-4">
-        <div class="col-md-6">
-          <h4>Missing Permissions:</h4>
-          <ul class="list-group">
-            {% for perm in permissions_list %}
-              {% if perm not in all_permissions %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                  {{ perm.content_type.app_label }} | {{ perm.content_type.model }} | {{ perm.name }}
-                  <form method="post" class="mb-0">
-                    {% csrf_token %}
-                    <input type="hidden" name="permission" value="{{ perm.id }}">
-                    <button type="submit" name="action" value="grant" class="btn btn-sm btn-outline-success">
-                      <i class="feather icon-plus"></i> Add
-                    </button>
-                  </form>
-                </li>
-              {% endif %}
-            {% endfor %}
-          </ul>
+    <!-- [ Control Bar ] start -->
+    <div class="flex flex-wrap items-center justify-between gap-6 mb-8">
+        <div class="flex items-center gap-4">
+            <a href="{% url 'manage_roles' %}" class="size-10 flex items-center justify-center bg-surface-dark border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-all hover:bg-white/5 shadow-sm">
+                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            </a>
+            <h3 class="text-lg font-bold text-white tracking-tight">{{ role.name }}</h3>
         </div>
 
-        <div class="col-md-6">
-          <h4>Current Permissions:</h4>
-          <ul class="list-group">
-            {% for perm in all_permissions %}
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                {{ perm.content_type.app_label }} | {{ perm.content_type.model }} | {{ perm.name }}
-                <form method="post" class="mb-0">
-                  {% csrf_token %}
-                  <input type="hidden" name="permission" value="{{ perm.id }}">
-                  <button type="submit" name="action" value="revoke" class="btn btn-sm btn-outline-danger">
-                    <i class="feather icon-trash-2"></i> Remove
-                  </button>
-                </form>
-              </li>
-            {% empty %}
-              <li class="list-group-item text-muted">No permissions assigned</li>
-            {% endfor %}
-          </ul>
+        <div class="flex items-center gap-3">
+            <form method="post" class="inline">
+                {% csrf_token %}
+                <button type="submit" name="action" value="grant_all" class="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-sm font-bold hover:bg-emerald-500/20 transition-all">
+                    <span class="material-symbols-outlined text-[18px]">add_task</span> Tout accorder
+                </button>
+            </form>
+            <form method="post" class="inline">
+                {% csrf_token %}
+                <button type="submit" name="action" value="revoke_all" class="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-sm font-bold hover:bg-red-500/20 transition-all">
+                    <span class="material-symbols-outlined text-[18px]">remove_done</span> Tout révoquer
+                </button>
+            </form>
         </div>
-      </div>
     </div>
-    <!-- [ Permissions Management Section ] end -->
-  </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Missing Permissions -->
+        <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[600px]">
+            <div class="px-6 py-4 border-b border-slate-800/50 bg-white/5 flex items-center justify-between">
+                <h4 class="font-bold text-white text-sm uppercase tracking-widest">Permissions Disponibles</h4>
+                <span class="text-[10px] font-bold px-2 py-1 bg-slate-800 text-slate-400 rounded">Disponibles</span>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-2 text-slate-400">
+                {% for perm in permissions_list %}
+                    {% if perm not in all_permissions %}
+                    <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-slate-800/50 rounded-xl hover:bg-white/[0.05] transition-all group">
+                        <div class="flex flex-col">
+                            <span class="text-xs font-bold text-slate-300">{{ perm.name }}</span>
+                            <span class="text-[10px] text-slate-500 uppercase tracking-tighter">{{ perm.content_type.app_label }} | {{ perm.content_type.model }}</span>
+                        </div>
+                        <form method="post" class="mb-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="permission" value="{{ perm.id }}">
+                            <button type="submit" name="action" value="grant" class="size-8 flex items-center justify-center bg-emerald-500/10 text-emerald-400 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-emerald-500/20">
+                                <span class="material-symbols-outlined text-[18px]">add</span>
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Current Permissions -->
+        <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[600px]">
+            <div class="px-6 py-4 border-b border-slate-800/50 bg-white/5 flex items-center justify-between">
+                <h4 class="font-bold text-white text-sm uppercase tracking-widest">Permissions Actuelles</h4>
+                <span class="text-[10px] font-bold px-2 py-1 bg-primary/20 text-primary rounded">Assignées</span>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-2">
+                {% for perm in all_permissions %}
+                <div class="flex items-center justify-between p-3 bg-primary/5 border border-primary/10 rounded-xl hover:bg-primary/10 transition-all group">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-white">{{ perm.name }}</span>
+                        <span class="text-[10px] text-primary/60 uppercase tracking-tighter">{{ perm.content_type.app_label }} | {{ perm.content_type.model }}</span>
+                    </div>
+                    <form method="post" class="mb-0">
+                        {% csrf_token %}
+                        <input type="hidden" name="permission" value="{{ perm.id }}">
+                        <button type="submit" name="action" value="revoke" class="size-8 flex items-center justify-center bg-red-500/10 text-red-400 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/20">
+                            <span class="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+                    </form>
+                </div>
+                {% empty %}
+                <div class="flex flex-col items-center justify-center h-full text-slate-600 italic">
+                    <span class="material-symbols-outlined text-[48px] mb-2 opacity-20">shield_lock</span>
+                    <p class="text-sm">Aucune permission assignée à ce rôle</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
 </div>
+
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Select all alert elements
     const alerts = document.querySelectorAll('.alert');
-    
-    // Loop through each alert
     alerts.forEach(alert => {
-        // Set timeout to hide alert after 3 seconds (3000ms)
-        setTimeout(() => {
-            // Use jQuery to close the alert
-            $(alert).alert('close');
-        }, 3000);
+      setTimeout(() => {
+        const bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+      }, 5000);
     });
-});
+  });
 </script>
-<script>
-  setTimeout(function() {
-    let alerts = document.querySelectorAll('.alert');
-    alerts.forEach(alert => {
-      let bsAlert = new bootstrap.Alert(alert);
-      bsAlert.close();
-    });
-  }, 5000);
-</script>
-
 {% endblock %}
