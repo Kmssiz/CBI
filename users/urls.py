@@ -16,7 +16,8 @@ from .views import (
     create_role,
     edit_role,
     remove_role,
-    permissions_list
+    permissions_list,
+    server_status
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -38,6 +39,7 @@ urlpatterns = [
     path("roles/edit/<int:role_id>/", edit_role, name="edit_role"),
     path("roles/remove/<int:role_id>/", remove_role, name="remove_role"),
     path('roles/permissions/<int:role_id>/', permissions_list, name='permissions_list'),
+    path('server-status/', server_status, name='server_status'),
 
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

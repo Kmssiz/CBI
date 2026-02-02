@@ -1,111 +1,334 @@
 {% load static %}
-<!doctype html>
-<html lang="fr">
+<!DOCTYPE html>
+<html lang="fr" id="html-root">
 
 <head>
-    <title>Connexion</title>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="author" content="Aid abderrahmane" />
-
-    <!-- [Favicon] -->
-    <link rel="icon" href="{% static 'assets/images/favicon.svg' %}" />
-
-    <!-- [Fonts & Icons] -->
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600&display=swap"
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Connexion | BI & Analytics</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
         rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'assets/fonts/tabler-icons.min.css' %}" />
-    <link rel="stylesheet" href="{% static 'assets/fonts/feather.css' %}" />
-    <link rel="stylesheet" href="{% static 'assets/fonts/fontawesome.css' %}" />
-    <link rel="stylesheet" href="{% static 'assets/fonts/material.css' %}" />
-
-    <!-- [Template CSS] -->
-    <link rel="stylesheet" href="{% static 'assets/css/style.css' %}" id="main-style-link" />
-    <link rel="stylesheet" href="{% static 'assets/css/style-preset.css' %}" />
-
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-14K1GBX9FG"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
-        gtag('config', 'G-14K1GBX9FG');
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;500;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link rel="icon" type="image/png" href='{% static "assets/images/favicon.png" %}' />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
     </script>
+    <script>
+        // Inline script to prevent theme flicker
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: #283039;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #3b4754;
+        }
+    </style>
 </head>
 
-<body data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" data-pc-theme="light">
-    <!-- [ Pre-loader ] start -->
-    <div class="loader-bg">
-        <div class="loader-track">
-            <div class="loader-fill"></div>
-        </div>
-    </div>
-    <!-- [ Pre-loader ] End -->
+<body class="bg-background-light dark:bg-background-dark min-h-screen font-display transition-colors duration-300">
+    <div class="flex min-h-screen w-full relative">
+        <!-- Theme Toggle Button -->
+        <button id="theme-toggle"
+            class="absolute top-6 right-6 z-50 size-10 flex items-center justify-center rounded-full bg-white/10 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all backdrop-blur-md">
+            <span class="material-symbols-outlined" id="theme-icon">light_mode</span>
+        </button>
 
-    <div class="auth-main">
-        <div class="auth-wrapper v1">
-            <div class="auth-form">
-                <div class="position-relative my-5">
-                    <div class="auth-bg">
-                        <span class="r"></span>
-                        <span class="r s"></span>
-                        <span class="r s"></span>
-                        <span class="r"></span>
+        <!-- Left Side: Visual/Branding (Hidden on mobile/tablet if needed, but here kept responsive) -->
+        <div class="hidden lg:flex lg:w-1/2 xl:w-3/5 relative overflow-hidden bg-[#0a0f14]">
+            <div class="absolute inset-0 z-10 bg-gradient-to-r from-background-dark/80 via-transparent to-transparent">
+            </div>
+            <div class="h-full w-full bg-center bg-no-repeat bg-cover opacity-80 transition-all duration-700"
+                style="background-image: url('{% static 'assets/images/login_bg.png' %}');">
+            </div>
+            <div class="absolute bottom-12 left-12 z-20 max-w-lg">
+                <div class="flex items-center gap-3 mb-6 text-white">
+                    <div class="size-8 text-primary">
+                        <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                            <path clip-rule="evenodd"
+                                d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z"
+                                fill="currentColor" fill-rule="evenodd"></path>
+                        </svg>
                     </div>
-                    <div class="card mb-0">
-                        <div class="card-body">
-                            <div class="text-center">
-                                <a href="#"><img src="{% static 'assets/images/mlogo.gif' %}" alt="Logo"
-                                        style="width: 200px; height: auto;" /></a>
-                            </div>
-                            <h4 class="text-center f-w-500 mt-4 mb-3">Connexion</h4>
+                    <span class="text-xl font-bold tracking-tight">BI &amp; Analytics</span>
+                </div>
+                <h1 class="text-white text-3xl md:text-5xl font-black leading-tight tracking-tight mb-4">Pilotez votre
+                    performance par la donnée.</h1>
+                <p class="text-[#9dabb9] text-base md:text-lg">Des solutions d'analyse de données avancées propulsées
+                    par Power BI pour une visualisation claire et stratégique.</p>
+            </div>
+        </div>
 
-                            <!-- Error messages -->
-                            {% if messages %}
-                            {% for message in messages %}
-                            <div class="alert alert-danger" role="alert">
-                                {{ message }}
-                            </div>
-                            {% endfor %}
-                            {% endif %}
+        <!-- Right Side: Login Form -->
+        <div
+            class="w-full lg:w-1/2 xl:w-2/5 flex flex-col justify-center items-center p-6 md:p-16 lg:p-24 bg-white dark:bg-background-dark transition-colors duration-300">
+            <div class="w-full max-w-[420px] flex flex-col gap-8">
+                <div class="flex flex-col gap-3">
+                    <div class="lg:hidden flex items-center gap-3 mb-2 text-primary">
+                        <div class="size-6">
+                            <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                <path clip-rule="evenodd"
+                                    d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z"
+                                    fill="currentColor" fill-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <span class="text-lg font-bold">BI &amp; Analytics</span>
+                    </div>
+                    <h2
+                        class="text-slate-900 dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-tight">
+                        Bienvenue</h2>
+                    <p class="text-slate-500 dark:text-[#9dabb9] text-base font-normal">Accédez à vos tableaux de bord.
+                    </p>
+                </div>
 
-                            <form method="post" action="{% url 'login' %}" onsubmit="showLoading(event)">
-                                {% csrf_token %}
-                                <div class="form-group mb-3">
-                                    <input type="text" name="username" class="form-control"
-                                        placeholder="Nom d'utilisateur" required />
-                                </div>
-                                <div class="form-group mb-3">
-                                    <input type="password" name="password" class="form-control"
-                                        placeholder="Mot de passe" required />
-                                </div>
-                                <div class="text-center mt-4">
-                                    <button type="submit" id="login-btn"
-                                        class="btn btn-primary shadow px-sm-4">Connexion</button>
-                                    <div id="loading" class="mt-2" style="display: none;">Chargement...</div>
-                                </div>
-                            </form>
+                <!-- Django Messages/Errors -->
+                {% if messages %}
+                <div class="flex flex-col gap-2">
+                    {% for message in messages %}
+                    <div
+                        class="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 text-sm font-medium animate-pulse">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <form class="flex flex-col gap-5" method="POST" action="{% url 'login' %}"
+                    onsubmit="handleLoginSubmit(event)">
+                    {% csrf_token %}
+                    <div class="flex flex-col gap-2">
+                        <label class="text-slate-900 dark:text-white text-sm font-semibold">Identifiant ou Email
+                            professionnel</label>
+                        <input name="username"
+                            class="form-input w-full rounded-lg border border-slate-200 dark:border-[#3b4754] bg-slate-50 dark:bg-[#1c2127] text-slate-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary h-14 px-4 placeholder:text-slate-400 dark:placeholder:text-[#9dabb9] text-base transition-all"
+                            placeholder="nom@entreprise.com" type="text" required />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <div class="flex justify-between items-center">
+                            <label class="text-slate-900 dark:text-white text-sm font-semibold">Mot de passe</label>
+                        </div>
+                        <div class="relative flex items-center">
+                            <input id="password-input" name="password"
+                                class="form-input w-full rounded-lg border border-slate-200 dark:border-[#3b4754] bg-slate-50 dark:bg-[#1c2127] text-slate-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary h-14 pl-4 pr-12 placeholder:text-slate-400 dark:placeholder:text-[#9dabb9] text-base transition-all"
+                                placeholder="••••••••" type="password" required />
+                            <button id="toggle-password"
+                                class="absolute right-4 text-slate-400 dark:text-[#9dabb9] hover:text-primary transition-colors"
+                                type="button">
+                                <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
+                            </button>
                         </div>
                     </div>
-                </div>
+
+                    <button id="submit-btn" type="submit"
+                        class="mt-4 flex w-full cursor-pointer items-center justify-center rounded-lg h-14 bg-primary text-white text-base font-bold leading-normal tracking-wide hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-[0.98]">
+                        <span id="btn-text">Se connecter</span>
+                        <div id="btn-loader" class="hidden">
+                            <svg class="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+                                    fill="none"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                        </div>
+                    </button>
+                    {% comment %} TODO: Add link to DSI {% endcomment %}
+                    <div class="mt-4 text-center">
+                        <p class="text-slate-500 dark:text-[#9dabb9] text-sm">
+                            Vous n'avez pas accès ? <a href="mailto:dsi@entreprise.com"
+                                class="text-primary font-semibold hover:underline">Demandez l'accès au DSI</a>
+                        </p>
+                    </div>
+                </form>
+
+                <footer class="mt-8 flex flex-col items-center gap-4">
+                    <button id="status-link"
+                        class="text-slate-400 dark:text-[#506071] text-[10px] uppercase font-bold tracking-widest hover:text-primary transition-colors">
+                        Statut Système
+                    </button>
+                </footer>
             </div>
         </div>
     </div>
 
-    <!-- [Required JS] -->
+    <!-- Status Modal -->
+    <div id="status-modal"
+        class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-[#1c2127] w-full max-w-sm rounded-xl shadow-2xl border border-slate-200 dark:border-[#3b4754] overflow-hidden scale-90 opacity-0 transition-all duration-300"
+            id="modal-container">
+            <div class="p-6 flex flex-col items-center gap-6">
+                <div class="relative">
+                    <div id="ping-ring"
+                        class="size-16 rounded-full border-4 border-primary/20 flex items-center justify-center">
+                        <div id="ping-dot"
+                            class="size-4 rounded-full bg-primary animate-pulse shadow-[0_0_15px_rgba(19,127,236,0.6)]">
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <h3 class="text-slate-900 dark:text-white text-lg font-bold mb-1">Vérification du système</h3>
+                    <p id="status-text" class="text-slate-500 dark:text-[#9dabb9] text-sm italic">Connexion au serveur
+                        en cours...</p>
+                </div>
+                <button id="close-modal"
+                    class="w-full py-3 rounded-lg bg-slate-100 dark:bg-[#283039] text-slate-900 dark:text-white text-sm font-bold hover:bg-slate-200 dark:hover:bg-[#3b4754] transition-all">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        function showLoading(event) {
-            event.preventDefault();
-            document.getElementById('login-btn').style.display = 'none';
-            document.getElementById('loading').style.display = 'block';
-            event.target.submit();
+        // Theme Management
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const html = document.documentElement;
+
+        function updateThemeIcon() {
+            themeIcon.textContent = html.classList.contains('dark') ? 'dark_mode' : 'light_mode';
         }
+
+        updateThemeIcon();
+
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            const newTheme = html.classList.contains('dark') ? 'dark' : 'light';
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon();
+        });
+
+        // Password Visibility Toggle
+        const togglePassword = document.getElementById('toggle-password');
+        const passwordInput = document.getElementById('password-input');
+
+        togglePassword.addEventListener('click', function () {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.querySelector('span').textContent = type === 'password' ? 'visibility' : 'visibility_off';
+        });
+
+        // Form Submit Loader
+        function handleLoginSubmit(event) {
+            const btn = document.getElementById('submit-btn');
+            const btnText = document.getElementById('btn-text');
+            const btnLoader = document.getElementById('btn-loader');
+
+            btn.disabled = true;
+            btnText.classList.add('hidden');
+            btnLoader.classList.remove('hidden');
+            btn.classList.add('opacity-80', 'cursor-not-allowed');
+        }
+
+        // Status Modal Logic
+        const statusLink = document.getElementById('status-link');
+        const statusModal = document.getElementById('status-modal');
+        const modalContainer = document.getElementById('modal-container');
+        const closeModal = document.getElementById('close-modal');
+        const statusText = document.getElementById('status-text');
+        const pingDot = document.getElementById('ping-dot');
+
+        statusLink.addEventListener('click', async () => {
+            statusModal.classList.remove('hidden');
+            setTimeout(() => {
+                modalContainer.classList.remove('scale-90', 'opacity-0');
+                modalContainer.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            statusText.textContent = "Connexion au serveur en cours...";
+            statusText.classList.remove('text-green-500', 'text-red-500');
+            pingDot.classList.remove('bg-green-500', 'bg-red-500');
+            pingDot.classList.add('animate-pulse', 'bg-primary');
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch('{% url "server_status" %}');
+                const endTime = Date.now();
+                const latency = endTime - startTime;
+
+                if (response.ok) {
+                    setTimeout(() => {
+                        pingDot.classList.remove('animate-pulse', 'bg-primary');
+                        pingDot.classList.add('bg-green-500');
+                        statusText.textContent = `Serveur Opérationnel (${latency}ms)`;
+                        statusText.classList.add('text-green-500');
+                    }, 800);
+                } else {
+                    throw new Error();
+                }
+            } catch (error) {
+                setTimeout(() => {
+                    pingDot.classList.remove('animate-pulse', 'bg-primary');
+                    pingDot.classList.add('bg-red-500');
+                    statusText.textContent = "Serveur Indisponible";
+                    statusText.classList.add('text-red-500');
+                }, 800);
+            }
+        });
+
+        const closeFunc = () => {
+            modalContainer.classList.remove('scale-100', 'opacity-100');
+            modalContainer.classList.add('scale-90', 'opacity-0');
+            setTimeout(() => statusModal.classList.add('hidden'), 300);
+        };
+
+        closeModal.addEventListener('click', closeFunc);
+        statusModal.addEventListener('click', (e) => { if (e.target === statusModal) closeFunc(); });
     </script>
-    <script src="{% static 'assets/js/plugins/popper.min.js' %}"></script>
-    <script src="{% static 'assets/js/plugins/bootstrap.min.js' %}"></script>
-    <script src="{% static 'assets/js/script.js' %}"></script>
-    <script src="{% static 'assets/js/theme.js' %}"></script>
 </body>
 
 </html>

@@ -196,7 +196,7 @@ def login_view(request):
                     return redirect('powerbi_report:dashboard')
                 return redirect('home')
             
-            messages.error(request, "Invalid credentials or authentication failed.")
+            messages.error(request, "Identifiants invalides ou authentification échouée.")
     
     return render(request, 'users/login.html')
     
@@ -658,3 +658,26 @@ def logout_view(request):
     cache.delete(f"dashboard_data_{user_id}")
 
     return redirect("login")
+
+from django.http import JsonResponse
+from django.conf import settings
+import requests
+
+def server_status(request):
+    """
+    Endpoint to check connectivity to the PowerBI Report Server.
+    Used by the login page 'Systeme Status' feature.
+    """
+    try:
+        url = getattr(settings, 'POWERBI_REPORT_SERVER_URL', None)
+        if not url:
+            return JsonResponse({'status': 'down', 'error': 'Configuration missing'}, status=500)
+            
+        # Ping the server with a short timeout
+        response = requests.get(url, timeout=5)
+        if response.status_code < 500:
+            return JsonResponse({'status': 'up'})
+        else:
+            return JsonResponse({'status': 'down', 'code': response.status_code})
+    except Exception as e:
+        return JsonResponse({'status': 'down', 'error': str(e)}, status=500)
