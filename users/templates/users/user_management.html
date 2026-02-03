@@ -60,10 +60,6 @@
                 <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span> Rôles
             </button>
             {% endif %}
-
-            <button class="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg text-sm font-bold transition-all" id="filterNoPermission" onclick="filterNoPermission()">
-                <span class="material-symbols-outlined text-[18px]">person_add</span> Nouveaux
-            </button>
             
             <button class="p-2 bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-all" id="showAll">
                 <span class="material-symbols-outlined text-[20px]">refresh</span>
@@ -92,7 +88,7 @@
                 </thead>
                 <tbody class="divide-y divide-slate-800/50">
                     {% for user in users %}
-                    <tr class="hover:bg-white/5 transition-all group" data-permission="true" data-user-id="{{ user.id }}" data-user-role="{{ user.role }}" data-user-view="{{ user.default_view }}">
+                    <tr class="hover:bg-white/5 transition-all group" data-permission="true" data-user-id="{{ user.id }}" data-user-role="{{ user.role|lower }}" data-user-view="{{ user.default_view }}" data-user-status="{{ user.status|lower }}">
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary border border-primary/20">
@@ -257,20 +253,18 @@
   // Combined filter function
   function applyFilters() {
     const searchValue = document.getElementById('userSearch').value.toLowerCase();
-    const roleValue = document.getElementById('roleFilter').value;
-    const statusValue = document.getElementById('statusFilter').value;
+    const roleValue = document.getElementById('roleFilter').value.toLowerCase();
+    const statusValue = document.getElementById('statusFilter').value.toLowerCase();
     const rows = document.querySelectorAll('#userTable tbody tr');
 
     rows.forEach(row => {
       const userName = row.querySelector('td') ? row.querySelector('td').textContent.toLowerCase() : '';
-      const roleCell = row.querySelector('td:nth-child(3)');
-      const role = roleCell ? roleCell.textContent.trim().toLowerCase() : '';
-      const statusCell = row.querySelector('td:nth-child(4)');
-      const status = statusCell ? statusCell.textContent.trim().toLowerCase() : '';
+      const role = row.getAttribute('data-user-role') || '';
+      const status = row.getAttribute('data-user-status') || '';
 
       const matchesSearch = userName.includes(searchValue);
       const matchesRole = (roleValue === '' || role === roleValue);
-      const matchesStatus = (statusValue === '' || (statusValue === 'active' && status === 'active') || (statusValue === 'not active' && status === 'not active'));
+      const matchesStatus = (statusValue === '' || status === statusValue);
 
       row.style.display = (matchesSearch && matchesRole && matchesStatus) ? '' : 'none';
     });

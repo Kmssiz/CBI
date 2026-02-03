@@ -172,6 +172,20 @@ def get_folders(request):
     except requests.exceptions.RequestException as e:
         return JsonResponse({'error': f"Failed to fetch folders: {str(e)}"}, status=500)
 
+def _update_report_metadata(report_id, user):
+    """Update modification metadata for a report in ReportRef."""
+    try:
+        from powerbi_report.models import ReportRef
+        ReportRef.objects.update_or_create(
+            pbirs_id=report_id,
+            defaults={
+                'modified_at': timezone.now(),
+                'modified_by': user
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to update report metadata for {report_id}: {e}")
+
 from django.http import JsonResponse
 import requests
 
@@ -230,7 +244,7 @@ def get_folder_list(request):
 #################################################################################################################
 @login_required
 def report_list(request):
-   
+    query = request.GET.get('q', '').strip()
     reports = get_powerbi_reports(request)
     base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
 
@@ -240,12 +254,44 @@ def report_list(request):
             path = path[1:]  
         encoded_path = urllib.parse.quote(path, safe="/")
         report["embed_url"] = f"{base_embed_url}{encoded_path}?rs:embed=true"
+    
+    # Filter by search query
+    if query:
+        reports = [r for r in reports if query.lower() in r.get("Name", "").lower()]
+
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = Notification.objects.filter(user=request.user, is_read=False).count()
     permissions = get_user_permissions(request.user)
-    log_history(request.user, "Viewed Power BI report management ")
+    log_history(request.user, f"Viewed Power BI report management {f'(Search: {query})' if query else ''}")
 
-    return render(request, 'powerbi_report/report_list.html', {'reports': reports,'notifications': notifications,'unread': unread,'permissions': permissions,})
+    # Sort reports by name
+    reports.sort(key=lambda x: x.get("Name", "").lower())
+
+    # Pagination
+    # Attach modification metadata from ReportRef
+    from powerbi_report.models import ReportRef
+    report_refs = {ref.pbirs_id: ref for ref in ReportRef.objects.filter(pbirs_id__in=[r.get('Id') for r in reports])}
+    
+    for report in reports:
+        ref = report_refs.get(report.get('Id'))
+        if ref:
+            report['modified_at'] = ref.modified_at
+            report['modified_by'] = ref.modified_by
+        else:
+            report['modified_at'] = None
+            report['modified_by'] = None
+
+    paginator = Paginator(reports, 10)  # Show 10 reports per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'powerbi_report/report_list.html', {
+        'reports': page_obj,
+        'notifications': notifications,
+        'unread': unread,
+        'permissions': permissions,
+        'query': query,
+    })
 
 
 #################################################################################################################
@@ -313,9 +359,10 @@ def edit_powerbi_report_name(request, report_id):
             print(f"Sent notifications to {len(admin_users)} admin users about renaming report ID '{report_id}' to '{new_name}'.")
             # Clear the cache for the current user
             user_id = request.user.id
-            cache_key = f"powerbi_reports_cache_{user_id}"
             cache.delete(cache_key)
             print(f"Cleared cache for user {user_id} after uploading report.")
+            
+            _update_report_metadata(report_id, request.user)
 
         except requests.exceptions.RequestException as e:
             messages.error(request, f"Failed to update report name: {e}")
@@ -346,6 +393,8 @@ def edit_powerbi_report_path(request, report_id):
             cache_key = f"powerbi_reports_cache_{user_id}"
             cache.delete(cache_key)
             messages.success(request, "Report path updated successfully!")
+            
+            _update_report_metadata(report_id, request.user)
         except requests.exceptions.RequestException as e:
             messages.error(request, f"Failed to update report path: {e}")
         return redirect('powerbi_report:report_list')
@@ -368,7 +417,7 @@ def edit_powerbi_report_description(request, report_id):
         auth = get_current_user_auth(request)  
         data = {"Description": new_description}
         headers = {"Content-Type": "application/json"}
-        info = get_powerbi_report_info(report_id)
+        info = get_powerbi_report_info(request, report_id)
         try:
             response = requests.patch(update_url, json=data, auth=auth, headers=headers)
             response.raise_for_status()
@@ -377,6 +426,7 @@ def edit_powerbi_report_description(request, report_id):
             cache.delete(cache_key)
             
             messages.success(request, "Report description updated successfully!")
+            _update_report_metadata(report_id, request.user)
             # log_history(request.user, f"Updated description for report {info["name"]} ID: {report_id}  path {info["path"]} to '{new_description}'")
             
             # Notify admin users
@@ -868,6 +918,23 @@ def get_refresh_plans(report_id, request):
         print(f"Error fetching CacheRefreshPlans: {err}")
 
         return []
+
+#################################################################################################################
+#                    Fetches shared schedules from Power BI Report Server                                       #
+#################################################################################################################
+
+def get_shared_schedules(request):
+    url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/Schedules"
+    auth = get_current_user_auth(request)
+    
+    try:
+        response = requests.get(url, auth=auth)
+        response.raise_for_status()
+        data = response.json()
+        return data.get("value", [])
+    except requests.exceptions.RequestException as err:
+        print(f"Error fetching Shared Schedules: {err}")
+        return []
 from django.contrib import messages
 
 #################################################################################################################
@@ -884,7 +951,9 @@ def report_detail(request, report_id):
         log_history(request.user, f"Attempted to view non-existent report ID: {report_id}")
         raise Http404("Report not found")
     log_history(request.user, f"Viewed Power BI report details: {report.get('Name', 'Unknown')} (ID: {report_id})")
+    log_history(request.user, f"Viewed Power BI report details: {report.get('Name', 'Unknown')} (ID: {report_id})")
     refresh_plans = get_refresh_plans(report_id, request)
+    shared_schedules = get_shared_schedules(request)
 
     for plan in refresh_plans:
         if isinstance(plan['LastRunTime'], str):
@@ -950,13 +1019,26 @@ def report_detail(request, report_id):
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
+    
+    # Context data for schedule creation
+    week_days = [
+        ('Sun', 'Dimanche'), ('Mon', 'Lundi'), ('Tue', 'Mardi'), 
+        ('Wed', 'Mercredi'), ('Thu', 'Jeudi'), ('Fri', 'Vendredi'), ('Sat', 'Samedi')
+    ]
+    months = [
+        'January', 'February', 'March', 'April', 'May', 'June', 
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ]
 
     return render(request, 'powerbi_report/report_detail.html', {
         'notifications': notifications,
         'report': report,
-        'refresh_plans': refresh_plans,  
+        'refresh_plans': refresh_plans,
+        'shared_schedules': shared_schedules,
         'unread': unread,
         'permissions': permissions,
+        'week_days': week_days,
+        'months': months,
     })
 
 
@@ -975,65 +1057,148 @@ def add_refresh_plan(request, report_id):
 
         # Get form data
         description = request.POST.get('description', 'Default Refresh Plan')
-        start_datetime = request.POST.get('start_datetime', '2025-04-27T02:00')
-        days_interval = request.POST.get('days_interval', 1)
+        start_datetime = request.POST.get('start_datetime')
         catalog_item_path = request.POST.get('catalog_item_path', '')
+        
+        # New parameters for shared plan
+        plan_type = request.POST.get('plan_type', 'specific')
+        shared_schedule_id = request.POST.get('shared_schedule_id')
+        
+        # Recurrence parameters
+        recurrence_type = request.POST.get('recurrence_type', 'Day')
 
-        # Convert start_datetime to Edm.DateTimeOffset format
-        try:
-            # Parse the input (e.g., '2025-04-27T02:00')
-            dt = datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M')
-            # Format as ISO 8601 with seconds and timezone (e.g., '2025-04-27T02:00:00+02:00')
-            start_datetime_formatted = dt.strftime('%Y-%m-%dT%H:%M:%S+02:00')
-        except ValueError as e:
-            messages.error(request, f"Invalid datetime format: {str(e)}")
-            return HttpResponseRedirect(reverse('powerbi_report:report_detail', args=[report_id]))
-
-        # Build the payload
         payload = {
             "Owner": None,
             "Description": description,
             "CatalogItemPath": catalog_item_path,
             "EventType": "DataModelRefresh",
-            "Schedule": {
-                "ScheduleID": None,
-                "Definition": {
-                    "StartDateTime": start_datetime_formatted,
-                    "EndDateSpecified": False,
-                    "EndDate": "1901-02-01T00:00:00+01:00",
-                    "Recurrence": {
-                        "DailyRecurrence": {
-                            "@odata.type": "#Model.DailyRecurrence",
-                            "DaysInterval": int(days_interval)
-                        }
-                    }
-                }
-            },
-            "ScheduleDescription": "",
             "ParameterValues": []
         }
 
+        if plan_type == 'shared' and shared_schedule_id:
+             payload["Schedule"] = {
+                "ScheduleID": shared_schedule_id
+            }
+        else:
+            # Existing specific plan logic
+            # Convert start_datetime to Edm.DateTimeOffset format
+            if not start_datetime:
+                 start_datetime = "2025-04-27T02:00" # fallback if missing
+
+            try:
+                # Parse the input (e.g., '2025-04-27T02:00')
+                dt = datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M')
+                # Format as ISO 8601 with seconds and timezone (e.g., '2025-04-27T02:00:00+01:00')
+                start_datetime_formatted = dt.strftime('%Y-%m-%dT%H:%M:%S+01:00')
+            except ValueError as e:
+                messages.error(request, f"Invalid datetime format: {str(e)}")
+                return HttpResponseRedirect(reverse('powerbi_report:report_detail', args=[report_id]))
+            
+            schedule_definition = {
+                "StartDateTime": start_datetime_formatted,
+                "EndDateSpecified": False,
+                "EndDate": "1901-02-01T00:00:00+01:00",
+            }
+
+            if recurrence_type == 'Hour':
+                minutes = request.POST.get('minutes_interval', 60)
+                schedule_definition["Recurrence"] = {
+                    "MinuteRecurrence": {
+                         "@odata.type": "#Model.MinuteRecurrence",
+                        "MinutesInterval": int(minutes)
+                    }
+                }
+            elif recurrence_type == 'Day':
+                days = request.POST.get('days_interval', 1)
+                schedule_definition["Recurrence"] = {
+                    "DailyRecurrence": {
+                        "@odata.type": "#Model.DailyRecurrence",
+                        "DaysInterval": int(days)
+                    }
+                }
+            elif recurrence_type == 'Week':
+                selected_days = request.POST.getlist('week_days')
+                days_of_week = {
+                    "Sunday": "Sun" in selected_days,
+                    "Monday": "Mon" in selected_days,
+                    "Tuesday": "Tue" in selected_days,
+                    "Wednesday": "Wed" in selected_days,
+                    "Thursday": "Thu" in selected_days,
+                    "Friday": "Fri" in selected_days,
+                    "Saturday": "Sat" in selected_days
+                }
+                
+                # Check current PBIRS API expectation. Often it is "DaysOfWeek": { "Sunday": true, ... }
+                # But sometimes it's a WeekDays string enum. The Model.WeeklyRecurrence normally takes DaysOfWeek selector.
+                schedule_definition["Recurrence"] = {
+                    "WeeklyRecurrence": {
+                        "@odata.type": "#Model.WeeklyRecurrence",
+                        "WeeksInterval": 1, 
+                        "DaysOfWeek": days_of_week
+                    }
+                }
+            elif recurrence_type == 'Month':
+                raw_month_days = request.POST.get('month_days', '1')
+                
+                # Simply remove spaces to ensure "1, 15" becomes "1,15"
+                # And "1-25" remains "1-25"
+                month_days_str = str(raw_month_days).replace(' ', '')
+                
+                print(f"DEBUG: Raw Days: '{raw_month_days}' -> Cleaned: '{month_days_str}'")
+
+                selected_months = request.POST.getlist('months') # e.g. ['January', 'February']
+                
+                all_months = [
+                    'January', 'February', 'March', 'April', 'May', 'June', 
+                    'July', 'August', 'September', 'October', 'November', 'December'
+                ]
+                
+                months_of_year = {}
+                for m in all_months:
+                    months_of_year[m] = m in selected_months
+
+                schedule_definition["Recurrence"] = {
+                    "MonthlyRecurrence": {
+                        "@odata.type": "#Model.MonthlyRecurrence",
+                        "Days": month_days_str, 
+                        "MonthsOfYear": months_of_year
+                    }
+                }
+            elif recurrence_type == 'Once':
+                # No recurrence, just start date
+                 schedule_definition["Recurrence"] = None 
+
+            payload["Schedule"] = {
+                "ScheduleID": None,
+                "Definition": schedule_definition
+            }
+            if not description: # Ensure description is set if not provided
+                 payload["Description"] = "Specific Refresh Plan" # Fallback or keep existing default
+
         try:
             # Send the POST request
+            print(f"Adding Plan Payload: {json.dumps(payload, indent=2)}")
             response = requests.post(
                 url,
                 auth=auth,
                 headers={"Content-Type": "application/json"},
-                data=json.dumps(payload)
+                data=json.dumps(payload),
+                timeout=30 
             )
-            info = get_powerbi_report_info(report_id)
+            info = get_powerbi_report_info(request, report_id)
 
             if response.status_code == 201:
                 messages.success(request, "Refresh plan added successfully.")
-                log_history(request.user, f"Added refresh plan for (ID: {report_id}) with description '{description}' and interval {days_interval} day(s)")
+                log_history(request.user, f"Added refresh plan for (ID: {report_id}) with description '{description}'")
                 admin_users = CustomUser.objects.filter(is_superuser=True)
                 for admin in admin_users:
                     Notification.objects.create(
                         user=admin,
-                        message=f"A new refresh plan for reportn '{description}' was added by {request.user.username}."
+                        message=f"A new refresh plan for report '{description}' was added by {request.user.username}."
                     )
             else:
                 messages.error(request, f"Failed to add refresh plan: {response.text}")
+                print(f"Err Response: {response.text}")
         except Exception as e:
             messages.error(request, f"Error adding refresh plan: {str(e)}")
 
@@ -1273,44 +1438,63 @@ def report_permissions(request, report_id):
         if parent_folder_id:
             policies = get_folder_permissions(request, parent_folder_id)
 
-    # Process policies to resolve groups and map usernames to full names
+    # Process policies to identify groups and individual users
     processed_policies = []
     for policy in policies:
         identifier = policy.get("GroupUserName", policy.get("UserName", ""))
-        identifier = identifier.replace("GROUPE-HASNAOUI\\", "")
+        clean_identifier = identifier.replace("GROUPE-HASNAOUI\\", "").split("\\")[-1]
         
         # Check if the identifier is a group by attempting to fetch its members
-        url = f"{LDAP_GROUP_MEMBERS_URL}/{identifier}?token={LDAP_API_TOKEN}"
+        url = f"{LDAP_GROUP_MEMBERS_URL}/{clean_identifier}?token={LDAP_API_TOKEN}"
         try:
             response = requests.get(url)
             if response.status_code == 200 and "members" in response.json():
-                # Identifier is a group; fetch its members
-                members = get_group_members(identifier)
+                # Identifier is a group; fetch its members for display
+                members = get_group_members(clean_identifier)
+                members_with_names = []
                 for member in members:
                     user = CustomUser.objects.filter(ad2000=member).first()
-                    processed_policies.append({
-                        **policy,
+                    members_with_names.append({
                         "UserName": member,
-                        "FullName": user.get_full_name() if user else member,
-                        "IsGroupMember": True
+                        "FullName": user.get_full_name() if user else member
                     })
-            else:
-                # Identifier is an individual user
-                user = CustomUser.objects.filter(ad2000=identifier).first()
                 processed_policies.append({
                     **policy,
-                    "UserName": identifier,
-                    "FullName": user.get_full_name() if user else identifier,
-                    "IsGroupMember": False
+                    "GroupUserName": clean_identifier,
+                    "UserName": clean_identifier,  # For template compatibility
+                    "Identifier": clean_identifier,
+                    "DisplayName": clean_identifier,
+                    "IsGroup": True,
+                    "Members": members_with_names,
+                    "MemberCount": len(members_with_names)
+                })
+            else:
+                # Identifier is an individual user
+                user = CustomUser.objects.filter(ad2000=clean_identifier).first()
+                processed_policies.append({
+                    **policy,
+                    "UserName": clean_identifier,
+                    "GroupUserName": clean_identifier,  # For template compatibility
+                    "Identifier": clean_identifier,
+                    "DisplayName": user.get_full_name() if user else clean_identifier,
+                    "FullName": user.get_full_name() if user else clean_identifier,
+                    "IsGroup": False,
+                    "Members": [],
+                    "MemberCount": 0
                 })
         except requests.RequestException:
             # Assume identifier is an individual user
-            user = CustomUser.objects.filter(ad2000=identifier).first()
+            user = CustomUser.objects.filter(ad2000=clean_identifier).first()
             processed_policies.append({
                 **policy,
-                "UserName": identifier,
-                "FullName": user.get_full_name() if user else identifier,
-                "IsGroupMember": False
+                "UserName": clean_identifier,
+                "GroupUserName": clean_identifier,  # For template compatibility
+                "Identifier": clean_identifier,
+                "DisplayName": user.get_full_name() if user else clean_identifier,
+                "FullName": user.get_full_name() if user else clean_identifier,
+                "IsGroup": False,
+                "Members": [],
+                "MemberCount": 0
             })
 
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
@@ -1405,6 +1589,8 @@ def add_users_to_report(request, report_id, username):
                     user=admin,
                     message=f"User {username} has been granted access to report (ID: {report_id}) by {request.user.username}."
                 )
+            
+            _update_report_metadata(report_id, request.user)
             return redirect('powerbi_report:missing_users', report_id=report_id)
         except requests.exceptions.HTTPError as errh:
             messages.error(request, f"Failed to add permission due to HTTP error: {str(errh)}")
@@ -1479,9 +1665,9 @@ def add_selected_users_to_report(request, report_id):
                         user=user_obj,
                         message=f"You have been granted access to the report {info['name']} (ID: {report_id}) from {info['path']} by {request.user.username}."
                     )
-                else:
                     print(f"User with ad2000={username} not found for notification.")
 
+            _update_report_metadata(report_id, request.user)
             return redirect('powerbi_report:missing_users', report_id=report_id)
         except requests.exceptions.HTTPError as errh:
             print(f"HTTP Error while adding permissions: {errh}")
@@ -1585,7 +1771,7 @@ def remove_users_from_report(request, report_id, username):
 
         updated_policies = [
             policy for policy in current_policies
-            if policy.get("GroupUserName", "").lower() != username.lower()
+            if (policy.get("GroupUserName") or policy.get("UserName", "")).split("\\")[-1].lower() != username.lower()
         ]
 
         payload = {
@@ -1612,6 +1798,8 @@ def remove_users_from_report(request, report_id, username):
                     user=user_obj,
                     message=f"Your access to the report {info['name']} (ID: {report_id}) from {info['path']} has been revoked by {request.user.username}."
                 )
+            
+            _update_report_metadata(report_id, request.user)
             return redirect('powerbi_report:report_permissions', report_id=report_id)
         except requests.exceptions.HTTPError as errh:
             messages.error(request, f"Failed to remove permission due to HTTP error: {str(errh)}")
@@ -1643,9 +1831,12 @@ def remove_selected_users_from_report(request, report_id):
             current_policies = []
         users_removed = []
         updated_policies = []
+        selected_users_lower = [user.lower() for user in selected_users]
         for policy in current_policies:
-            group_user_name = policy.get("GroupUserName", "")
-            if group_user_name.lower() in [user.lower() for user in selected_users]:
+            group_user_name = policy.get("GroupUserName") or policy.get("UserName") or ""
+            # Handle possible domain prefix
+            clean_name = group_user_name.split("\\")[-1].lower()
+            if clean_name in selected_users_lower:
                 users_removed.append(group_user_name)
             else:
                 updated_policies.append(policy)
@@ -1681,9 +1872,9 @@ def remove_selected_users_from_report(request, report_id):
                         user=user_obj,
                         message=f"Your access to the report {info['name']} (ID: {report_id}) from {info['path']} has been revoked by {request.user.username}."
                     )
-                else:
                     print(f"User with ad2000={username} not found for notification.")
 
+            _update_report_metadata(report_id, request.user)
             return redirect('powerbi_report:report_permissions', report_id=report_id)
         except requests.exceptions.HTTPError as errh:
             print(f"HTTP Error while removing permissions: {errh}")
@@ -2083,6 +2274,7 @@ def add_permission_to_server(request, report_id, username):
             messages.success(request, f"Successfully added permissions for user {username} to report.")
             log_history(request.user, f"Added permission for user {username} to report {info['name']} (ID: {report_id}) in {info['path']} with roles {', '.join(role['Name'] for role in roles)}")
 
+            _update_report_metadata(report_id, request.user)
             return redirect('powerbi_report:missing_permissions', username=username)
         except requests.exceptions.RequestException as err:
             messages.error(request, f"Failed to add permission due to request error: {str(err)}")
@@ -2270,7 +2462,11 @@ def remove_permission_from_server(request, report_id, username):
         ]
         
         try:
-            response = requests.put(url, json={"Policies": updated_policies}, auth=auth, headers={"Content-Type": "application/json"})
+            payload = {
+                "Id": report_id,
+                "Policies": updated_policies
+            }
+            response = requests.put(url, json=payload, auth=auth, headers={"Content-Type": "application/json"})
             response.raise_for_status()
             cache.set(f"report_permissions_{report_id}", updated_policies, timeout=300)
             info = get_powerbi_report_info(request, report_id)  # Pass request here
@@ -2342,7 +2538,10 @@ def remove_all_permissions(request, username):
                 continue
             
             url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
-            payload = {"Policies": updated_policies}
+            payload = {
+                "Id": report_id,
+                "Policies": updated_policies
+            }
             headers = {"Content-Type": "application/json"}
             
             try:
@@ -2351,6 +2550,8 @@ def remove_all_permissions(request, username):
                 
                 cache.set(cache_key, updated_policies, timeout=300)
                 print(f"Permissions updated for report {report_id}")
+                
+                _update_report_metadata(report_id, request.user)
             except requests.exceptions.HTTPError as errh:
                 print(f"HTTP Error for report {report_id}: {errh}")
             except requests.exceptions.RequestException as err:
@@ -2411,6 +2612,7 @@ def remove_selected_permissions(request, username):
             cache.set(f"report_permissions_{report_id}", updated_policies, timeout=300)
             info = get_powerbi_report_info(request, report_id)  # Pass request here
             if info:
+                _update_report_metadata(report_id, request.user)
                 removed_reports.append((report_id, info['name'], info['path']))
             else:
                 print(f"Failed to retrieve report info for ID '{report_id}'")
@@ -3144,3 +3346,22 @@ def embed_custom_report(request, view_type, folder_id, report_id):
     log_history(request.user, f"Viewed report '{report_ref.name}' in folder '{folder.name}'")
 
     return render(request, 'powerbi_report/embed_custom_report.html', context)
+
+
+@login_required
+def get_refresh_plan_history(request, plan_id):
+    """
+    Fetches the execution history for a specific Cache Refresh Plan.
+    Endpoint: /Reports/api/v2.0/CacheRefreshPlans({Id})/History
+    """
+    url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/CacheRefreshPlans({plan_id})/History"
+    auth = get_current_user_auth(request)
+    
+    try:
+        response = requests.get(url, auth=auth, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        return JsonResponse(data, safe=False)
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching history for plan {plan_id}: {e}")
+        return JsonResponse({'error': str(e)}, status=500)

@@ -103,7 +103,7 @@
             <thead>
               <tr class="bg-white/[0.01]">
                 <th class="px-6 py-4 border-b border-white/5 w-12 text-center">
-                  <input type="checkbox" id="selectAll" class="rounded border-slate-700 bg-slate-900">
+                  <input type="checkbox" id="selectAll" class="rounded border-slate-700 bg-slate-900 cursor-pointer">
                 </th>
                 <th class="px-6 py-4 border-b border-white/5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nom du Rapport</th>
                 <th class="px-6 py-4 border-b border-white/5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Chemin</th>
@@ -112,20 +112,20 @@
             </thead>
             <tbody class="divide-y divide-white/5">
               {% for report in reports %}
-              <tr class="hover:bg-white/[0.02] transition-colors group">
+              <tr class="hover:bg-white/[0.02] transition-colors group report-row">
                 <td class="px-6 py-4 text-center">
-                  <input type="checkbox" name="report_ids" value="{{ report.Id }}" class="reportCheckbox rounded border-slate-700 bg-slate-900">
+                  <input type="checkbox" name="report_ids" value="{{ report.Id }}" class="reportCheckbox rounded border-slate-700 bg-slate-900 cursor-pointer">
                 </td>
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-3">
                     <div class="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                       <span class="material-symbols-outlined text-[18px]">bar_chart</span>
                     </div>
-                    <span class="text-sm font-semibold text-white group-hover:text-primary transition-colors">{{ report.Name }}</span>
+                    <span class="text-sm font-semibold text-white group-hover:text-primary transition-colors report-name">{{ report.Name }}</span>
                   </div>
                 </td>
                 <td class="px-6 py-4">
-                  <span class="text-xs text-slate-500 bg-slate-900/50 px-2.5 py-1 rounded-md border border-slate-800" title="{{ report.Path }}">{{ report.Path|truncatechars:60 }}</span>
+                  <span class="text-xs text-slate-500 bg-slate-900/50 px-2.5 py-1 rounded-md border border-slate-800 report-path" title="{{ report.Path }}">{{ report.Path|truncatechars:60 }}</span>
                 </td>
                 <td class="px-6 py-4 text-right">
                     <form method="post" action="{% url 'powerbi_report:remove_permission_from_server' report.Id selected_user %}" class="inline-block">
@@ -152,7 +152,6 @@
       {% endif %}
     </div>
   </div>
-  </div>
 </div>
 
 <!-- Loading Prompt -->
@@ -169,13 +168,12 @@
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const reportTable = document.getElementById('reportTable');
-    const rows = reportTable ? reportTable.querySelectorAll('tbody tr') : [];
+    const rows = reportTable ? Array.from(reportTable.querySelectorAll('tbody tr.report-row')) : [];
     const poleFilter = document.getElementById('poleFilter');
     const sousDirectionFilter = document.getElementById('sousDirectionFilter');
     const directionFilter = document.getElementById('directionFilter');
     const reportSearch = document.getElementById('reportSearch');
     const selectAllCheckbox = document.getElementById('selectAll');
-    const checkboxes = document.querySelectorAll('.reportCheckbox');
     const removeSelectedBtn = document.getElementById('removeSelectedBtn');
     const clearFiltersBtn = document.getElementById('clearFilters');
     const loadingPrompt = document.getElementById('loadingPrompt');
@@ -187,31 +185,28 @@
 
     // Extract path components and build relationships
     rows.forEach(row => {
-      const path = row.querySelector('td:nth-child(3)').getAttribute('title');
+      const pathElement = row.querySelector('.report-path');
+      if (!pathElement) return;
+      
+      const path = pathElement.getAttribute('title') || pathElement.textContent;
       const parts = path.split('/').filter(part => part);
       const pole = parts[0] || '';
-      let sousDirection = '';
-      let direction = '';
 
       if (pole) {
         if (!pathData[pole]) {
           pathData[pole] = { sousDirections: new Set(), directions: {}, directDirections: new Set() };
         }
 
-        // Check if the second component starts with "direction" (case-insensitive)
         if (parts[1] && parts[1].toLowerCase().startsWith('direction')) {
-          // No Société, second component is a Direction
-          direction = parts[1];
+          const direction = parts[1];
           pathData[pole].directDirections.add(direction);
           allDirections.add(direction);
         } else if (parts[1]) {
-          // Second component is a Société
-          sousDirection = parts[1];
+          const sousDirection = parts[1];
           pathData[pole].sousDirections.add(sousDirection);
           allSousDirections.add(sousDirection);
           if (parts[2] && parts[2].toLowerCase().startsWith('direction')) {
-            // Third component is a Direction
-            direction = parts[2];
+            const direction = parts[2];
             if (!pathData[pole].directions[sousDirection]) {
               pathData[pole].directions[sousDirection] = new Set();
             }
@@ -223,7 +218,7 @@
     });
 
     // Populate Pole filter
-    Object.keys(pathData).forEach(pole => {
+    Object.keys(pathData).sort().forEach(pole => {
       const option = document.createElement('option');
       option.value = pole;
       option.textContent = pole;
@@ -231,14 +226,14 @@
     });
 
     // Populate all Sociétés and Directions initially
-    allSousDirections.forEach(sousDirection => {
+    Array.from(allSousDirections).sort().forEach(sousDirection => {
       const option = document.createElement('option');
       option.value = sousDirection;
       option.textContent = sousDirection;
       sousDirectionFilter.appendChild(option);
     });
 
-    allDirections.forEach(direction => {
+    Array.from(allDirections).sort().forEach(direction => {
       const option = document.createElement('option');
       option.value = direction;
       option.textContent = direction;
@@ -247,14 +242,12 @@
 
     // Function to populate Société filter based on selected Pole
     function populateSousDirectionFilter(selectedPole) {
-      sousDirectionFilter.innerHTML = '';
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
+      const currentValue = sousDirectionFilter.value;
+      sousDirectionFilter.innerHTML = '<option value="">Toutes les Sociétés</option>';
+      
       if (selectedPole && pathData[selectedPole]) {
-        defaultOption.textContent = `All Société of ${selectedPole}`;
         if (pathData[selectedPole].sousDirections.size > 0) {
-          // Populate with Sociétés for the selected Pole
-          pathData[selectedPole].sousDirections.forEach(sousDirection => {
+          Array.from(pathData[selectedPole].sousDirections).sort().forEach(sousDirection => {
             const option = document.createElement('option');
             option.value = sousDirection;
             option.textContent = sousDirection;
@@ -262,14 +255,10 @@
           });
           sousDirectionFilter.disabled = false;
         } else {
-          // No Sociétés, disable Société dropdown
-          defaultOption.textContent = 'No Société Available';
           sousDirectionFilter.disabled = true;
         }
       } else {
-        // Populate with all Sociétés when no Pole is selected
-        defaultOption.textContent = 'All Société';
-        allSousDirections.forEach(sousDirection => {
+        Array.from(allSousDirections).sort().forEach(sousDirection => {
           const option = document.createElement('option');
           option.value = sousDirection;
           option.textContent = sousDirection;
@@ -277,22 +266,16 @@
         });
         sousDirectionFilter.disabled = false;
       }
-      sousDirectionFilter.appendChild(defaultOption);
-      sousDirectionFilter.value = ''; // Ensure default option is selected
     }
 
     // Function to populate Direction filter based on selected Pole and Société
     function populateDirectionFilter(selectedPole, selectedSousDirection) {
-      directionFilter.innerHTML = '';
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
-      defaultOption.textContent = 'All Directions';
+      const currentValue = directionFilter.value;
+      directionFilter.innerHTML = '<option value="">Toutes les Directions</option>';
 
       if (selectedPole && pathData[selectedPole]) {
         if (selectedSousDirection && pathData[selectedPole].directions[selectedSousDirection]) {
-          // Populate with Directions for the selected Société only
-          defaultOption.textContent = `All Directions of ${selectedSousDirection}`;
-          pathData[selectedPole].directions[selectedSousDirection].forEach(direction => {
+          Array.from(pathData[selectedPole].directions[selectedSousDirection]).sort().forEach(direction => {
             const option = document.createElement('option');
             option.value = direction;
             option.textContent = direction;
@@ -300,18 +283,14 @@
           });
           directionFilter.disabled = pathData[selectedPole].directions[selectedSousDirection].size === 0;
         } else if (!selectedSousDirection) {
-          // Populate with Directions directly under the Pole or all Directions under the Pole
-          defaultOption.textContent = `All Directions of ${selectedPole}`;
           const allPoleDirections = new Set();
-          // Include direct Directions under the Pole
           pathData[selectedPole].directDirections.forEach(direction => {
             allPoleDirections.add(direction);
           });
-          // Include Directions under all Sociétés if no Société is selected
           Object.values(pathData[selectedPole].directions).forEach(dirs => {
             dirs.forEach(dir => allPoleDirections.add(dir));
           });
-          allPoleDirections.forEach(direction => {
+          Array.from(allPoleDirections).sort().forEach(direction => {
             const option = document.createElement('option');
             option.value = direction;
             option.textContent = direction;
@@ -319,13 +298,10 @@
           });
           directionFilter.disabled = allPoleDirections.size === 0;
         } else {
-          // No Directions for the selected Société
-          defaultOption.textContent = 'No Directions Available';
           directionFilter.disabled = true;
         }
       } else {
-        // Populate with all Directions when no Pole is selected
-        allDirections.forEach(direction => {
+        Array.from(allDirections).sort().forEach(direction => {
           const option = document.createElement('option');
           option.value = direction;
           option.textContent = direction;
@@ -333,51 +309,55 @@
         });
         directionFilter.disabled = allDirections.size === 0;
       }
-      directionFilter.appendChild(defaultOption);
-      directionFilter.value = ''; // Ensure default option is selected
     }
 
-    // Filter function to check checkboxes and show/hide rows
+    // Get visible checkboxes
+    function getVisibleCheckboxes() {
+      return rows
+        .filter(row => row.style.display !== 'none')
+        .map(row => row.querySelector('.reportCheckbox'))
+        .filter(cb => cb !== null);
+    }
+
+    // Filter function - only shows/hides rows
     function filterReports() {
-      const searchValue = reportSearch.value.toLowerCase();
+      const searchValue = reportSearch.value.toLowerCase().trim();
       const poleValue = poleFilter.value;
       const sousDirectionValue = sousDirectionFilter.value;
       const directionValue = directionFilter.value;
 
       rows.forEach(row => {
-        const reportName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-        const path = row.querySelector('td:nth-child(3)').getAttribute('title');
-        const checkbox = row.querySelector('.reportCheckbox');
+        const reportNameElement = row.querySelector('.report-name');
+        const pathElement = row.querySelector('.report-path');
+        
+        if (!reportNameElement || !pathElement) {
+          row.style.display = 'none';
+          return;
+        }
+
+        const reportName = reportNameElement.textContent.toLowerCase();
+        const path = pathElement.getAttribute('title') || pathElement.textContent;
         const parts = path.split('/').filter(part => part);
 
-        const matchesSearch = reportName.includes(searchValue);
+        const matchesSearch = !searchValue || reportName.includes(searchValue);
         const matchesPole = !poleValue || parts[0] === poleValue;
+        
         let matchesSousDirection = true;
         let matchesDirection = true;
 
         if (parts[1] && parts[1].toLowerCase().startsWith('direction')) {
-          // No Société, second component is Direction
           matchesSousDirection = !sousDirectionValue;
           matchesDirection = !directionValue || parts[1] === directionValue;
         } else {
-          // Second component is Société
           matchesSousDirection = !sousDirectionValue || parts[1] === sousDirectionValue;
           matchesDirection = !directionValue || (parts[2] && parts[2] === directionValue);
         }
 
         const isMatch = matchesSearch && matchesPole && matchesSousDirection && matchesDirection;
-
-        // Check checkbox if row matches filters, uncheck if it doesn't
-        if (checkbox) {
-          checkbox.checked = isMatch;
-        }
-
-        // Show or hide row based on filter match
         row.style.display = isMatch ? '' : 'none';
       });
 
-      // Update select-all checkbox and button visibility
-      selectAllCheckbox.checked = [...checkboxes].every(cb => cb.checked);
+      updateSelectAllState();
       updateButtonVisibility();
     }
 
@@ -391,15 +371,47 @@
       populateDirectionFilter('', '');
 
       rows.forEach(row => {
-        const checkbox = row.querySelector('.reportCheckbox');
         row.style.display = '';
-        if (checkbox) {
-          checkbox.checked = false;
-        }
       });
 
-      selectAllCheckbox.checked = false;
+      updateSelectAllState();
       updateButtonVisibility();
+    }
+
+    // Update the "Select All" checkbox state
+    function updateSelectAllState() {
+      const visibleCheckboxes = getVisibleCheckboxes();
+      
+      if (visibleCheckboxes.length === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+        return;
+      }
+
+      const checkedCount = visibleCheckboxes.filter(cb => cb.checked).length;
+      
+      if (checkedCount === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+      } else if (checkedCount === visibleCheckboxes.length) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+      } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+      }
+    }
+
+    // Update button visibility
+    function updateButtonVisibility() {
+      const anyChecked = rows.some(row => {
+        const cb = row.querySelector('.reportCheckbox');
+        return cb && cb.checked;
+      });
+      
+      if (removeSelectedBtn) {
+        removeSelectedBtn.style.display = anyChecked ? 'inline-flex' : 'none';
+      }
     }
 
     // Event listeners for filters
@@ -418,60 +430,70 @@
     reportSearch.addEventListener('input', filterReports);
     clearFiltersBtn.addEventListener('click', clearFilters);
 
-    // Select all and checkbox functionality
-    function updateButtonVisibility() {
-      if (removeSelectedBtn) {
-        removeSelectedBtn.style.display = document.querySelectorAll('.reportCheckbox:checked').length > 0 ? 'inline-block' : 'none';
-      }
-    }
-
-    if (selectAllCheckbox && checkboxes.length > 0) {
-      selectAllCheckbox.addEventListener('change', function () {
-        checkboxes.forEach(checkbox => (checkbox.checked = this.checked));
+    // Select All checkbox functionality
+    if (selectAllCheckbox) {
+      selectAllCheckbox.addEventListener('change', function() {
+        const isChecked = this.checked;
+        const visibleCheckboxes = getVisibleCheckboxes();
+        
+        visibleCheckboxes.forEach(checkbox => {
+          checkbox.checked = isChecked;
+        });
+        
         updateButtonVisibility();
       });
+    }
 
-      checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function () {
-          selectAllCheckbox.checked = [...checkboxes].every(cb => cb.checked);
+    // Individual checkbox change
+    rows.forEach(row => {
+      const checkbox = row.querySelector('.reportCheckbox');
+      if (checkbox) {
+        checkbox.addEventListener('change', function() {
+          updateSelectAllState();
           updateButtonVisibility();
         });
-      });
-    }
+      }
+    });
 
     // Remove selected permissions
     if (removeSelectedBtn) {
-      removeSelectedBtn.addEventListener('click', function () {
+      removeSelectedBtn.addEventListener('click', function() {
         const selectedCheckboxes = document.querySelectorAll('.reportCheckbox:checked');
         if (selectedCheckboxes.length > 0) {
-          loadingPrompt.style.display = 'flex';
-          document.getElementById('removeSelectedForm').submit();
+          if (confirm('Êtes-vous sûr de vouloir retirer les permissions sélectionnées ?')) {
+            loadingPrompt.style.display = 'flex';
+            document.getElementById('removeSelectedForm').submit();
+          }
         }
       });
     }
 
-    // Show loading overlay for permission buttons
-    document.querySelectorAll('.btn-outline-danger').forEach(button => {
-      button.addEventListener('click', function () {
-        loadingPrompt.style.display = 'flex';
-      });
+    // Show loading overlay for delete buttons
+    document.querySelectorAll('button[type="submit"]').forEach(button => {
+      const form = button.closest('form');
+      if (form && form.action.includes('remove')) {
+        button.addEventListener('click', function(e) {
+          if (!confirm('Êtes-vous sûr de vouloir retirer cette permission ?')) {
+            e.preventDefault();
+          } else {
+            loadingPrompt.style.display = 'flex';
+          }
+        });
+      }
     });
 
-    // Hide loading overlay when the page is fully loaded
-    window.addEventListener('load', function () {
-      loadingPrompt.style.display = 'none';
+    // Hide loading overlay when page loads
+    window.addEventListener('load', function() {
+      if (loadingPrompt) {
+        loadingPrompt.style.display = 'none';
+      }
     });
 
-    // Confirmation for remove actions
-    document.querySelectorAll('form[action*="remove_permission"], form[action*="remove_all_permissions"], form[action*="remove_selected_permissions"]').forEach(form => {
-      form.addEventListener('submit', function (event) {
-       
-      });
-    });
-
-    // Initialize filters
+    // Initialize
     populateSousDirectionFilter('');
     populateDirectionFilter('', '');
+    updateSelectAllState();
+    updateButtonVisibility();
   });
 </script>
 
@@ -484,7 +506,6 @@
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
-    display: flex;
     justify-content: center;
     align-items: center;
     z-index: 9999;
@@ -504,6 +525,26 @@
     height: 3rem;
     margin-bottom: 10px;
     color: #007bff !important;
+    border: 4px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border 0.75s linear infinite;
+  }
+
+  @keyframes spinner-border {
+    to { transform: rotate(360deg); }
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
   }
 </style>
 

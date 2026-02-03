@@ -31,12 +31,12 @@
 
     <!-- Actions Section -->
     <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div class="relative max-w-2xl w-full sm:w-auto search-glow group">
+        <form method="GET" action="{% url 'powerbi_report:report_list' %}" class="relative max-w-2xl w-full sm:w-auto search-glow group">
             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <span class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors">search</span>
             </div>
-            <input type="text" id="reportSearch" class="block w-full sm:w-[400px] pl-11 pr-4 py-3 bg-surface-dark border border-slate-800 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all shadow-sm" placeholder="Rechercher des rapports par nom...">
-        </div>
+            <input type="text" name="q" id="reportSearch" value="{{ query }}" class="block w-full sm:w-[400px] pl-11 pr-4 py-3 bg-surface-dark border border-slate-800 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all shadow-sm" placeholder="Rechercher des rapports par nom...">
+        </form>
         
      
     </div>
@@ -47,7 +47,7 @@
         <div class="px-6 py-5 border-b border-slate-800 flex items-center justify-between">
             <h2 class="text-lg font-bold text-white tracking-tight">Rapports disponibles</h2>
             <div class="flex items-center gap-2">
-                <span class="px-3 py-1 rounded-full bg-slate-800 text-xs font-semibold text-slate-400 border border-slate-700">Total: {{ reports.count }}</span>
+                <span class="px-3 py-1 rounded-full bg-slate-800 text-xs font-semibold text-slate-400 border border-slate-700">Total: {{ reports.paginator.count }}</span>
             </div>
         </div>
         
@@ -55,8 +55,9 @@
             <table class="w-full text-left border-collapse" id="reportTable">
                 <thead>
                     <tr class="bg-slate-900/50">
-                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Nom</th>
+                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Nom</th>
                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Chemin</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Dernière modification</th>
                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
                     </tr>
                 </thead>
@@ -74,8 +75,21 @@
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-2 group/path" title="{{ report.Path }}">
                                 <span class="material-symbols-outlined text-slate-400 text-[18px]">folder</span>
-                                <span class="text-sm text-slate-400 truncate max-w-[300px]">{{ report.Path|truncatechars:50 }}</span>
+                                <span class="text-sm text-slate-400 truncate max-w-[200px]">{{ report.Path|truncatechars:30 }}</span>
                             </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if report.modified_at %}
+                            <div class="flex flex-col">
+                                <span class="text-sm text-slate-300">{{ report.modified_at|date:"d/m/Y H:i" }}</span>
+                                <span class="text-[10px] text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[12px]">person</span>
+                                    {{ report.modified_by.get_full_name|default:report.modified_by.username }}
+                                </span>
+                            </div>
+                            {% else %}
+                            <span class="text-xs text-slate-600 italic">Aucune donnée</span>
+                            {% endif %}
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex flex-wrap items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200">
@@ -117,7 +131,7 @@
             </span>
             <div class="flex items-center gap-2">
                 {% if reports.has_previous %}
-                <a href="?page={{ reports.previous_page_number }}" class="size-8 rounded-lg border border-slate-700 hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-primary transition-all">
+                <a href="?page={{ reports.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="size-8 rounded-lg border border-slate-700 hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-primary transition-all">
                     <span class="material-symbols-outlined text-[18px]">chevron_left</span>
                 </a>
                 {% else %}
@@ -130,12 +144,12 @@
                     {% if reports.number == i %}
                         <span class="size-8 rounded-lg bg-primary text-white text-xs font-bold flex items-center justify-center shadow-lg shadow-primary/30">{{ i }}</span>
                     {% elif i > reports.number|add:'-3' and i < reports.number|add:'3' %}
-                        <a href="?page={{ i }}" class="size-8 rounded-lg text-xs font-medium text-slate-400 hover:bg-slate-800 flex items-center justify-center transition-all">{{ i }}</a>
+                        <a href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}" class="size-8 rounded-lg text-xs font-medium text-slate-400 hover:bg-slate-800 flex items-center justify-center transition-all">{{ i }}</a>
                     {% endif %}
                 {% endfor %}
 
                 {% if reports.has_next %}
-                <a href="?page={{ reports.next_page_number }}" class="size-8 rounded-lg border border-slate-700 hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-primary transition-all">
+                <a href="?page={{ reports.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="size-8 rounded-lg border border-slate-700 hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-primary transition-all">
                     <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                 </a>
                 {% else %}
@@ -286,25 +300,31 @@
           pathList.appendChild(pathItem);
         });
       }
-    }
 
-    // Filter function - search only
-    function filterReports() {
-      const searchValue = reportSearch.value.toLowerCase();
+    // Live Search with Debounce
+    const reportSearch = document.getElementById('reportSearch');
+    const searchForm = reportSearch ? reportSearch.closest('form') : null;
+    let debounceTimer;
 
-      rows.forEach(row => {
-        const nameCell = row.querySelector('td:first-child span.font-semibold');
-        if (nameCell) {
-            const reportName = nameCell.textContent.toLowerCase();
-            const matchesSearch = reportName.includes(searchValue);
-            row.style.display = matchesSearch ? '' : 'none';
+    if (reportSearch && searchForm) {
+        // Restore focus and cursor position after reload
+        const queryLength = reportSearch.value.length;
+        if (queryLength > 0) {
+            reportSearch.focus();
+            reportSearch.setSelectionRange(queryLength, queryLength);
         }
-      });
-    }
 
-    // Event listener for search
-    if (reportSearch) {
-        reportSearch.addEventListener('input', filterReports);
+        reportSearch.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                searchForm.submit();
+            }, 600); // 600ms debounce
+        });
+
+        // Prevent form submission flash/double-submit
+        searchForm.addEventListener('submit', function() {
+            reportSearch.setAttribute('readonly', true);
+        });
     }
 
     // Handle Edit button click

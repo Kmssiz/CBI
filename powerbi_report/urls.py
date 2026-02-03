@@ -79,4 +79,5 @@ urlpatterns = [
     # Sync & API
     path('custom/sync/', views.sync_reports_from_pbirs, name='sync_reports'),
     path('custom/api/reports/', views.get_available_reports_json, name='available_reports_json'),
+    path('refresh-history/<str:plan_id>/', views.get_refresh_plan_history, name='get_refresh_plan_history'),
 ]

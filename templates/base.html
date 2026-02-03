@@ -309,6 +309,10 @@
   </main>
 </div>
 
+  <!-- Modals Block - Rendered at body level to avoid z-index issues -->
+  {% block modals %}
+  {% endblock %}
+
   <!-- [Page Specific JS] start -->
   {% block page_scripts %}
   <!-- Dashboard-specific scripts - only loaded on pages that define this block -->

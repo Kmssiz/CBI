@@ -26,6 +26,14 @@ class ReportRef(models.Model):
     path = models.CharField(max_length=1024, help_text="Path on PBIRS server (e.g., /Sales/Q1)")
     embed_url = models.URLField(max_length=2048, blank=True, null=True)
     last_synced = models.DateTimeField(auto_now=True)
+    modified_at = models.DateTimeField(null=True, blank=True)
+    modified_by = models.ForeignKey(
+        CustomUser, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='modified_reports'
+    )
 
     class Meta:
         verbose_name = "Report Reference"

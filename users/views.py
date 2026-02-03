@@ -491,12 +491,11 @@ def sync_users(request):
         messages.error(request, "You do not have permission to perform this action.")
         return redirect('report_list')  
 
-    current_password = request.session.get('ldap_password')
-    if not current_password:
-         messages.error(request, "Session expired or password not found. Please login again.")
-         return redirect('users_view')
+    # Use default LDAP service account for user synchronization
+    ldap_username = settings.LDAP_SERVICE_USERNAME
+    ldap_password = settings.LDAP_SERVICE_PASSWORD
 
-    ldap_users = get_ad_users(request.user.username, current_password)
+    ldap_users = get_ad_users(ldap_username, ldap_password)
     
     if not ldap_users:
          messages.error(request, "Failed to fetch LDAP users or no users found.")

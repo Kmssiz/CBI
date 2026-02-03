@@ -14,8 +14,32 @@
   <span class="material-symbols-outlined text-[14px]">chevron_right</span>
   <span class="text-slate-400">Permissions</span>
 {% endblock %}
-
 {% block content %}
+<style>
+    /* Aesthetically pleasing scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.1);
+        border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 10px;
+        border: 2px solid rgba(15, 23, 42, 0.1);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #475569;
+    }
+    
+    /* For Firefox */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: #334155 transparent;
+    }
+</style>
 <div class="px-8 py-6">
     <!-- Display messages -->
     {% if messages %}
@@ -34,8 +58,8 @@
 
     <!-- Back Button -->
     <div class="mb-6">
-        <a href="{% url 'powerbi_report:report_detail' report_id %}" class="inline-flex items-center gap-2 px-4 py-2 bg-surface-dark border border-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-sm font-bold shadow-sm">
-            <span class="material-symbols-outlined text-[18px]">arrow_back</span> Retour aux détails
+        <a href="{% url 'powerbi_report:report_list' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-surface-dark border border-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-sm font-bold shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span> Retour à la liste
         </a>
     </div>
 
@@ -45,7 +69,7 @@
             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <span class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors">search</span>
             </div>
-            <input type="text" id="userSearch" class="block w-full pl-11 pr-4 py-3 bg-surface-dark border border-slate-800 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all shadow-sm" placeholder="Rechercher un utilisateur...">
+            <input type="text" id="userSearch" class="block w-full pl-11 pr-4 py-3 bg-surface-dark border border-slate-800 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all shadow-sm" placeholder="Rechercher...">
         </div>
         
         <div class="flex items-center gap-3">
@@ -62,7 +86,7 @@
     <!-- [ Permissions List ] -->
     <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-xl overflow-hidden glass-panel">
         <div class="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-white/5">
-            <h2 class="text-lg font-bold text-white tracking-tight">Utilisateurs autorisés</h2>
+            <h2 class="text-lg font-bold text-white tracking-tight">Utilisateurs et Groupes autorisés</h2>
             <div class="flex items-center gap-2">
                  <span class="px-3 py-1 rounded-full bg-slate-800 text-xs font-semibold text-slate-400 border border-slate-700">Total: {{ policies|length }}</span>
             </div>
@@ -78,8 +102,9 @@
                             <th class="px-6 py-4 w-12 text-center">
                                 <input type="checkbox" id="selectAll" class="rounded border-slate-700 bg-slate-800 text-primary focus:ring-offset-slate-900 focus:ring-primary h-4 w-4 transition-all">
                             </th>
-                            <th class="px-6 py-4">Utilisateur</th>
-                            <th class="px-6 py-4">Identifiant (AD2000)</th>
+                            <th class="px-6 py-4">Nom</th>
+                            <th class="px-6 py-4">Type</th>
+                            <th class="px-6 py-4">Identifiant</th>
                             <th class="px-6 py-4 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -87,32 +112,54 @@
                         {% for policy in policies %}
                         <tr class="hover:bg-white/5 transition-all group">
                              <td class="px-6 py-4 text-center">
-                                <input type="checkbox" class="user-checkbox rounded border-slate-700 bg-slate-800 text-primary focus:ring-offset-slate-900 focus:ring-primary h-4 w-4 transition-all" name="selected_users" value="{{ policy.UserName|default:policy.GroupUserName }}">
+                                <input type="checkbox" class="user-checkbox rounded border-slate-700 bg-slate-800 text-primary focus:ring-offset-slate-900 focus:ring-primary h-4 w-4 transition-all" name="selected_users" value="{{ policy.GroupUserName|default:policy.UserName }}">
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="size-9 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-primary/20">
-                                        {{ policy.FullName|slice:":1" }}{{ policy.FullName|slice:"-1"|upper }}
+                                    {% if policy.IsGroup %}
+                                    <div class="size-9 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-amber-500/20">
+                                        <span class="material-symbols-outlined text-[18px]">group</span>
                                     </div>
-                                    <span class="text-sm font-bold text-white">{{ policy.FullName }}</span>
+                                    <span class="text-sm font-bold text-white">{{ policy.DisplayName }}</span>
+                                    {% else %}
+                                    <div class="size-9 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-primary/20">
+                                        <span class="material-symbols-outlined text-[20px]">person</span>
+                                    </div>
+                                    <span class="text-sm font-bold text-white">{{ policy.DisplayName }}</span>
+                                    {% endif %}
                                 </div>
                             </td>
                             <td class="px-6 py-4">
+                                {% if policy.IsGroup %}
+                                <span class="px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-400">
+                                    Groupe ({{ policy.MemberCount }} membres)
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-blue-400">
+                                    Utilisateur
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
                                 <code class="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-xs font-mono text-slate-400">
-                                    {% if policy.GroupUserName %}
-                                        {{ policy.GroupUserName }}
-                                    {% elif policy.UserName %}
-                                        {{ policy.UserName }}
-                                    {% else %}
-                                        Unknown
-                                    {% endif %}
+                                    {{ policy.GroupUserName|default:policy.UserName }}
                                 </code>
                             </td>
                             <td class="px-6 py-4">
-                                <div class="flex justify-end">
-                                    <!-- Use a separate form for individual removal to avoid conflict with the main form -->
-                                    <button type="button" class="px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 opacity-0 group-hover:opacity-100" onclick="submitIndividualRemoval('{{ policy.UserName|default:policy.GroupUserName|escapejs }}')">
-                                        <span class="material-symbols-outlined text-[14px]">person_remove</span> Retirer
+                                <div class="flex justify-end gap-2">
+                                    {% if policy.IsGroup %}
+                                    <button type="button" 
+                                            class="px-3 py-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 show-members-btn"
+                                            data-group-name="{{ policy.GroupUserName }}"
+                                            data-member-count="{{ policy.MemberCount }}">
+                                        <span class="material-symbols-outlined text-[14px]">visibility</span> Voir
+                                    </button>
+                                    <script type="application/json" id="members-{{ policy.GroupUserName|slugify }}">{{ policy.Members|safe }}</script>
+                                    {% endif %}
+                                    <button type="button" 
+                                            class="px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 remove-user-btn" 
+                                            data-username="{{ policy.GroupUserName|default:policy.UserName|slugify }}">
+                                        <span class="material-symbols-outlined text-[14px]">delete</span> Retirer
                                     </button>
                                 </div>
                             </td>
@@ -124,7 +171,7 @@
             
             <!-- Hidden forms for individual removal -->
             {% for policy in policies %}
-            <form id="remove-form-{{ policy.UserName|default:policy.GroupUserName|slugify }}" method="post" action="{% url 'powerbi_report:remove_user' report_id policy.UserName|default:policy.GroupUserName %}" style="display:none;">
+            <form id="remove-form-{{ policy.GroupUserName|default:policy.UserName|slugify }}" method="post" action="{% url 'powerbi_report:remove_user' report_id policy.GroupUserName|default:policy.UserName %}" style="display:none;">
                 {% csrf_token %}
             </form>
             {% endfor %}
@@ -141,6 +188,26 @@
         </div>
     </div>
 </div>
+<!-- Group Members Modal -->
+<div id="membersModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] hidden items-center justify-center">
+  <div class="bg-surface-dark border border-slate-800 p-6 rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] flex flex-col">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-bold text-white">Membres du groupe: <span id="modalGroupName"></span></h3>
+      <button type="button" id="closeModal" class="text-slate-400 hover:text-white transition-colors">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="relative mb-3">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <span class="material-symbols-outlined text-slate-400 text-[18px]">search</span>
+      </div>
+      <input type="text" id="memberSearch" class="block w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm" placeholder="Rechercher un membre...">
+    </div>
+    <div id="membersList" class="overflow-y-auto flex-1 space-y-2">
+      <!-- Members will be populated here -->
+    </div>
+  </div>
+</div>
 
 <!-- Loading Prompt -->
 <div id="loadingPrompt" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] hidden items-center justify-center flex-col gap-4">
@@ -152,53 +219,101 @@
 </div>
 
 <script>
-    function submitIndividualRemoval(username) {
-        // Find the form that targets this user
-        // We need a reliable way to select it. Using slugify in the ID above is a simple approach.
-        // Alternatively, since we can't easily rely on slugify in JS matching Django's exactly,
-        // we can construct the form action URL and submit a specific hidden form.
-        // OR better: Just submit the form corresponding to the user.
-        
-        // Let's iterate through hidden forms and finding the matching action URL suffix
-        // This is safer than ID matching with special chars
-        const forms = document.querySelectorAll('form[id^="remove-form-"]');
-        for (let form of forms) {
-            if (form.action.includes(encodeURIComponent(username).replace(/%5C/g, '\\'))) { // Handle backslashes if needed, or simple string match
-                 showLoading();
-                 form.submit();
-                 return;
-            }
-             // Fallback for simple matching
-            if (form.action.endsWith(username) || form.action.endsWith(username + '/')) {
-                 showLoading();
-                 form.submit();
-                 return;
-            }
-        }
-        
-        // If exact match fails (complex chars), try ID based approach assuming template slugify works predictably enough for simple cases
-        // or just rely on the onclick being generated correctly in the loop.
-        // Actually, the best way: put the form submission logic inline in the button onclick or surrounding the button with the form (but table structure forbids form nesting).
-        // Let's use the ID generated in the loop.
-        
-        // Re-approach: The template loop generates forms with ID "remove-form-slug".
-        // The button calls this function with the raw username. 
-        // Let's just create a dynamic form submission here to be safe against ID mismatches.
-        
-        showLoading();
-        const form = document.createElement('form');
-        form.method = 'POST';
-        // Construct URL manually or grab it from the button's data attribute would be cleaner.
-        // Let's add data-action to the button in the HTML above.
-    }
-    
+document.addEventListener("DOMContentLoaded", function () {
     // Helper to show loading
     function showLoading() {
       document.getElementById("loadingPrompt").classList.remove('hidden');
       document.getElementById("loadingPrompt").classList.add('flex');
     }
 
-   document.addEventListener("DOMContentLoaded", function () {
+    // Individual removal buttons
+    document.querySelectorAll('.remove-user-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const usernameSlug = this.getAttribute('data-username');
+            const form = document.getElementById('remove-form-' + usernameSlug);
+            if (form) {
+                if (confirm('Êtes-vous sûr de vouloir retirer cet accès ?')) {
+                    showLoading();
+                    form.submit();
+                }
+            } else {
+                console.error('Form not found for slug:', usernameSlug);
+            }
+        });
+    });
+
+    // Show members modal
+    const membersModal = document.getElementById('membersModal');
+    const modalGroupName = document.getElementById('modalGroupName');
+    const membersList = document.getElementById('membersList');
+    const closeModal = document.getElementById('closeModal');
+
+    document.querySelectorAll('.show-members-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const groupName = this.getAttribute('data-group-name');
+            const groupSlug = groupName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+            let members = [];
+            try {
+                // Get the members from the JSON script tag
+                const scriptTag = document.getElementById('members-' + groupSlug);
+                if (scriptTag) {
+                    const jsonText = scriptTag.textContent.replace(/'/g, '"');
+                    members = JSON.parse(jsonText);
+                }
+            } catch (e) {
+                console.error('Error parsing members:', e);
+            }
+
+            modalGroupName.textContent = groupName;
+            membersList.innerHTML = '';
+
+            if (members.length === 0) {
+                membersList.innerHTML = '<p class="text-slate-400 text-sm">Aucun membre trouvé.</p>';
+            } else {
+                members.forEach(member => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg';
+                    div.innerHTML = `
+                        <div class="size-8 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold text-xs">
+                            <span class="material-symbols-outlined text-[16px]">person</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-white">${member.FullName || member.UserName}</p>
+                            <p class="text-xs text-slate-400">${member.UserName}</p>
+                        </div>
+                    `;
+                    membersList.appendChild(div);
+                });
+            }
+
+            membersModal.classList.remove('hidden');
+            membersModal.classList.add('flex');
+        });
+    });
+
+    closeModal.addEventListener('click', function() {
+        membersModal.classList.add('hidden');
+        membersModal.classList.remove('flex');
+        document.getElementById('memberSearch').value = '';
+    });
+
+    membersModal.addEventListener('click', function(e) {
+        if (e.target === membersModal) {
+            membersModal.classList.add('hidden');
+            membersModal.classList.remove('flex');
+            document.getElementById('memberSearch').value = '';
+        }
+    });
+
+    // Member search filter
+    document.getElementById('memberSearch').addEventListener('input', function() {
+        const searchValue = this.value.toLowerCase();
+        document.querySelectorAll('#membersList > div').forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(searchValue) ? '' : 'none';
+        });
+    });
+
     // Search filter
     document.getElementById("userSearch").addEventListener("input", function () {
       const searchValue = this.value.toLowerCase();
@@ -240,7 +355,7 @@
 
     if (removeSelectedButton) {
       removeSelectedButton.addEventListener("click", function () {
-        if(confirm('Êtes-vous sûr de vouloir supprimer les utilisateurs sélectionnés ?')) {
+        if(confirm('Êtes-vous sûr de vouloir supprimer les accès sélectionnés ?')) {
             showLoading();
             permissionsForm.submit();
         }
@@ -250,27 +365,11 @@
     // Auto-close alerts
     setTimeout(() => {
         document.querySelectorAll('.alert').forEach(alert => {
-             // Tailwind transition for fade out
              alert.style.transition = 'opacity 0.5s ease';
              alert.style.opacity = '0';
              setTimeout(() => alert.remove(), 500);
         });
     }, 3000);
-  });
-</script>
-
-<!-- Simplified individual removal logic using data attributes -->
-<script>
-    // Overwriting the previous submitIndividualRemoval to be simpler
-    // We will attach event listeners to buttons instead of inline onclick to keep it clean
-    document.addEventListener("DOMContentLoaded", function () {
-        // ... (previous listeners)
-        
-        // Attach click handlers to removal buttons
-        // We need to modify the HTML loop above to include data-action on the button
-        // Since we can't easily edit the HTML in this replace_block without re-writing, 
-        // I'll rely on the fact that I'm replacing the WHOLE file.
-        // I will add data-action to the buttons in the HTML part of this replacement.
-    });
+});
 </script>
 {% endblock %}

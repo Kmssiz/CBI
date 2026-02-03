@@ -72,7 +72,7 @@
                     <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Taille</label>
                     <div class="flex items-center gap-2 text-slate-300">
                         <span class="material-symbols-outlined text-[18px] text-slate-500">data_usage</span>
-                        <span class="text-sm font-mono">{{ report.Size|default:"Inconnu" }} bytes</span>
+                        <span class="text-sm font-mono">{{ report.Size|filesizeformat }}</span>
                     </div>
                 </div>
             </div>
@@ -84,9 +84,14 @@
     <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-xl overflow-hidden glass-panel">
         <div class="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-white/5">
             <h5 class="text-lg font-bold text-white tracking-tight">Plans de rafraîchissement</h5>
-            <button type="button" class="px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2" data-bs-toggle="modal" data-bs-target="#addRefreshPlanModal">
-                <span class="material-symbols-outlined text-[18px]">add_task</span> Ajouter un plan
-            </button>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="window.location.reload()" class="p-2 bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-all" title="Actualiser">
+                    <span class="material-symbols-outlined text-[20px]">refresh</span>
+                </button>
+                <button type="button" class="px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2" data-bs-toggle="modal" data-bs-target="#addRefreshPlanModal">
+                    <span class="material-symbols-outlined text-[18px]">add_task</span> Ajouter un plan
+                </button>
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
@@ -107,6 +112,11 @@
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border {% if plan.LastStatus == 'Success' %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20{% else %}bg-amber-500/10 text-amber-400 border-amber-500/20{% endif %}">
                                 {{ plan.LastStatus|default:"Inconnu" }}
                             </span>
+                            {% if 'failed' in plan.LastStatus|lower %}
+                            <button onclick="showErrorDetails('{{ plan.Id }}')" class="ml-2 text-slate-400 hover:text-red-400 transition-colors" title="Voir les détails de l'erreur">
+                                <span class="material-symbols-outlined text-[16px]">info</span>
+                            </button>
+                            {% endif %}
                         </td>
                         <td class="px-6 py-4">
                             <form method="POST" class="flex items-center justify-end gap-2">
@@ -115,7 +125,7 @@
                                 <button type="submit" name="action" value="refresh" class="px-3 py-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[14px]">refresh</span> Actualiser
                                 </button>
-                                <button type="submit" name="action" value="delete" class="px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1">
+                                <button type="submit" name="action" value="delete" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce plan de rafraîchissement ?');" class="px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[14px]">delete</span> Supprimer
                                 </button>
                             </form>
@@ -173,25 +183,189 @@
             </button>
         </div>
         <div class="p-6 space-y-4">
-            <div class="space-y-2">
-                <label for="refresh_description" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Description</label>
-                <input type="text" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="refresh_description" name="description" value="{{ report.Name }}" required>
-            </div>
-            <div class="space-y-2">
-                <label for="catalog_item_path" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Chemin du rapport</label>
-                <input type="text" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-500 focus:ring-0 outline-none cursor-not-allowed" id="catalog_item_path" name="catalog_item_path" value="{{ report.Path }}" readonly>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-2">
-                    <label for="start_datetime" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Date de début</label>
-                    <input type="datetime-local" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="start_datetime" name="start_datetime" required>
+                <div class="space-y-4">
+                     <div class="p-4 rounded-xl bg-background-dark/50 border border-slate-800 space-y-4">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Type de planification</label>
+                        
+                        <!-- Shared Plan Option -->
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <input type="radio" id="plan_type_shared" name="plan_type" value="shared" class="w-4 h-4 text-primary bg-background-dark border-slate-600 focus:ring-primary focus:ring-2" onchange="togglePlanType()">
+                                <label for="plan_type_shared" class="text-sm font-medium text-slate-300 cursor-pointer">Planification partagée</label>
+                            </div>
+                            <div id="shared_plan_options" class="ml-7 hidden">
+                                 <select name="shared_schedule_id" id="shared_schedule_id" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all">
+                                    <option value="">Sélectionner une planification partagée</option>
+                                    {% for schedule in shared_schedules %}
+                                    <option value="{{ schedule.Id }}">{{ schedule.Name|default:"Sans nom" }} - {{ schedule.Description|default:schedule.Definition.StartDateTime }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Specific Plan Option -->
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <input type="radio" id="plan_type_specific" name="plan_type" value="specific" class="w-4 h-4 text-primary bg-background-dark border-slate-600 focus:ring-primary focus:ring-2" checked onchange="togglePlanType()">
+                                <label for="plan_type_specific" class="text-sm font-medium text-slate-300 cursor-pointer">Planification spécifique aux rapports</label>
+                            </div>
+                            
+                            <div id="specific_plan_options" class="ml-7 space-y-4 border-l-2 border-slate-800 pl-4">
+                                <!-- Recurrence Type Selector -->
+                                <div class="space-y-2 mb-4">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Fréquence</label>
+                                    <div class="flex flex-wrap gap-4">
+                                        <div class="flex items-center gap-2">
+                                            <input type="radio" id="recurrence_hour" name="recurrence_type" value="Hour" class="w-3.5 h-3.5 text-primary bg-background-dark border-slate-600 focus:ring-primary focus:ring-2" onchange="toggleRecurrenceFields()">
+                                            <label for="recurrence_hour" class="text-xs text-slate-300 cursor-pointer">Heure</label>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="radio" id="recurrence_day" name="recurrence_type" value="Day" class="w-3.5 h-3.5 text-primary bg-background-dark border-slate-600 focus:ring-primary focus:ring-2" checked onchange="toggleRecurrenceFields()">
+                                            <label for="recurrence_day" class="text-xs text-slate-300 cursor-pointer">Jour</label>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="radio" id="recurrence_week" name="recurrence_type" value="Week" class="w-3.5 h-3.5 text-primary bg-background-dark border-slate-600 focus:ring-primary focus:ring-2" onchange="toggleRecurrenceFields()">
+                                            <label for="recurrence_week" class="text-xs text-slate-300 cursor-pointer">Semaine</label>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="radio" id="recurrence_month" name="recurrence_type" value="Month" class="w-3.5 h-3.5 text-primary bg-background-dark border-slate-600 focus:ring-primary focus:ring-2" onchange="toggleRecurrenceFields()">
+                                            <label for="recurrence_month" class="text-xs text-slate-300 cursor-pointer">Mois</label>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="radio" id="recurrence_once" name="recurrence_type" value="Once" class="w-3.5 h-3.5 text-primary bg-background-dark border-slate-600 focus:ring-primary focus:ring-2" onchange="toggleRecurrenceFields()">
+                                            <label for="recurrence_once" class="text-xs text-slate-300 cursor-pointer">Une fois</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Common Start Date -->
+                                <div class="space-y-2">
+                                    <label for="start_datetime" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Date et heure de début</label>
+                                    <input type="datetime-local" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="start_datetime" name="start_datetime" required>
+                                </div>
+
+                                <!-- Hourly Fields -->
+                                <div id="fields_hour" class="hidden space-y-2">
+                                    <label for="minutes_interval" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Intervalle (minutes)</label>
+                                    <input type="number" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="minutes_interval" name="minutes_interval" value="60" min="15">
+                                    <p class="text-[10px] text-slate-500">Minimum 15 minutes recommandé.</p>
+                                </div>
+
+                                <!-- Daily Fields -->
+                                <div id="fields_day" class="hidden space-y-2">
+                                    <label for="days_interval" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Répéter tous les (jours)</label>
+                                    <input type="number" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="days_interval" name="days_interval" value="1" min="1">
+                                </div>
+
+                                <!-- Weekly Fields -->
+                                <div id="fields_week" class="hidden space-y-3">
+                                    <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Jours de la semaine</label>
+                                    <div class="grid grid-cols-4 gap-2">
+                                        {% for day_code, day_name in week_days %}
+                                        <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-slate-800 hover:bg-white/5 transition-colors">
+                                            <input type="checkbox" name="week_days" value="{{ day_code }}" class="w-3.5 h-3.5 text-primary bg-background-dark border-slate-600 rounded focus:ring-primary focus:ring-2">
+                                            <span class="text-xs text-slate-300">{{ day_name }}</span>
+                                        </label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <!-- Monthly Fields -->
+                                <div id="fields_month" class="hidden space-y-3">
+                                    <div class="space-y-2">
+                                        <label for="month_days" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Jours du mois (ex: 1, 15, 31)</label>
+                                        <input type="text" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="month_days" name="month_days" placeholder="1, 15">
+                                        <p class="text-[10px] text-slate-500">Séparez les jours par des virgules.</p>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Mois</label>
+                                        <div class="grid grid-cols-3 gap-2 h-32 overflow-y-auto pr-1 custom-scrollbar">
+                                            {% for month in months %}
+                                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-slate-800 hover:bg-white/5 transition-colors">
+                                                <input type="checkbox" name="months" value="{{ month }}" class="w-3.5 h-3.5 text-primary bg-background-dark border-slate-600 rounded focus:ring-primary focus:ring-2" checked>
+                                                <span class="text-xs text-slate-300">{{ month }}</span>
+                                            </label>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Once Fields -->
+                                <div id="fields_once" class="hidden">
+                                     <p class="text-xs text-slate-400 italic">Le rapport sera actualisé une seule fois à la date spécifiée.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="refresh_description" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Description</label>
+                        <input type="text" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="refresh_description" name="description" value="{{ report.Name }}" required>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="catalog_item_path" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Chemin du rapport</label>
+                        <input type="text" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-500 focus:ring-0 outline-none cursor-not-allowed" id="catalog_item_path" name="catalog_item_path" value="{{ report.Path }}" readonly>
+                    </div>
                 </div>
-                <div class="space-y-2">
-                    <label for="days_interval" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Intervalle (jours)</label>
-                    <input type="number" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="days_interval" name="days_interval" value="1" min="1" required>
-                </div>
-            </div>
-        </div>
+
+                <script>
+                    function togglePlanType() {
+                        const isShared = document.getElementById('plan_type_shared').checked;
+                        const sharedOptions = document.getElementById('shared_plan_options');
+                        const specificOptions = document.getElementById('specific_plan_options');
+                        const sharedSelect = document.getElementById('shared_schedule_id');
+                        const startDatetime = document.getElementById('start_datetime');
+                        
+                        // Inputs to check required status
+                        const daysInterval = document.getElementById('days_interval');
+                        // ... other inputs logic is handled in toggleRecurrenceFields
+    
+                        if (isShared) {
+                            sharedOptions.classList.remove('hidden');
+                            specificOptions.classList.add('hidden');
+                            sharedSelect.required = true;
+                            startDatetime.required = false;
+                        } else {
+                            sharedOptions.classList.add('hidden');
+                            specificOptions.classList.remove('hidden');
+                            sharedSelect.required = false;
+                            startDatetime.required = true;
+                            toggleRecurrenceFields(); // Apply logic for specific fields
+                        }
+                    }
+    
+                    function toggleRecurrenceFields() {
+                        const type = document.querySelector('input[name="recurrence_type"]:checked').value;
+                        const fields = ['hour', 'day', 'week', 'month', 'once'];
+                        
+                        fields.forEach(f => {
+                            const el = document.getElementById('fields_' + f);
+                            if (el) el.classList.add('hidden');
+                        });
+    
+                        const selectedEl = document.getElementById('fields_' + type.toLowerCase());
+                        if (selectedEl) selectedEl.classList.remove('hidden');
+                        
+                        // Validation Logic could be added here if stricter client-side validation is needed
+                    }
+                    
+                    // Initialize state
+                    document.addEventListener('DOMContentLoaded', function() {
+                        togglePlanType();
+                        
+                        // Set default start datetime to now
+                        try {
+                            const now = new Date();
+                            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                            const elem = document.getElementById('start_datetime');
+                            if (elem) {
+                                elem.value = now.toISOString().slice(0, 16);
+                            }
+                        } catch (e) {
+                            console.error("Error setting default date:", e);
+                        }
+                    });
+                </script>
         <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
             <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
             <button type="submit" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-primary/20">Ajouter le plan</button>
@@ -201,4 +375,102 @@
   </div>
 </div>
 
+{% endblock %}
+
+{% block modals %}
+<!-- Error Details Modal -->
+<div class="modal fade" id="errorDetailsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
+        <h5 class="text-lg font-bold text-white tracking-tight">Détails de l'erreur</h5>
+        <button type="button" class="text-slate-500 hover:text-white transition-colors" data-dismiss="modal" aria-label="Close">
+            <span class="material-symbols-outlined text-[24px]">close</span>
+        </button>
+      </div>
+      <div class="p-6 max-h-[60vh] overflow-y-auto">
+        <p class="text-sm text-slate-400 mb-4">Plusieurs erreurs se sont produites lors de l'actualisation des données.</p>
+        
+        <div class="bg-black/30 rounded-lg p-4 border border-slate-700/50 font-mono text-xs text-red-300" id="errorDetailsContent">
+            Chargement...
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
+        <button type="button" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg" data-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function showErrorDetails(planId) {
+    const modal = new bootstrap.Modal(document.getElementById('errorDetailsModal'));
+    const content = document.getElementById('errorDetailsContent');
+    content.innerHTML = '<div class="flex items-center gap-2"><div class="spinner-border w-4 h-4" role="status"></div><span>Chargement des détails...</span></div>';
+    modal.show();
+
+    try {
+        const url = "{% url 'powerbi_report:get_refresh_plan_history' 'PLACEHOLDER' %}".replace('PLACEHOLDER', planId);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to fetch history');
+        
+        const data = await response.json();
+        console.log('History API Response:', data);
+        
+        if (data.value && data.value.length > 0) {
+            // Sort by EndTime descending to get latest failed run
+            const failedRuns = data.value.filter(run => run.Status && run.Status.toLowerCase().includes('fail'));
+            const latestRun = failedRuns.length > 0 
+                ? failedRuns.sort((a, b) => new Date(b.EndTime) - new Date(a.EndTime))[0]
+                : data.value.sort((a, b) => new Date(b.EndTime) - new Date(a.EndTime))[0];
+            
+            console.log('Latest Failed Run:', latestRun);
+            
+            // Check if Details exists
+            if (latestRun.Details) {
+                // Parse Details if it's a string
+                const details = typeof latestRun.Details === 'string' 
+                    ? JSON.parse(latestRun.Details) 
+                    : latestRun.Details;
+                
+                let html = `<div class="mb-3 pb-3 border-b border-slate-700/50"><div class="text-slate-400 text-xs mb-1">Session ID</div><div class="font-mono text-sm">${details.SessionID || 'N/A'}</div></div>`;
+                
+                // Handle Errors array
+                if (details.Errors && Array.isArray(details.Errors)) {
+                    html += '<div class="space-y-2">';
+                    details.Errors.forEach((error, idx) => {
+                        const errorCode = error.ErrorCode || '';
+                        const message = error.Message || '';
+                        html += `
+                            <div class="p-3 bg-red-900/20 border border-red-800/30 rounded-lg">
+                                <div class="flex items-start gap-2">
+                                    <span class="text-red-400 font-bold text-xs">[${idx}]</span>
+                                    <div class="flex-1">
+                                        <div class="text-red-300 text-xs font-mono mb-1">Code: ${errorCode}</div>
+                                        <div class="text-slate-300 text-xs leading-relaxed">${message}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    content.innerHTML = html;
+                } else {
+                    // Fallback: show entire Details object
+                    html += `<pre class="text-xs whitespace-pre-wrap text-slate-300">${JSON.stringify(details, null, 2)}</pre>`;
+                    content.innerHTML = html;
+                }
+            } else {
+                content.innerHTML = `<div class="text-slate-400">Aucun détail d'erreur disponible pour cette exécution.</div>`;
+            }
+        } else {
+            content.innerHTML = '<div class="text-slate-400">Aucun historique disponible.</div>';
+        }
+
+    } catch (e) {
+        console.error('Error fetching history:', e);
+        content.innerHTML = `<div class="text-red-400">Erreur lors du chargement des détails: ${e.message}</div>`;
+    }
+}
+</script>
 {% endblock %}

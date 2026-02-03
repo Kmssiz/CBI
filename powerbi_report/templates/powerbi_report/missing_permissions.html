@@ -13,6 +13,10 @@
   <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:user_permission' selected_username  %}">Permissions de {{ selected_username }}</a>
   <span class="material-symbols-outlined text-[14px]">chevron_right</span>
   <span class="text-slate-400">Permissions Manquantes</span>
+  
+  <button type="submit" form="selectedReportsForm" class="hidden items-center gap-2 px-6 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-[11px] font-bold hover:bg-emerald-500/20 transition-all shadow-lg ml-auto uppercase tracking-wider" id="addSelectedBtn">
+      <span class="material-symbols-outlined text-[18px]">playlist_add_check</span> Accorder les accès sélectionnés
+  </button>
 {% endblock %}
 
 {% block content %}
@@ -88,9 +92,6 @@
         <div class="bg-surface-dark border border-slate-800 rounded-3xl overflow-hidden shadow-xl shadow-black/20">
             <div class="px-8 py-6 border-b border-slate-800/50 flex flex-wrap items-center justify-between gap-4 bg-white/[0.02]">
                 <h3 class="text-sm font-bold text-white uppercase tracking-widest">Rapports Disponibles</h3>
-                <button type="submit" class="hidden items-center gap-2 px-6 py-2.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-sm font-bold hover:bg-emerald-500/20 transition-all shadow-lg" id="addSelectedBtn">
-                    <span class="material-symbols-outlined text-[20px]">playlist_add_check</span> Accorder les accès sélectionnés
-                </button>
             </div>
 
             <div class="overflow-x-auto">
