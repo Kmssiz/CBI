@@ -1,731 +1,647 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Tableau de bord{% endblock %}
-{% block content %}
 
-<!-- [ Main Content ] start -->
-<div class="pc-container">
-  <div class="pc-content">
-    <!-- [ breadcrumb ] start -->
-    <div class="page-header">
-      <div class="page-block">
-        <div class="row align-items-center">
-          <div class="col-md-12">
-            <div class="page-header-title">
-              <h5 class="mb-0">Tableau de bord</h5>
-            </div>
-          </div>
-          <div class="col-md-12">
-            <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="#">Accueil</a></li>
-              <li class="breadcrumb-item"><a href="javascript: void(0)">Tableau de bord</a></li>
-            </ul>
-          </div>
-        </div>
+{% block title %}Tableau de bord{% endblock %}
+{% block header_title %}Tableau de bord{% endblock %}
+{% block header_subtitle %}Vue d'ensemble de votre activité BI{% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <span class="text-slate-400">Dashboard</span>
+{% endblock %}
+
+{% block content %}
+<div class="px-6 lg:px-8 py-6 space-y-8">
+
+  {% if messages %}
+  <div class="space-y-3">
+    {% for message in messages %}
+    <div class="flex items-center gap-3 px-4 py-3 rounded-xl border {% if message.tags == 'error' %}bg-red-500/10 border-red-500/30 text-red-400{% elif message.tags == 'warning' %}bg-amber-500/10 border-amber-500/30 text-amber-400{% else %}bg-emerald-500/10 border-emerald-500/30 text-emerald-400{% endif %}">
+      <span class="material-symbols-outlined text-[20px]">{% if message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}check_circle{% endif %}</span>
+      <span class="text-sm font-medium">{{ message }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if permissions.view_dashboard %}
+  
+  <!-- Quick Stats Row -->
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    
+    <!-- Logins Today -->
+    <div class="bg-surface-dark/60 border border-slate-800/50 rounded-xl p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-primary text-[18px]">login</span>
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Aujourd'hui</span>
+      </div>
+      <p class="text-2xl font-black text-white">{{ logins_today }}</p>
+      <div class="flex items-center gap-1 mt-1">
+        {% if login_trend >= 0 %}
+        <span class="material-symbols-outlined text-emerald-400 text-[14px]">trending_up</span>
+        <span class="text-[11px] text-emerald-400">+{{ login_trend_percent }}%</span>
+        {% else %}
+        <span class="material-symbols-outlined text-red-400 text-[14px]">trending_down</span>
+        <span class="text-[11px] text-red-400">{{ login_trend_percent }}%</span>
+        {% endif %}
+        <span class="text-[10px] text-slate-600">vs hier</span>
       </div>
     </div>
-    <!-- [ breadcrumb ] end -->
 
-    <div class="row">
-
-      {% if permissions.view_dashboard %}
-      <!-- [ Total Users ] start -->
-      <div class="col-md-6 col-xl-4">
-        <a href="{% url 'users_view' %}" class="text-decoration-none">
-          <div class="card">
-            <div class="card-body">
-              <h6 class="mb-4">Utilisateurs totaux</h6>
-              <div class="row d-flex align-items-center">
-                <div class="col-9">
-                  <h3 class="f-w-300 d-flex align-items-center m-b-0"><i
-                      class="feather icon-users text-primary f-30 m-r-10"></i>{{ active_users }}</h3>
-                </div>
-                <div class="col-3 text-end">
-                  <p class="m-b-0">{{ total_users }}</p>
-                </div>
-              </div>
-              <div class="progress m-t-30" style="height: 7px">
-                <div class="progress-bar bg-info" role="progressbar" style="width: 100%" aria-valuenow="100"
-                  aria-valuemin="0" aria-valuemax="100"></div>
-              </div>
-            </div>
-          </div>
-        </a>
+    <!-- Active Users -->
+    <a href="{% url 'users_view' %}" class="group block">
+      <div class="bg-surface-dark/60 border border-slate-800/50 rounded-xl p-4 hover:border-primary/30 transition-all">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="material-symbols-outlined text-emerald-400 text-[18px]">group</span>
+          <span class="text-[10px] font-bold text-slate-500 uppercase">Utilisateurs</span>
+        </div>
+        <p class="text-2xl font-black text-white">{{ active_users }}</p>
+        <p class="text-[10px] text-slate-600 mt-1">sur {{ total_users }} au total</p>
       </div>
-      <!-- [ Total Users ] end -->
+    </a>
 
-      <!-- [ Users Per Month ] start -->
-      <div class="col-md-6 col-xl-4">
-        <a href="{% url 'powerbi_report:report_list' %}" class="text-decoration-none">
-          <div class="card">
-            <div class="card-body">
-              <h6 class="mb-4">Utilisateurs ce mois</h6>
-              <div class="row d-flex align-items-center">
-                <div class="col-9">
-                  <h3 class="f-w-300 d-flex align-items-center m-b-0"><i
-                      class="feather icon-users text-warning f-30 m-r-10"></i>{{ users_this_month }}</h3>
-                </div>
-              </div>
-              <div class="progress m-t-30" style="height: 7px">
-                <div class="progress-bar bg-warning" role="progressbar" style="width: 100%" aria-valuenow="60"
-                  aria-valuemin="0" aria-valuemax="100"></div>
-              </div>
-            </div>
-          </div>
-        </a>
+    <!-- Reports -->
+    <a href="{% url 'powerbi_report:report_list' %}" class="group block">
+      <div class="bg-surface-dark/60 border border-slate-800/50 rounded-xl p-4 hover:border-primary/30 transition-all">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="material-symbols-outlined text-amber-400 text-[18px]">analytics</span>
+          <span class="text-[10px] font-bold text-slate-500 uppercase">Rapports</span>
+        </div>
+        <p class="text-2xl font-black text-white">{{ total_reports }}</p>
+        <p class="text-[10px] text-slate-600 mt-1">{{ total_synced_reports }} synchronisés</p>
       </div>
-      <!-- [ Users Per Month ] end -->
+    </a>
 
-      <!-- [ Total Reports ] start -->
-      <div class="col-md-6 col-xl-4">
-        <a href="{% url 'powerbi_report:report_list' %}" class="text-decoration-none">
-          <div class="card">
-            <div class="card-body">
-              <h6 class="mb-4">Rapports totaux</h6>
-              <div class="row d-flex align-items-center">
-                <div class="col-9">
-                  <h3 class="f-w-300 d-flex align-items-center m-b-0"><i
-                      class="feather icon-file-text text-info f-30 m-r-10"></i>{{ total_reports }}</h3>
-                </div>
-              </div>
-              <div class="progress m-t-30" style="height: 7px">
-                <div class="progress-bar bg-success" role="progressbar" style="width: 100%" aria-valuenow="60"
-                  aria-valuemin="0" aria-valuemax="100"></div>
-              </div>
-            </div>
-          </div>
-        </a>
+    <!-- Folders -->
+    <div class="bg-surface-dark/60 border border-slate-800/50 rounded-xl p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-violet-400 text-[18px]">folder</span>
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Dossiers</span>
       </div>
-      <!-- [ Total Reports ] end -->
+      <p class="text-2xl font-black text-white">{{ business_folder_count|add:biblio_folder_count }}</p>
+      <p class="text-[10px] text-slate-600 mt-1">{{ business_folder_count }} société, {{ biblio_folder_count }} biblio</p>
+    </div>
 
-      <!-- [ Refreshing ] start -->
-      <div class="row">
-        <div class="col-md-3">
-          <div class="text-start">
-            <!-- [ Graph Filter ] start -->
-            <div class="card mb-3">
-              <div class="d-flex flex-column gap-2 p-3">
-                <button class="btn btn-outline-primary" data-graph="monthly">Statistiques mensuelles</button>
-                <button class="btn btn-outline-success" data-graph="daily">Statistiques quotidiennes</button>
-                <button class="btn btn-outline-warning" data-graph="weekly">Statistiques hebdomadaires</button>
-                <button class="btn btn-outline-info" data-graph="hourly">Statistiques horaires</button>
-              </div>
-            </div>
-            <!-- [ Graph Filter ] end -->
+    <!-- New Users -->
+    <div class="bg-surface-dark/60 border border-slate-800/50 rounded-xl p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-cyan-400 text-[18px]">person_add</span>
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Nouveaux</span>
+      </div>
+      <p class="text-2xl font-black text-white">{{ new_users_this_month }}</p>
+      <p class="text-[10px] text-slate-600 mt-1">ce mois-ci</p>
+    </div>
 
-            {% if completed_refreshes %}
-            <!-- [ Completed Refreshes ] start -->
-            <div class="card mb-3">
-              <div class="card-body">
-                <h6 class="mb-4">Actualisations terminées</h6>
-                <div class="row d-flex align-items-center">
-                  <div class="col-9">
-                    <h3 class="f-w-300 d-flex align-items-center m-b-0"><i
-                        class="feather icon-check-circle text-success f-30 m-r-10"></i>{{ completed_refreshes }}</h3>
-                  </div>
-                </div>
-                <div class="progress m-t-30" style="height: 7px">
-                  <div class="progress-bar bg-success" role="progressbar" style="width: 85%" aria-valuenow="85"
-                    aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-              </div>
-            </div>
-            <!-- [ Completed Refreshes ] end -->
-            {% endif %}
-            {% if failed_refreshes %}
-            <!-- [ Failed Refreshes ] start -->
-            <div class="card mb-3">
-              <div class="card-body">
-                <h6 class="mb-4">Actualisations échouées</h6>
-                <div class="row d-flex align-items-center">
-                  <div class="col-9">
-                    <h3 class="f-w-300 d-flex align-items-center m-b-0"><i
-                        class="feather icon-x-circle text-danger f-30 m-r-10"></i>{{ failed_refreshes }}</h3>
-                  </div>
-                </div>
-                <div class="progress m-t-30" style="height: 7px">
-                  <div class="progress-bar bg-danger" role="progressbar" style="width: 20%" aria-valuenow="20"
-                    aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-              </div>
-            </div>
-            <!-- [ Failed Refreshes ] end -->
-            {% endif %}
+    <!-- Refresh Status -->
+    <div class="bg-surface-dark/60 border border-slate-800/50 rounded-xl p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-{% if refresh_success_rate >= 90 %}emerald{% elif refresh_success_rate >= 70 %}amber{% else %}red{% endif %}-400 text-[18px]">sync</span>
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Refresh</span>
+      </div>
+      <p class="text-2xl font-black text-white">{{ refresh_success_rate }}%</p>
+      <p class="text-[10px] text-slate-600 mt-1">taux de succès</p>
+    </div>
 
+  </div>
 
+  <!-- Main Content Grid -->
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    
+    <!-- Left Column: Charts -->
+    <div class="xl:col-span-2 space-y-6">
+      
+      <!-- Login Charts Section -->
+      <div class="bg-surface-dark/60 border border-slate-800/50 rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-bold text-white">Activité des connexions</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Tendances d'accès à la plateforme</p>
+          </div>
+          <div class="flex gap-1 bg-slate-900/50 p-1 rounded-lg">
+            <button class="graph-btn active px-3 py-1.5 rounded-md text-xs font-medium" data-graph="monthly">Mois</button>
+            <button class="graph-btn px-3 py-1.5 rounded-md text-xs font-medium" data-graph="daily">Jour</button>
+            <button class="graph-btn px-3 py-1.5 rounded-md text-xs font-medium" data-graph="weekly">Semaine</button>
+            <button class="graph-btn px-3 py-1.5 rounded-md text-xs font-medium" data-graph="hourly">Heure</button>
           </div>
         </div>
-
-        <div class="col-md-9 text-end">
-          <!-- [ Monthly Graph Section ] start -->
+        <div class="p-6">
           <div id="monthly-graph" class="graph-container">
-            <div class="card">
-              <div class="card-header">
-                <h5>Statistiques de connexion mensuelles</h5>
-              </div>
-              <div class="card-body">
-                <canvas id="statistics-chart" class="chart-canvas"></canvas>
-              </div>
-            </div>
+            <canvas id="statistics-chart" class="chart-canvas"></canvas>
           </div>
-          <!-- [ Monthly Graph Section ] end -->
-
-          <!-- [ Daily Graph Section ] start -->
-          <div id="daily-graph" class="graph-container" style="display: none;">
-            <div class="card">
-              <div class="card-header">
-                <h5>Statistiques de connexion quotidiennes</h5>
-              </div>
-              <div class="card-body">
-                <canvas id="statistics-chart2" class="chart-canvas"></canvas>
-              </div>
-            </div>
+          <div id="daily-graph" class="graph-container hidden">
+            <canvas id="statistics-chart2" class="chart-canvas"></canvas>
           </div>
-          <!-- [ Daily Graph Section ] end -->
-
-          <!-- [ Weekly Graph Section ] start -->
-          <div id="weekly-graph" class="graph-container" style="display: none;">
-            <div class="card">
-              <div class="card-header">
-                <h5>Statistiques de connexion hebdomadaires</h5>
-              </div>
-              <div class="card-body">
-                <canvas id="statistics-chart3" class="chart-canvas"></canvas>
-              </div>
-            </div>
+          <div id="weekly-graph" class="graph-container hidden">
+            <canvas id="statistics-chart3" class="chart-canvas"></canvas>
           </div>
-          <!-- [ Weekly Graph Section ] end -->
-
-          <!-- [ Hourly Graph Section ] start -->
-          <div id="hourly-graph" class="graph-container" style="display: none;">
-            <div class="card">
-              <div class="card-header">
-                <h5>Statistiques de connexion horaires</h5>
-              </div>
-              <div class="card-body">
-                <canvas id="statistics-chart4" class="chart-canvas"></canvas>
-              </div>
-            </div>
-          </div>
-          <!-- [ Hourly Graph Section ] end -->
-        </div>
-        <!-- [ Refreshing ] end -->
-
-        {%endif%}
-        {% if permissions.view_refresh %}
-
-        {% if report_refresh_list %}
-        <!-- [ Filter Section ] start -->
-        <div style="margin-bottom:20px">
-          <div class="row mt-3">
-            <div class="col-md-4">
-              <input type="text" id="searchName" class="form-control" placeholder="Rechercher par nom de rapport">
-            </div>
-            <div class="col-md-4">
-              <select id="statusFilter" class="form-control">
-                <option value="">Tous les statuts</option>
-                <option value="Completed Data Refresh">Terminé</option>
-                <option value="Nouveau plan d'actualisation planifié">Planifié</option>
-                <option value="Data Refresh failed">Échoué</option>
-              </select>
-            </div>
-            <div class="col-md-4">
-              <select id="sortTime" class="form-control">
-                <option value="">Trier par dernière actualisation</option>
-                <option value="asc">Plus ancien en premier</option>
-                <option value="desc">Plus récent en premier</option>
-              </select>
-            </div>
+          <div id="hourly-graph" class="graph-container hidden">
+            <canvas id="statistics-chart4" class="chart-canvas"></canvas>
           </div>
         </div>
-        <!-- [ Filter Section ] end -->
-
-        <!-- [ Report Refresh List ] start -->
-        <div class="col-md-12">
-          <div class="card">
-            <div class="card-body">
-              <div class="table-responsive">
-                <table class="table table-hover" id="reportTable">
-                  <thead>
-                    <tr>
-                      <th>Nom du rapport</th>
-                      <th>Dernière actualisation</th>
-                      <th>Statut</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for report in report_refresh_list %}
-                    {% if permissions.view_dashboard %}
-
-                    <tr onclick="window.location.href='{% url 'powerbi_report:report_detail' report.report_id %}'"
-                      style="cursor: pointer;">
-                      <td class="report-name">
-                        {{ report.report_name }}
-                      </td>
-                      <td class="last-refresh">{{ report.last_refresh }}</td>
-                      <td class="status">
-                        <span
-                          class="badge {% if report.status == 'Completed Data Refresh' %}bg-success{% elif report.status == 'Nouveau plan d\'actualisation planifié' %}bg-warning{% else %}bg-danger{% endif %}">
-                          {% if 'Data Refresh failed' in report.status %}
-                          Échec de l'actualisation
-                          {% else %}
-                          {{ report.status }}
-                          {% endif %}
-                        </span>
-                      </td>
-                    </tr>
-                    {%else%}
-                    <tr onclick="window.location.href='#'" style="cursor: pointer;">
-                      <td class="report-name">
-                        {{ report.report_name }}
-                      </td>
-                      <td class="last-refresh">{{ report.last_refresh }}</td>
-                      <td class="status">
-                        <span
-                          class="badge {% if report.status == 'Completed Data Refresh' %}bg-success{% elif report.status == 'Nouveau plan d\'actualisation planifié' %}bg-warning{% else %}bg-danger{% endif %}">
-                          {% if 'Data Refresh failed' in report.status %}
-                          Data Refresh failed
-                          {% else %}
-                          {{ report.status }}
-                          {% endif %}
-                        </span>
-                      </td>
-                    </tr>
-                    {%endif%}
-
-
-                    {% empty %}
-                    <tr>
-                      <td colspan="3" class="text-center">Aucune donnée d'actualisation disponible.</td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- [ Report Refresh List ] end -->
-        {% endif %}
-
-        {%endif%}
       </div>
-      <!-- [ Main Content ] end -->
+
+      <!-- Report Distribution & Top Folders -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Report Distribution -->
+        <div class="bg-surface-dark/60 border border-slate-800/50 rounded-2xl p-6">
+          <h3 class="text-sm font-bold text-white mb-4">Distribution des rapports</h3>
+          <div class="flex items-center justify-center mb-4">
+            <canvas id="distribution-chart" class="!h-[160px] !w-[160px]"></canvas>
+          </div>
+          <div class="space-y-2">
+            {% for item in report_distribution %}
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="size-3 rounded-full" style="background-color: {{ item.color }}"></span>
+                <span class="text-sm text-slate-400">{{ item.name }}</span>
+              </div>
+              <span class="text-sm font-bold text-white">{{ item.count }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Top Folders -->
+        <div class="bg-surface-dark/60 border border-slate-800/50 rounded-2xl p-6">
+          <h3 class="text-sm font-bold text-white mb-4">Top dossiers</h3>
+          {% if top_folders %}
+          <div class="space-y-3">
+            {% for folder in top_folders %}
+            <div class="flex items-center gap-3">
+              <div class="size-8 rounded-lg {% if folder.view_type == 'business' %}bg-primary/10 text-primary{% else %}bg-emerald-500/10 text-emerald-400{% endif %} flex items-center justify-center">
+                <span class="material-symbols-outlined text-[16px]">folder</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-white truncate">{{ folder.name }}</p>
+                <p class="text-[10px] text-slate-600">{{ folder.view_type }}</p>
+              </div>
+              <span class="text-sm font-bold text-white">{{ folder.report_count }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="py-8 text-center">
+            <span class="material-symbols-outlined text-[32px] text-slate-700 mb-2">folder_off</span>
+            <p class="text-xs text-slate-500">Aucun dossier avec rapports</p>
+          </div>
+          {% endif %}
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Right Column: Activity & Users -->
+    <div class="space-y-6">
+
+      <!-- Recent Activity -->
+      <div class="bg-surface-dark/60 border border-slate-800/50 rounded-2xl overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-800/50">
+          <h3 class="text-sm font-bold text-white">Activité récente</h3>
+        </div>
+        <div class="divide-y divide-slate-800/30 max-h-[320px] overflow-y-auto custom-scrollbar">
+          {% for activity in recent_activity %}
+          <div class="px-5 py-3 hover:bg-white/[0.02] transition-colors">
+            <div class="flex items-start gap-3">
+              <div class="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0 mt-0.5">
+                {{ activity.user__username|slice:":1"|upper }}
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-[13px] text-white leading-snug">
+                  <span class="font-medium">{{ activity.user__username }}</span>
+                  <span class="text-slate-400">{{ activity.action|truncatechars:50 }}</span>
+                </p>
+                <p class="text-[10px] text-slate-600 mt-0.5">{{ activity.timestamp|timesince }} ago</p>
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="py-8 text-center">
+            <span class="material-symbols-outlined text-[32px] text-slate-700 mb-2">history</span>
+            <p class="text-xs text-slate-500">Aucune activité récente</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Users by Company -->
+      <div class="bg-surface-dark/60 border border-slate-800/50 rounded-2xl p-5">
+        <h3 class="text-sm font-bold text-white mb-4">Utilisateurs par société</h3>
+        {% if users_by_company %}
+        <div class="space-y-3">
+          {% for company in users_by_company %}
+          <div class="flex items-center gap-3">
+            <div class="flex-1">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs text-slate-400 truncate">{{ company.societe|default:"Non renseigné" }}</span>
+                <span class="text-xs font-bold text-white">{{ company.count }}</span>
+              </div>
+              <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-primary to-cyan-400 rounded-full" style="width: {% widthratio company.count users_by_company.0.count 100 %}%"></div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="py-6 text-center">
+          <span class="material-symbols-outlined text-[28px] text-slate-700 mb-2">business</span>
+          <p class="text-xs text-slate-500">Données non disponibles</p>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+
+  </div>
+  {% endif %}
+
+  {% if permissions.view_refresh %}
+  {% if report_refresh_list %}
+  <!-- Refresh Table Section -->
+  <div class="space-y-4">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div>
+        <h2 class="text-lg font-bold text-white">Actualisations récentes</h2>
+        <p class="text-sm text-slate-500">État des rafraîchissements de données</p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
+          <input type="text" id="searchName" placeholder="Rechercher..." class="w-full sm:w-64 pl-10 pr-4 py-2.5 bg-surface-dark/60 border border-slate-800/50 rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-primary/50 transition-colors">
+        </div>
+        <select id="statusFilter" class="px-4 py-2.5 bg-surface-dark/60 border border-slate-800/50 rounded-xl text-sm text-white focus:outline-none focus:border-primary/50 transition-colors">
+          <option value="">Tous les statuts</option>
+          <option value="Completed">Terminé</option>
+          <option value="failed">Échoué</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="bg-surface-dark/60 border border-slate-800/50 rounded-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full" id="reportTable">
+          <thead>
+            <tr class="border-b border-slate-800/50">
+              <th class="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Rapport</th>
+              <th class="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Dernière actualisation</th>
+              <th class="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Statut</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/30">
+            {% for report in report_refresh_list %}
+            <tr class="hover:bg-white/[0.02] transition-colors {% if permissions.view_dashboard %}cursor-pointer{% endif %}" 
+                {% if permissions.view_dashboard %}onclick="window.location.href='{% url 'powerbi_report:report_detail' report.report_id %}'"{% endif %}>
+              <td class="px-6 py-4 report-name">
+                <div class="flex items-center gap-3">
+                  <div class="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    <span class="material-symbols-outlined text-[18px]">analytics</span>
+                  </div>
+                  <span class="text-sm font-medium text-white">{{ report.report_name }}</span>
+                </div>
+              </td>
+              <td class="px-6 py-4 last-refresh">
+                <span class="text-sm text-slate-400">{{ report.last_refresh }}</span>
+              </td>
+              <td class="px-6 py-4 status">
+                {% if 'Completed' in report.status %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <span class="size-1.5 rounded-full bg-emerald-400"></span>
+                  Terminé
+                </span>
+                {% elif 'failed' in report.status %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20">
+                  <span class="size-1.5 rounded-full bg-red-400"></span>
+                  Échec
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <span class="size-1.5 rounded-full bg-amber-400"></span>
+                  Planifié
+                </span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="3" class="px-6 py-12 text-center">
+                <div class="flex flex-col items-center">
+                  <span class="material-symbols-outlined text-[48px] text-slate-700 mb-3">sync_disabled</span>
+                  <p class="text-sm text-slate-500">Aucune actualisation disponible</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-  <!-- [ Main Content ] end -->
+  {% endif %}
+  {% endif %}
 
-  <!-- Include Chart Library -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</div>
 
-  <!-- Existing Table Filter and Sort Scripts -->
-  <script>
-    document.getElementById("searchName").addEventListener("keyup", function () {
-      let value = this.value.toLowerCase();
-      document.querySelectorAll("#reportTable tbody tr").forEach(row => {
-        let name = row.querySelector(".report-name").textContent.toLowerCase();
-        row.style.display = name.includes(value) ? "" : "none";
-      });
+<style>
+  .chart-canvas {
+    height: 280px !important;
+    width: 100%;
+  }
+
+  .graph-btn {
+    background: transparent;
+    color: rgb(100, 116, 139);
+    transition: all 0.2s;
+  }
+
+  .graph-btn:hover {
+    color: rgb(226, 232, 240);
+  }
+
+  .graph-btn.active {
+    background: rgba(19, 127, 236, 0.15);
+    color: rgb(19, 127, 236);
+  }
+
+  select option {
+    background: #121922;
+    color: white;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.3);
+    border-radius: 2px;
+  }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  // Table filters
+  document.getElementById("searchName")?.addEventListener("keyup", function () {
+    let value = this.value.toLowerCase();
+    document.querySelectorAll("#reportTable tbody tr").forEach(row => {
+      let name = row.querySelector(".report-name")?.textContent.toLowerCase() || "";
+      row.style.display = name.includes(value) ? "" : "none";
     });
+  });
 
-    document.getElementById("statusFilter").addEventListener("change", function () {
-      let value = this.value;
-      document.querySelectorAll("#reportTable tbody tr").forEach(row => {
-        let status = row.querySelector(".status").textContent.trim();
-        row.style.display = value === "" || status === value ? "" : "none";
-      });
+  document.getElementById("statusFilter")?.addEventListener("change", function () {
+    let value = this.value;
+    document.querySelectorAll("#reportTable tbody tr").forEach(row => {
+      let status = row.querySelector(".status")?.textContent.trim() || "";
+      row.style.display = value === "" || status.toLowerCase().includes(value.toLowerCase()) ? "" : "none";
     });
+  });
+</script>
 
-    document.getElementById("sortTime").addEventListener("change", function () {
-      let table = document.querySelector("#reportTable tbody");
-      let rows = Array.from(table.querySelectorAll("tr"));
-      let order = this.value;
-      rows.sort((a, b) => {
-        let dateA = new Date(a.querySelector(".last-refresh").textContent);
-        let dateB = new Date(b.querySelector(".last-refresh").textContent);
-        return order === "asc" ? dateA - dateB : dateB - dateA;
-      });
-      rows.forEach(row => table.appendChild(row));
-    });
-  </script>
+<script>
+  // Graph toggle
+  document.addEventListener('DOMContentLoaded', function () {
+    const graphButtons = document.querySelectorAll('.graph-btn');
+    const graphs = {
+      monthly: document.getElementById('monthly-graph'),
+      daily: document.getElementById('daily-graph'),
+      weekly: document.getElementById('weekly-graph'),
+      hourly: document.getElementById('hourly-graph')
+    };
 
-  <!-- Graph Filter Script -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const graphButtons = document.querySelectorAll('.btn[data-graph]');
-      const monthlyGraph = document.getElementById('monthly-graph');
-      const dailyGraph = document.getElementById('daily-graph');
-      const weeklyGraph = document.getElementById('weekly-graph');
-      const hourlyGraph = document.getElementById('hourly-graph');
-
-      graphButtons.forEach(button => {
-        button.addEventListener('click', function () {
-          // Remove active class from all buttons
-          graphButtons.forEach(btn => btn.classList.remove('active'));
-          // Add active class to clicked button
-          this.classList.add('active');
-
-          // Show/hide graphs based on button clicked
-          monthlyGraph.style.display = this.dataset.graph === 'monthly' ? 'block' : 'none';
-          dailyGraph.style.display = this.dataset.graph === 'daily' ? 'block' : 'none';
-          weeklyGraph.style.display = this.dataset.graph === 'weekly' ? 'block' : 'none';
-          hourlyGraph.style.display = this.dataset.graph === 'hourly' ? 'block' : 'none';
+    graphButtons.forEach(button => {
+      button.addEventListener('click', function () {
+        graphButtons.forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+        Object.keys(graphs).forEach(key => {
+          if (graphs[key]) graphs[key].classList.toggle('hidden', key !== this.dataset.graph);
         });
       });
     });
-  </script>
-
-  <!-- Chart.js Script for Monthly Logins -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      // Prepare data for the chart
-      const monthlyLogins = [
-        {% for login in monthly_logins %}
-        {
-        month: "{{ login.month|date:'F' }}",
-        count: {{ login.count }}
-        }{% if not forloop.last %}, {% endif %}
-    {% endfor %}
-    ];
-
-    // Create an array for all months to ensure consistent display
-    const allMonths = [
-      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-    ];
-    const labels = allMonths;
-    const data = new Array(12).fill(0); // Initialize with zeros
-
-    // Populate data for months with login counts
-    monthlyLogins.forEach(login => {
-      const monthIndex = allMonths.indexOf(login.month);
-      if (monthIndex !== -1) {
-        data[monthIndex] = login.count;
-      }
-    });
-
-    // Initialize Chart.js
-    const ctx = document.getElementById('statistics-chart').getContext('2d');
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Événements de connexion',
-          data: data,
-          backgroundColor: 'rgba(54, 162, 235, 0.6)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'Number of Logins'
-            }
-          },
-          x: {
-            title: {
-              display: true,
-              text: 'Mois'
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            display: false,
-            position: 'top'
-          },
-          title: {
-            display: false
-          }
-        }
-      }
-    });
   });
-  </script>
+</script>
 
-
-  <!-- Chart.js Script for Daily Logins -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      // Prepare data for the chart
-      const dailyLogins = [
-        {% for login in daily_logins %}
-        {
-        day: "{{ login.day|date:'j' }}",
-        count: {{ login.count }}
-        }{% if not forloop.last %}, {% endif %}
-    {% endfor %}
+<!-- Distribution Chart -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const distributionData = [
+      {% for item in report_distribution %}
+      { name: "{{ item.name }}", count: {{ item.count }}, color: "{{ item.color }}" }{% if not forloop.last %},{% endif %}
+      {% endfor %}
     ];
 
-    // Create an array for all days of the month (1-31)
-    const allDays = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
-    const labels = allDays;
-    const data = new Array(31).fill(0); // Initialize with zeros
-
-    // Populate data for days with login counts
-    dailyLogins.forEach(login => {
-      const dayIndex = parseInt(login.day, 10) - 1;
-      if (dayIndex >= 0 && dayIndex < 31) {
-        data[dayIndex] = login.count;
-      }
-    });
-
-    // Initialize Chart.js
-    const ctx = document.getElementById('statistics-chart2').getContext('2d');
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Événements de connexion',
-          data: data,
-          backgroundColor: 'rgba(75, 192, 192, 0.6)',
-          borderColor: 'rgba(75, 192, 192, 1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'Number of Logins'
-            }
-          },
-          x: {
-            title: {
-              display: true,
-              text: 'Jour du mois'
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            display: false,
-            position: 'left'
-          },
-          title: {
-            display: false
-          }
-        }
-      }
-    });
-  });
-  </script>
-
-  <!-- Chart.js Script for Weekly Logins -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      // Prepare data for the chart
-      const weeklyLogins = [
-        {% for login in weekly_logins %}
-        {
-        day: "{{ login.day|date:'l' }}",
-        count: {{ login.count }}
-        }{% if not forloop.last %}, {% endif %}
-    {% endfor %}
-    ];
-
-    // Create an array for the last 7 days (Friday to Thursday)
-    const allDays = ['Vendredi', 'Samedi', 'Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi'];
-    const labels = allDays;
-    const data = new Array(7).fill(0); // Initialize with zeros
-
-    // Populate data for days with login counts
-    weeklyLogins.forEach(login => {
-      const dayIndex = allDays.indexOf(login.day);
-      if (dayIndex !== -1) {
-        data[dayIndex] = login.count;
-      }
-    });
-
-    // Initialize Chart.js
-    const ctx = document.getElementById('statistics-chart3').getContext('2d');
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Événements de connexion',
-          data: data,
-          backgroundColor: 'rgba(153, 102, 255, 0.6)',
-          borderColor: 'rgba(153, 102, 255, 1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'Nombre de connexions'
-            }
-          },
-          x: {
-            title: {
-              display: true,
-              text: 'Jour de la semaine'
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            display: false,
-            position: 'top'
-          },
-          title: {
-            display: false
-          }
-        }
-      }
-    });
-  });
-  </script>
-
-  <!-- Chart.js Script for Hourly Logins -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      // Prepare data for the chart
-      const hourlyLogins = [
-        {% for login in hourly_logins %}
-        {
-        hours: "{{ login.hours.hour }}",
-        count: {{ login.count }}
-        }{% if not forloop.last %}, {% endif %}
-    {% endfor %}
-    ];
-
-    // Debug: Log hourly logins data
-    console.log("Hourly Logins JavaScript Data:", hourlyLogins);
-
-    // Create an array for all hours (0-23)
-    const allHours = Array.from({ length: 24 }, (_, i) => i.toString());
-    const labels = allHours;
-    const data = new Array(24).fill(0); // Initialize with zeros
-
-    // Populate data for hours with login counts
-    hourlyLogins.forEach(login => {
-      const hourIndex = parseInt(login.hours, 10);
-      if (hourIndex >= 0 && hourIndex < 24) {
-        data[hourIndex] = login.count;
-      }
-    });
-
-    // Initialize Chart.js
-    const ctx = document.getElementById('statistics-chart4');
-    if (ctx) {
+    const ctx = document.getElementById('distribution-chart');
+    if (ctx && distributionData.length > 0) {
       new Chart(ctx.getContext('2d'), {
-        type: 'bar',
+        type: 'doughnut',
         data: {
-          labels: labels,
+          labels: distributionData.map(d => d.name),
           datasets: [{
-            label: 'Événements de connexion',
-            data: data,
-            backgroundColor: 'rgba(255, 159, 64, 0.6)',
-            borderColor: 'rgba(255, 159, 1)',
-            borderWidth: 1
+            data: distributionData.map(d => d.count),
+            backgroundColor: distributionData.map(d => d.color),
+            borderWidth: 0,
+            cutout: '70%'
           }]
         },
         options: {
           responsive: true,
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: {
-                display: true,
-                text: 'Nombre de connexions'
-              }
-            },
-            x: {
-              title: {
-                display: true,
-                text: 'Heure de la journée'
-              }
-            }
-          },
+          maintainAspectRatio: true,
           plugins: {
-            legend: {
-              display: false,
-              position: 'top'
-            },
-            title: {
-              display: false
-            }
+            legend: { display: false }
           }
         }
       });
-    } else {
-      console.error("Canvas with ID 'statistics-chart4' not found");
     }
   });
-  </script>
+</script>
 
-  <!-- Existing Refresh Fetch Script -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      let Refresh = false;
+<!-- Monthly Chart -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const monthlyLogins = [
+      {% for login in monthly_logins %}
+      { month: "{{ login.month|date:'F' }}", count: {{ login.count }} }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
 
-      setTimeout(function () {
-        console.log("Waiting");
-
-        fetch("{% url 'powerbi_report:get_report_refresh_list' %}")
-          .then(response => response.json())
-          .then(data => {
-            console.log('Cache loaded:', data);
-          })
-          .catch(error => {
-            console.error('Error loading cache:', error);
-          });
-      }, 100);
+    const allMonths = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+    const data = new Array(12).fill(0);
+    monthlyLogins.forEach(login => {
+      const idx = allMonths.indexOf(login.month);
+      if (idx !== -1) data[idx] = login.count;
     });
-  </script>
 
-  <style>
-    .bg-warning {
-      background-color: rgb(255, 193, 7);
-      color: white;
+    const ctx = document.getElementById('statistics-chart');
+    if (ctx) {
+      new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: allMonths.map(m => m.slice(0, 3)),
+          datasets: [{
+            data: data,
+            backgroundColor: 'rgba(19, 127, 236, 0.6)',
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(100, 116, 139, 0.1)' }, ticks: { color: 'rgb(100, 116, 139)' } },
+            x: { grid: { display: false }, ticks: { color: 'rgb(100, 116, 139)' } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
     }
+  });
+</script>
 
-    .btn-outline-primary.active {
-      background-color: #007bff;
-      color: white;
+<!-- Daily Chart -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const dailyLogins = [
+      {% for login in daily_logins %}
+      { day: "{{ login.day|date:'j' }}", count: {{ login.count }} }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
+
+    const allDays = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
+    const data = new Array(31).fill(0);
+    dailyLogins.forEach(login => {
+      const idx = parseInt(login.day, 10) - 1;
+      if (idx >= 0 && idx < 31) data[idx] = login.count;
+    });
+
+    const ctx = document.getElementById('statistics-chart2');
+    if (ctx) {
+      new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: allDays,
+          datasets: [{
+            data: data,
+            backgroundColor: 'rgba(16, 185, 129, 0.6)',
+            borderRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(100, 116, 139, 0.1)' }, ticks: { color: 'rgb(100, 116, 139)' } },
+            x: { grid: { display: false }, ticks: { color: 'rgb(100, 116, 139)', maxRotation: 0 } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
     }
+  });
+</script>
 
-    .btn-outline-success.active {
-      background-color: #28a745;
-      color: white;
+<!-- Weekly Chart -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const weeklyLogins = [
+      {% for login in weekly_logins %}
+      { day: "{{ login.day|date:'l' }}", count: {{ login.count }} }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
+
+    const allDays = ['Vendredi', 'Samedi', 'Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi'];
+    const data = new Array(7).fill(0);
+    weeklyLogins.forEach(login => {
+      const idx = allDays.indexOf(login.day);
+      if (idx !== -1) data[idx] = login.count;
+    });
+
+    const ctx = document.getElementById('statistics-chart3');
+    if (ctx) {
+      new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: allDays.map(d => d.slice(0, 3)),
+          datasets: [{
+            data: data,
+            backgroundColor: 'rgba(139, 92, 246, 0.6)',
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(100, 116, 139, 0.1)' }, ticks: { color: 'rgb(100, 116, 139)' } },
+            x: { grid: { display: false }, ticks: { color: 'rgb(100, 116, 139)' } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
     }
+  });
+</script>
 
-    .btn-outline-warning.active {
-      background-color: #ffc107;
-      color: white;
+<!-- Hourly Chart -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const hourlyLogins = [
+      {% for login in hourly_logins %}
+      { hours: "{{ login.hours.hour }}", count: {{ login.count }} }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
+
+    const allHours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+    const data = new Array(24).fill(0);
+    hourlyLogins.forEach(login => {
+      const idx = parseInt(login.hours, 10);
+      if (idx >= 0 && idx < 24) data[idx] = login.count;
+    });
+
+    const ctx = document.getElementById('statistics-chart4');
+    if (ctx) {
+      new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: allHours,
+          datasets: [{
+            data: data,
+            borderColor: 'rgba(251, 146, 60, 1)',
+            backgroundColor: 'rgba(251, 146, 60, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+            pointBackgroundColor: 'rgba(251, 146, 60, 1)'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(100, 116, 139, 0.1)' }, ticks: { color: 'rgb(100, 116, 139)' } },
+            x: { grid: { display: false }, ticks: { color: 'rgb(100, 116, 139)' } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
     }
+  });
+</script>
 
-    .btn-outline-info.active {
-      background-color: #17a2b8;
-      color: white;
-    }
+<script>
+  // Prefetch refresh data
+  document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(function () {
+      fetch("{% url 'powerbi_report:get_report_refresh_list' %}")
+        .then(response => response.json())
+        .catch(error => console.error('Error:', error));
+    }, 100);
+  });
+</script>
 
-    /* New CSS class for uniform chart height */
-    .chart-canvas {
-      height: 470px !important;
-      /* Consistent height for all charts */
-      width: 100%;
-      /* Ensure full width */
-    }
-  </style>
-
-  {% endblock %}
+{% endblock %}

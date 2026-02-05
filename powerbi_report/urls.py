@@ -61,7 +61,7 @@ urlpatterns = [
     path('custom/business/', views.custom_folders_list, {'view_type': 'business'}, name='custom_business'),
     path('custom/business/<int:folder_id>/', views.custom_folders_list, {'view_type': 'business'}, name='custom_folder_detail'),
     path('custom/biblio/', views.custom_folders_list, {'view_type': 'biblio'}, name='custom_biblio'),
-    path('custom/biblio/<int:folder_id>/', views.custom_folders_list, {'view_type': 'biblio'}, name='custom_biblio_detail'),
+    path('custom/biblio/<int:folder_id>/', views.custom_folders_list, {'view_type': 'biblio'}, name='custom_folder_detail'),
     path('custom/folder/<str:view_type>/<int:folder_id>/report/<int:report_id>/', views.embed_custom_report, name='embed_custom_report'),
     # Department view uses the same view as Reports page (report_list_hierarchy)
     path('custom/department/', views.report_list_hierarchy, name='custom_department'),

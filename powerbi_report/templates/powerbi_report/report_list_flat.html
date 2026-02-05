@@ -21,9 +21,19 @@
                 <input type="text" id="reportSearch" class="w-full pl-10 pr-4 py-2 bg-surface-dark border border-slate-800 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all text-slate-300" placeholder="Rechercher un rapport...">
             </div>
             
+            {% if request.GET.context == 'department' %}
+            <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-800 hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-400">
+                <span class="material-symbols-outlined text-[18px]">account_tree</span> Vue Hiérarchique
+            </a>
+            {% elif request.GET.context == 'biblio' %}
+            <a href="{% url 'powerbi_report:custom_biblio' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-800 hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-400">
+                <span class="material-symbols-outlined text-[18px]">account_tree</span> Vue Hiérarchique
+            </a>
+            {% else %}
             <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-800 hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-400">
                 <span class="material-symbols-outlined text-[18px]">account_tree</span> Vue Hiérarchique
             </a>
+            {% endif %}
         </div>
     </div>
 
@@ -56,7 +66,7 @@
                         </td>
                         <td class="px-6 py-4 text-xs text-slate-500 font-mono">{{ report.Path }}</td>
                         <td class="px-6 py-4 text-right">
-                            <a href="{% url 'powerbi_report:embed_report' report.Path %}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">
+                            <a href="{% url 'powerbi_report:embed_report' report.Path %}?context={% if request.GET.context %}{{ request.GET.context }}{% else %}list_flat{% endif %}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">
                                 <span class="material-symbols-outlined text-[16px]">visibility</span> Ouvrir
                             </a>
                         </td>
@@ -80,7 +90,7 @@
             <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Affichage de {{ reports.start_index }} à {{ reports.end_index }} sur {{ reports.paginator.count }} rapports</p>
             <div class="flex items-center gap-2">
                 {% if reports.has_previous %}
-                <a href="?page={{ reports.previous_page_number }}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700">
+                <a href="?page={{ reports.previous_page_number }}{% if request.GET.context %}&context={{ request.GET.context }}{% endif %}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700">
                     <span class="material-symbols-outlined text-[18px]">chevron_left</span>
                 </a>
                 {% else %}
@@ -93,12 +103,12 @@
                     {% if reports.number == i %}
                     <span class="size-8 rounded bg-primary flex items-center justify-center text-white text-[11px] font-black border border-primary shadow-[0_0_15px_rgba(19,127,236,0.3)]">{{ i }}</span>
                     {% elif i > reports.number|add:'-3' and i < reports.number|add:'3' %}
-                    <a href="?page={{ i }}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white text-[11px] font-bold border border-slate-700 transition-all">{{ i }}</a>
+                    <a href="?page={{ i }}{% if request.GET.context %}&context={{ request.GET.context }}{% endif %}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white text-[11px] font-bold border border-slate-700 transition-all">{{ i }}</a>
                     {% endif %}
                 {% endfor %}
 
                 {% if reports.has_next %}
-                <a href="?page={{ reports.next_page_number }}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700">
+                <a href="?page={{ reports.next_page_number }}{% if request.GET.context %}&context={{ request.GET.context }}{% endif %}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700">
                     <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                 </a>
                 {% else %}

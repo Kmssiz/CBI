@@ -609,7 +609,7 @@ def embed_report(request, report_path):
         current_path = f"{current_path}/{part}" if current_path else part
         breadcrumbs.append({
             "name": part,
-            "url": urllib.parse.quote(current_path, safe="/")
+            "url": current_path
         })
 
     try:
@@ -761,15 +761,26 @@ def report_list_hierarchy(request, folder_path=""):
         # Traverse to the parent container
         current_level = folder_dict
         for part in parts[:-1]:  
-            current_level = current_level.setdefault(part, {})
+            # Ensure parent exists and is a folder
+            if part not in current_level:
+                current_level[part] = {'type': 'Folder', 'children': {}}
+            current_level = current_level[part]['children']
 
         if item_type == 'Folder':
-            # Ensure the folder entry exists as a dictionary
-            current_level.setdefault(item_name, {})
+            # Ensure the folder entry exists
+            if item_name not in current_level:
+                current_level[item_name] = {'type': 'Folder', 'children': {}}
+            # If it already created (by a child), ensure type is set (though it should be)
+            current_level[item_name].update({'type': 'Folder'})
+            
         elif item_type == 'PowerBIReport':
              # For reports, assign the embed URL
             encoded_path = urllib.parse.quote(item.get("Path", ""), safe="/")
-            current_level[item_name] = f"{base_embed_url}{encoded_path}?rs:embed=true"
+            current_level[item_name] = {
+                "type": "PowerBIReport",
+                "url": f"{base_embed_url}{encoded_path}?rs:embed=true",
+                "path": item.get("Path", "")
+            }
 
     current_folder = folder_dict
     breadcrumbs = []
@@ -780,7 +791,13 @@ def report_list_hierarchy(request, folder_path=""):
                 "name": part,
                 "url": "/".join(parts[: idx + 1])
             })
-            current_folder = current_folder.get(part, {})
+            # Navigate into 'children' if it exists
+            node = current_folder.get(part)
+            if node and node.get('type') == 'Folder':
+                current_folder = node.get('children', {})
+            else:
+                current_folder = {}
+                break
 
     folder_path = folder_path.rstrip('/')
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
@@ -2927,6 +2944,92 @@ def dashboard(request):
         .order_by('hours')
     )
 
+    # ============ NEW: Enhanced BI Analytics ============
+    
+    # Report distribution by view type (from CustomFolder)
+    from .models import CustomFolder, ReportRef, FolderReportItem
+    from users.models import UserHistory
+    
+    reports_by_view_type = list(
+        CustomFolder.objects
+        .values('view_type')
+        .annotate(folder_count=Count('id'))
+        .order_by('view_type')
+    )
+    
+    # Count reports in each view type
+    business_folders = CustomFolder.objects.filter(view_type='business')
+    biblio_folders = CustomFolder.objects.filter(view_type='biblio')
+    
+    business_report_count = FolderReportItem.objects.filter(folder__view_type='business').count()
+    biblio_report_count = FolderReportItem.objects.filter(folder__view_type='biblio').count()
+    
+    report_distribution = [
+        {'name': 'Société', 'count': business_report_count, 'color': '#137fec'},
+        {'name': 'Bibliothèque', 'count': biblio_report_count, 'color': '#10b981'},
+    ]
+    
+    # Total synced reports
+    total_synced_reports = ReportRef.objects.count()
+    
+    # Top folders by report count
+    top_folders = list(
+        CustomFolder.objects
+        .annotate(report_count=Count('report_items'))
+        .filter(report_count__gt=0)
+        .order_by('-report_count')[:5]
+        .values('name', 'view_type', 'report_count')
+    )
+    
+    # Recent activity (last 10 actions)
+    recent_activity = list(
+        UserHistory.objects
+        .select_related('user')
+        .order_by('-timestamp')[:10]
+        .values('user__username', 'action', 'timestamp')
+    )
+    
+    # Users by company (societe)
+    users_by_company = list(
+        CustomUser.objects
+        .exclude(societe__isnull=True)
+        .exclude(societe='')
+        .values('societe')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:6]
+    )
+    
+    # Today vs yesterday logins
+    yesterday_start = start_of_day - timedelta(days=1)
+    yesterday_end = start_of_day
+    
+    logins_today = LoginEvent.objects.filter(
+        login_type=LoginEvent.LOGIN,
+        datetime__gte=start_of_day,
+        datetime__lt=end_of_day
+    ).count()
+    
+    logins_yesterday = LoginEvent.objects.filter(
+        login_type=LoginEvent.LOGIN,
+        datetime__gte=yesterday_start,
+        datetime__lt=yesterday_end
+    ).count()
+    
+    login_trend = logins_today - logins_yesterday
+    login_trend_percent = round((login_trend / logins_yesterday * 100), 1) if logins_yesterday > 0 else 0
+    
+    # New users this month
+    new_users_this_month = CustomUser.objects.filter(
+        date_joined__year=current_year,
+        date_joined__month=current_month
+    ).count()
+    
+    # Platform health - refresh success rate
+    refresh_success_rate = 0
+    if refresh_data:
+        total_refreshes = refresh_data.get('completed_refreshes', 0) + refresh_data.get('failed_refreshes', 0)
+        if total_refreshes > 0:
+            refresh_success_rate = round((refresh_data.get('completed_refreshes', 0) / total_refreshes) * 100, 1)
 
     context = {
         'total_users': total_users,
@@ -2940,6 +3043,20 @@ def dashboard(request):
         'daily_logins': list(daily_logins),
         'weekly_logins': list(weekly_logins),
         'hourly_logins': list(hourly_logins),
+        # New analytics data
+        'report_distribution': report_distribution,
+        'total_synced_reports': total_synced_reports,
+        'top_folders': top_folders,
+        'recent_activity': recent_activity,
+        'users_by_company': users_by_company,
+        'logins_today': logins_today,
+        'logins_yesterday': logins_yesterday,
+        'login_trend': login_trend,
+        'login_trend_percent': login_trend_percent,
+        'new_users_this_month': new_users_this_month,
+        'refresh_success_rate': refresh_success_rate,
+        'business_folder_count': business_folders.count(),
+        'biblio_folder_count': biblio_folders.count(),
     }
 
     if refresh_data:
@@ -3190,7 +3307,7 @@ def custom_folders_list(request, view_type='business', folder_id=None):
     permissions = get_user_permissions(request.user)
     
     view_titles = {
-        'business': 'Rapports par Société',
+        'business': 'CBI',
         'department': 'Rapports par Pôle',
         'biblio': 'Bibliothèque'
     }

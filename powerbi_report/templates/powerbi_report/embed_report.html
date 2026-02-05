@@ -8,7 +8,32 @@
 {% endblock %}
 {% block header_subtitle %}Visualisation du rapport Power BI{% endblock %}
 
-
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  {% if request.GET.context == 'department' %}
+      <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_department' %}">RAPPORTS</a>
+      {% for breadcrumb in breadcrumbs %}
+           <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+           {% if not forloop.last %}
+            <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_department_folder' folder_path=breadcrumb.url %}">{{ breadcrumb.name }}</a>
+           {% else %}
+            <span class="text-slate-400">{{ breadcrumb.name }}</span>
+           {% endif %}
+      {% endfor %}
+  {% elif request.GET.context == 'list_flat' %}
+      <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:report_list_flat' %}">Liste des Rapports</a>
+      <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+      {% with breadcrumbs|last as last_breadcrumb %}
+        <span class="text-slate-400">{{ last_breadcrumb.name }}</span>
+      {% endwith %}
+  {% else %}
+      <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:report_list' %}">Rapports</a>
+      <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+      {% with breadcrumbs|last as last_breadcrumb %}
+        <span class="text-slate-400">{{ last_breadcrumb.name }}</span>
+      {% endwith %}
+  {% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="px-8 py-6 h-full flex flex-col">

@@ -128,7 +128,7 @@
         {% endif %}
 
         {% if permissions.view_powerbireport %}
-        <a href="{% url 'powerbi_report:report_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'report_list' in request.path %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+        <a href="{% url 'powerbi_report:report_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if '/custom/' not in request.path and '/embed/' not in request.path and request.GET.context != 'department' and request.GET.context != 'biblio' and request.GET.context != 'business' or '/embed/' in request.path and request.GET.context != 'department' and request.GET.context != 'biblio' and request.GET.context != 'business' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">folder_managed</span>
           <span class="text-sm font-medium">Gestion Rapports</span>
         </a>
@@ -138,29 +138,29 @@
         <p class="px-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Navigation</p>
 
         {% if permissions.view_dashboard %}
-          <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/business' in request.path %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+          <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/business' in request.path or request.GET.context == 'business' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
             <span class="material-symbols-outlined text-[20px]">business_center</span>
             <span class="text-sm font-medium">Société</span>
           </a>
-          <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/department' in request.path %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+          <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/department' in request.path or request.GET.context == 'department' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
             <span class="material-symbols-outlined text-[20px]">groups</span>
             <span class="text-sm font-medium">Pôle</span>
           </a>
         {% else %}
           {% if user.default_view == 'department' %}
-            <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/department' in request.path %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+            <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/department' in request.path or request.GET.context == 'department' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
               <span class="material-symbols-outlined text-[20px]">groups</span>
               <span class="text-sm font-medium">Vue Département</span>
             </a>
           {% else %}
-            <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/business' in request.path %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+            <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/business' in request.path or request.GET.context == 'business' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
               <span class="material-symbols-outlined text-[20px]">business_center</span>
               <span class="text-sm font-medium">Vue Métier</span>
             </a>
           {% endif %}
         {% endif %}
 
-        <a href="{% url 'powerbi_report:custom_biblio' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/biblio' in request.path %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+        <a href="{% url 'powerbi_report:custom_biblio' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/biblio' in request.path or request.GET.context == 'biblio' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">library_books</span>
           <span class="text-sm font-medium">Bibliothèque</span>
         </a>
