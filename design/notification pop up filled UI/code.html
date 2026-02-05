@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BI &amp; Analytics - Notifications</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-dark": "#0a0f14",
+                        "surface-dark": "#121922",
+                        "card-dark": "#161d26",
+                        "accent-gold": "#d4af37",
+                        "accent-teal": "#2d6a4f",
+                        "deep-charcoal": "#1c2229",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-mesh {
+            background-image: radial-gradient(at 0% 0%, rgba(19, 127, 236, 0.03) 0px, transparent 50%),
+                              radial-gradient(at 100% 100%, rgba(212, 175, 55, 0.02) 0px, transparent 50%);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1c2229;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0f14;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-slate-300 min-h-screen font-display overflow-hidden">
+<div class="flex h-screen w-full relative">
+<aside class="w-64 flex flex-col border-r border-slate-800/50 bg-[#070b0f] z-20">
+<div class="p-6 flex items-center gap-3">
+<div class="size-8 text-primary">
+<svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+<span class="text-lg font-bold tracking-tight text-white">BI &amp; Analytics</span>
+</div>
+<nav class="flex-1 px-4 py-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined text-[22px]">folder</span>
+<span class="text-sm font-medium">Bibliothèque</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined text-[22px]">dashboard</span>
+<span class="text-sm font-medium">Tableaux de bord</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined text-[22px]">analytics</span>
+<span class="text-sm font-medium">Analytique</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary group transition-all" href="#">
+<span class="material-symbols-outlined text-[22px]">notifications</span>
+<span class="text-sm font-semibold">Notifications</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-all" href="#">
+<span class="material-symbols-outlined text-[22px]">schedule</span>
+<span class="text-sm font-medium">Planification</span>
+</a>
+</nav>
+<div class="p-4 border-t border-slate-800/50">
+<div class="flex items-center gap-3 p-2">
+<div class="size-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-400">JD</div>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-white">Jean Dupont</span>
+<span class="text-[10px] text-slate-500">Admin Réseau</span>
+</div>
+<button class="ml-auto text-slate-500 hover:text-white">
+<span class="material-symbols-outlined text-[18px]">logout</span>
+</button>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col relative bg-mesh overflow-hidden">
+<header class="h-16 border-b border-slate-800/50 flex items-center justify-between px-8 bg-background-dark/30 backdrop-blur-md z-30">
+<div class="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+<span class="hover:text-slate-300 cursor-pointer">Accueil</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-slate-400">Notifications</span>
+</div>
+<div class="relative group">
+<button class="text-slate-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5">
+<span class="material-symbols-outlined text-[24px]">notifications</span>
+<span class="absolute top-2 right-2.5 size-2 bg-primary rounded-full border-2 border-background-dark"></span>
+</button>
+<div class="absolute right-0 mt-2 w-[420px] bg-deep-charcoal border border-slate-800/80 rounded-lg shadow-2xl overflow-hidden z-50">
+<div class="flex items-center justify-between p-4 border-b border-slate-800/50">
+<h3 class="text-sm font-bold text-white uppercase tracking-tight">Notifications</h3>
+<button class="text-[10px] font-bold text-primary hover:text-blue-400 uppercase tracking-wider transition-colors">Tout marquer comme lu</button>
+</div>
+<div class="max-h-[400px] overflow-y-auto custom-scrollbar">
+<div class="p-4 border-b border-slate-800/30 hover:bg-white/[0.03] transition-colors relative cursor-pointer group/item">
+<div class="flex gap-3">
+<span class="size-2 mt-1.5 rounded-full bg-primary flex-shrink-0"></span>
+<div class="flex flex-col gap-1">
+<p class="text-[13px] leading-relaxed text-white">Updated description for report: (ID: fda525ff-3fc7-4fda-9de0-acd6ec979501) with description 'None1' by H0017549.</p>
+<span class="text-[11px] text-slate-500">il y a 6 heures</span>
+</div>
+</div>
+</div>
+<div class="p-4 border-b border-slate-800/30 hover:bg-white/[0.03] transition-colors relative cursor-pointer group/item">
+<div class="flex gap-3">
+<span class="size-2 mt-1.5 rounded-full bg-primary flex-shrink-0"></span>
+<div class="flex flex-col gap-1">
+<p class="text-[13px] leading-relaxed text-white">Report with ID 'fda525ff-3fc7-4fda-9de0-acd6ec979501' has been renamed to 'Chiffre d'affaire - MDM' by H0017549.</p>
+<span class="text-[11px] text-slate-500">il y a 6 heures</span>
+</div>
+</div>
+</div>
+<div class="p-4 border-b border-slate-800/30 hover:bg-white/[0.03] transition-colors relative cursor-pointer group/item">
+<div class="flex gap-3">
+<span class="size-2 mt-1.5 rounded-full bg-transparent flex-shrink-0"></span>
+<div class="flex flex-col gap-1 opacity-70">
+<p class="text-[13px] leading-relaxed text-white">Report with ID 'fda525ff-3fc7-4fda-9de0-acd6ec979501' has been renamed to 'Chiffre d'affaire - mdm' by H0017549.</p>
+<span class="text-[11px] text-slate-500">il y a 1 jour</span>
+</div>
+</div>
+</div>
+<div class="p-4 border-b border-slate-800/30 hover:bg-white/[0.03] transition-colors relative cursor-pointer group/item">
+<div class="flex gap-3">
+<span class="size-2 mt-1.5 rounded-full bg-transparent flex-shrink-0"></span>
+<div class="flex flex-col gap-1 opacity-70">
+<p class="text-[13px] leading-relaxed text-white">Your role has been updated to admin.</p>
+<span class="text-[11px] text-slate-500">il y a 1 jour</span>
+</div>
+</div>
+</div>
+</div>
+<button class="w-full py-3 text-[11px] font-bold text-red-400/80 hover:text-red-400 hover:bg-red-500/5 transition-all uppercase tracking-[0.1em] border-t border-slate-800/50">
+                        Effacer tout
+                    </button>
+</div>
+</div>
+</header>
+<div class="px-8 pt-8 pb-4">
+<h1 class="text-3xl font-black text-white tracking-tight">Notifications</h1>
+</div>
+<div class="mx-8 p-4 bg-surface-dark/50 border border-slate-800/60 rounded-xl flex items-center justify-between gap-4 mb-6">
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-2 px-4 py-1.5 rounded-full border border-white text-xs font-bold text-white bg-white/5 transition-all">
+<span class="material-symbols-outlined text-[16px]">filter_list</span>
+                    Tous
+                </button>
+<button class="flex items-center gap-2 px-4 py-1.5 rounded-full border border-slate-800/60 hover:border-emerald-500/50 text-xs font-bold text-emerald-500 transition-all">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+                    Lu
+                </button>
+<button class="flex items-center gap-2 px-4 py-1.5 rounded-full border border-slate-800/60 hover:border-orange-500/50 text-xs font-bold text-orange-500 transition-all">
+<span class="material-symbols-outlined text-[16px]">error</span>
+                    Non lu
+                </button>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-primary/40 hover:bg-primary/10 text-xs font-bold text-primary transition-all uppercase tracking-wide">
+<span class="material-symbols-outlined text-[16px]">done_all</span>
+                    Tout marquer comme lu
+                </button>
+<button class="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-red-500/40 hover:bg-red-500/10 text-xs font-bold text-red-500 transition-all uppercase tracking-wide">
+<span class="material-symbols-outlined text-[16px]">delete_sweep</span>
+                    Tout effacer
+                </button>
+</div>
+</div>
+<div class="flex-1 px-8 pb-8 overflow-y-auto">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+<div class="bg-card-dark border border-slate-800/60 rounded-xl p-5 hover:border-slate-700 transition-all flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+<span class="size-2 rounded-full bg-slate-500"></span>
+                            LU
+                        </div>
+<span class="text-[11px] font-medium text-slate-500">05 Feb 2026, 09:25</span>
+</div>
+<p class="text-sm leading-relaxed text-white">
+                        Updated description for report: (ID: fda525ff-3fc7-4fda-9de0-acd6ec979501) with description 'None1' by H0017549.
+                    </p>
+<div class="flex items-center gap-6 mt-2">
+<button class="text-[11px] font-black text-primary hover:text-blue-400 uppercase tracking-widest transition-colors">Voir détails</button>
+<button class="text-[11px] font-black text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors">Supprimer</button>
+</div>
+</div>
+<div class="bg-card-dark border border-slate-800/60 rounded-xl p-5 hover:border-slate-700 transition-all flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+<span class="size-2 rounded-full bg-slate-500"></span>
+                            LU
+                        </div>
+<span class="text-[11px] font-medium text-slate-500">05 Feb 2026, 09:25</span>
+</div>
+<p class="text-sm leading-relaxed text-white">
+                        Report with ID 'fda525ff-3fc7-4fda-9de0-acd6ec979501' has been renamed to 'Chiffre d'affaire - MDM' by H0017549.
+                    </p>
+<div class="flex items-center gap-6 mt-2">
+<button class="text-[11px] font-black text-primary hover:text-blue-400 uppercase tracking-widest transition-colors">Voir détails</button>
+<button class="text-[11px] font-black text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors">Supprimer</button>
+</div>
+</div>
+<div class="bg-card-dark border border-slate-800/60 rounded-xl p-5 hover:border-slate-700 transition-all flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-[10px] font-bold text-orange-500 uppercase tracking-widest">
+<span class="size-2 rounded-full bg-orange-500 animate-pulse"></span>
+                            NON LU
+                        </div>
+<span class="text-[11px] font-medium text-slate-500">04 Feb 2026, 14:42</span>
+</div>
+<p class="text-sm leading-relaxed text-white">
+                        Report with ID 'fda525ff-3fc7-4fda-9de0-acd6ec979501' has been renamed to 'Chiffre d'affaire - mdm' by H0017549.
+                    </p>
+<div class="flex items-center gap-6 mt-2">
+<button class="text-[11px] font-black text-primary hover:text-blue-400 uppercase tracking-widest transition-colors">Voir détails</button>
+<button class="text-[11px] font-black text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors">Supprimer</button>
+</div>
+</div>
+<div class="bg-card-dark border border-slate-800/60 rounded-xl p-5 hover:border-slate-700 transition-all flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+<span class="size-2 rounded-full bg-slate-500"></span>
+                            LU
+                        </div>
+<span class="text-[11px] font-medium text-slate-500">04 Feb 2026, 11:04</span>
+</div>
+<p class="text-sm leading-relaxed text-white">
+                        Your role has been updated to admin.
+                    </p>
+<div class="flex items-center gap-6 mt-2">
+<button class="text-[11px] font-black text-primary hover:text-blue-400 uppercase tracking-widest transition-colors">Voir détails</button>
+<button class="text-[11px] font-black text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors">Supprimer</button>
+</div>
+</div>
+<div class="bg-card-dark border border-slate-800/60 rounded-xl p-5 hover:border-slate-700 transition-all flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+<span class="size-2 rounded-full bg-slate-500"></span>
+                            LU
+                        </div>
+<span class="text-[11px] font-medium text-slate-500">03 Feb 2026, 16:30</span>
+</div>
+<p class="text-sm leading-relaxed text-white">
+                        Nouveau rapport disponible dans le dossier "Finance" : Bilan Annuel 2025.
+                    </p>
+<div class="flex items-center gap-6 mt-2">
+<button class="text-[11px] font-black text-primary hover:text-blue-400 uppercase tracking-widest transition-colors">Voir détails</button>
+<button class="text-[11px] font-black text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors">Supprimer</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>

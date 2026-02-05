@@ -31,8 +31,10 @@
             "primary": "#137fec",
             "background-dark": "#0a0f14",
             "surface-dark": "#121922",
+            "card-dark": "#161d26",
             "accent-gold": "#d4af37",
             "accent-teal": "#2d6a4f",
+            "deep-charcoal": "#1c2229",
           },
           fontFamily: {
             "display": ["Manrope", "sans-serif"]
@@ -109,7 +111,7 @@
     <div class="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
       {% if user.is_authenticated %}
         
-        <p class="px-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Navigation</p>
+        <p class="px-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Admin</p>
         
         {% if permissions.view_dashboard or permissions.view_refresh %}
         <a href="{% url 'powerbi_report:dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'dashboard' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
@@ -133,7 +135,7 @@
         {% endif %}
 
         <div class="h-4"></div>
-        <p class="px-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Vues Power BI</p>
+        <p class="px-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Navigation</p>
 
         {% if permissions.view_dashboard %}
           <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/business' in request.path %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
@@ -162,14 +164,9 @@
           <span class="material-symbols-outlined text-[20px]">library_books</span>
           <span class="text-sm font-medium">Bibliothèque</span>
         </a>
-
         <div class="h-4"></div>
         <p class="px-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Paramètres</p>
 
-        <a href="{% url 'profile' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'profile' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
-          <span class="material-symbols-outlined text-[20px]">person_outline</span>
-          <span class="text-sm font-medium">Profil</span>
-        </a>
 
         {% if permissions.view_notification %}
         <a href="{% url 'notifications' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'notifications' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
@@ -222,41 +219,64 @@
                 <span class="absolute -top-1 -right-1 size-4 bg-primary text-[10px] font-bold text-white rounded-full flex items-center justify-center">{{ unread }}</span>
               {% endif %}
             </button>
-            <div class="dropdown-menu dropdown-menu-end p-0 bg-surface-dark border border-slate-800 shadow-2xl overflow-hidden w-80">
-              <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-white/5">
-                <h5 class="text-sm font-bold text-white m-0">Notifications</h5>
-                <form action="{% url 'mark_notifications' %}" method="post" class="m-0">
-                  {% csrf_token %}
-                  <button type="submit" class="text-[10px] uppercase tracking-wider font-bold text-primary hover:text-blue-400 transition-colors">Tout marquer comme lu</button>
-                </form>
+            <div class="dropdown-menu dropdown-menu-end p-0 !bg-deep-charcoal border border-slate-800 shadow-2xl overflow-hidden w-[420px]">
+              <div class="flex items-center justify-between p-4 border-b border-slate-800/50">
+                <h3 class="text-sm font-bold text-white uppercase tracking-tight">Notifications</h3>
+                 <form action="{% url 'mark_notifications' %}" method="post" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="text-[10px] font-bold text-primary hover:text-blue-400 uppercase tracking-wider transition-colors {% if not notifications %}opacity-50 cursor-default{% endif %}" {% if not notifications %}disabled{% endif %}>Tout marquer comme lu</button>
+                 </form>
               </div>
-              <div class="max-h-[400px] overflow-y-auto">
-                {% if notifications %}
-                  {% for notification in notifications %}
-                    <a href="{% url 'notifications' %}" class="block p-4 border-b border-slate-800/50 hover:bg-white/5 transition-all">
-                      <div class="flex gap-3">
-                        <div class="size-2 mt-1.5 rounded-full bg-primary shrink-0"></div>
-                        <div>
-                          <p class="text-xs text-slate-300 leading-relaxed">{{ notification.message }}</p>
-                          <span class="text-[10px] text-slate-500 font-medium mt-1 block">{{ notification.created_at|timesince }}</span>
+
+              {% if notifications %}
+              <div class="max-h-[400px] overflow-y-auto custom-scrollbar">
+                {% for notification in notifications %}
+                <div class="p-4 border-b border-slate-800/30 hover:bg-white/[0.03] transition-colors relative cursor-pointer group/item">
+                    <a href="{% url 'notifications' %}" class="flex gap-3" onclick="markNotificationAsRead(event, {{ notification.id }})">
+                        {% if not notification.is_read %}
+                        <span class="size-2 mt-1.5 rounded-full bg-primary flex-shrink-0"></span>
+                        {% else %}
+                        <span class="size-2 mt-1.5 rounded-full bg-transparent flex-shrink-0"></span>
+                        {% endif %}
+                        <div class="flex flex-col gap-1 {% if notification.is_read %}opacity-70{% endif %}">
+                            <p class="text-[13px] leading-relaxed text-white">{{ notification.message }}</p>
+                            <span class="text-[11px] text-slate-500">{{ notification.created_at|timesince }} ago</span>
                         </div>
-                      </div>
                     </a>
-                  {% endfor %}
-                {% else %}
-                  <div class="p-8 text-center">
-                    <span class="material-symbols-outlined text-slate-700 text-[40px] mb-2">notifications_off</span>
-                    <p class="text-xs text-slate-500">Aucune notification</p>
-                  </div>
-                {% endif %}
+                </div>
+                {% endfor %}
               </div>
-              <div class="p-3 text-center border-t border-slate-800 bg-white/5">
-                <form action="{% url 'delete_all' %}" method="post" class="m-0">
-                  {% csrf_token %}
-                  <button type="submit" class="text-[10px] uppercase tracking-wider font-bold text-red-400 hover:text-red-300 transition-colors">Effacer tout</button>
-                </form>
+              <form action="{% url 'delete_all' %}" method="post" class="m-0">
+                 {% csrf_token %}
+                 <button type="submit" class="w-full py-3 text-[11px] font-bold text-red-400/80 hover:text-red-400 hover:bg-red-500/5 transition-all uppercase tracking-[0.1em] border-t border-slate-800/50">
+                    Effacer tout
+                 </button>
+              </form>
+              {% else %}
+              <div class="py-16 px-8 flex flex-col items-center text-center">
+                <div class="relative mb-6">
+                    <div class="size-24 rounded-full bg-slate-800/30 flex items-center justify-center">
+                        <svg class="size-12 text-slate-500/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18.36 18.36L5.64 5.64M11.5 5.5C11.5 5.22386 11.7239 5 12 5C12.2761 5 12.5 5.22386 12.5 5.5M17.5 13.5V10.5C17.5 8.9543 16.7163 7.5912 15.5401 6.78772M6.5 10.5V13.5L4.5 16.5H19.5L18.4231 14.8846M13.73 21C13.5542 21.3031 13.3031 21.5542 13 21.73C12.6969 21.9058 12.3518 22 12 22C11.6482 22 11.3031 21.9058 11 21.73C10.6969 21.5542 10.4458 21.3031 10.27 21" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+                        </svg>
+                    </div>
+                    <div class="absolute -bottom-1 -right-1 size-8 rounded-full bg-deep-charcoal border-4 border-deep-charcoal flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[16px] text-primary/40">notifications_off</span>
+                    </div>
+                </div>
+                <h4 class="text-white font-semibold text-base mb-2">Aucune nouvelle notification</h4>
+                <p class="text-slate-500 text-[13px] leading-relaxed max-w-[260px]">
+                    Vous êtes à jour ! Revenez plus tard pour voir les nouveaux rapports et mises à jour.
+                </p>
               </div>
+              <div class="border-t border-slate-800/50">
+                <button class="w-full py-3 text-[11px] font-bold text-slate-600 cursor-not-allowed uppercase tracking-[0.1em] bg-slate-900/20" disabled="">
+                    Effacer tout
+                </button>
+              </div>
+              {% endif %}
             </div>
+
           </div>
 
           <!-- Profile -->
@@ -275,14 +295,8 @@
               </div>
               <span class="material-symbols-outlined text-slate-500 text-[18px]">expand_more</span>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end p-2 bg-surface-dark border border-slate-800 shadow-2xl rounded-xl w-56">
-              <li>
-                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-all" href="{% url 'profile' %}">
-                  <span class="material-symbols-outlined text-[20px]">settings</span>
-                  <span class="text-xs font-bold">Paramètres Profil</span>
-                </a>
-              </li>
-              <li class="my-1 border-t border-slate-800"></li>
+            <ul class="dropdown-menu dropdown-menu-end p-2 !bg-[#121922] border border-slate-800 shadow-2xl rounded-xl w-56">
+
               <li>
                 <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-all" href="{% url 'logout' %}">
                   <span class="material-symbols-outlined text-[20px]">logout</span>
@@ -324,7 +338,6 @@
   <script src="{% static 'assets/js/plugins/popper.min.js' %}"></script>
   <script src="{% static 'assets/js/plugins/simplebar.min.js' %}"></script>
   <script src="{% static 'assets/js/plugins/bootstrap.min.js' %}"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
   <script src="{% static 'assets/js/fonts/custom-font.js' %}"></script>
   <script src="{% static 'assets/js/script.js' %}"></script>
   <script src="{% static 'assets/js/theme.js' %}"></script>
@@ -403,6 +416,28 @@
     layout_theme_sidebar_change('false');
   </script>
 
+<script>
+  function markNotificationAsRead(event, id) {
+    event.preventDefault(); // Prevent default navigation
+    
+    fetch(`/notifications/mark_as_read/${id}/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
+    })
+    .then(response => {
+        // Navigate to notifications page regardless of success/fail to ensure flow continues
+        window.location.href = "{% url 'notifications' %}";
+    })
+    .catch(error => {
+        console.error('Error marking notification as read:', error);
+        window.location.href = "{% url 'notifications' %}";
+    });
+  }
+</script>
 </body>
 
 </html>

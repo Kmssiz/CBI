@@ -40,11 +40,6 @@
         <button id="fullscreenBtn" onclick="toggleFullScreen()" class="flex items-center justify-center size-10 bg-surface-dark border border-slate-800 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all shadow-sm">
           <span class="material-symbols-outlined text-[20px]">fullscreen</span>
         </button>
-        {% if permissions.view_powerbireport and permissions.change_powerbireport %}
-        <a href="{% url 'powerbi_report:download_report' report_id=report_id %}" id="downloadBtn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-primary/20">
-          <span class="material-symbols-outlined text-[18px]">download</span> Télécharger
-        </a>
-        {% endif %}
       </div>
     </div>
 

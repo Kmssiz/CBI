@@ -105,16 +105,7 @@
                                    class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all flex items-center gap-1">
                                    <span class="material-symbols-outlined text-[14px]">visibility</span>
                                 </a>
-                                <button class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-500/30 text-amber-500 hover:bg-amber-500 hover:text-white transition-all flex items-center gap-1"
-                                        data-bs-toggle="modal" data-bs-target="#editReportModal" 
-                                        data-report-id="{{ report.Id }}" data-report-name="{{ report.Name }}">
-                                    <span class="material-symbols-outlined text-[14px]">edit</span>
-                                </button>
-                                <button class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-cyan-500/30 text-cyan-500 hover:bg-cyan-500 hover:text-white transition-all flex items-center gap-1"
-                                        data-bs-toggle="modal" data-bs-target="#moveReportModal" 
-                                        data-report-id="{{ report.Id }}" data-report-path="{{ report.Path }}">
-                                    <span class="material-symbols-outlined text-[14px]">move_item</span>
-                                </button>
+
                             </div>
                         </td>
                     </tr>
@@ -179,65 +170,7 @@
     
 </div>
 
-<!-- Edit Report Modal -->
-<div class="modal fade" id="editReportModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel">
-      <form id="editReportForm" method="POST" action="{% url 'powerbi_report:edit_report' 0 %}">
-        {% csrf_token %}
-        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
-            <h5 class="text-lg font-bold text-white tracking-tight">Modifier le nom du rapport</h5>
-            <button type="button" class="text-slate-500 hover:text-white transition-colors" data-bs-dismiss="modal">
-                <span class="material-symbols-outlined text-[24px]">close</span>
-            </button>
-        </div>
-        <div class="p-6 space-y-4">
-            <div class="space-y-2">
-                <label for="reportName" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Nom du rapport</label>
-                <input type="text" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="reportName" name="name" required>
-                <input type="hidden" id="reportId" name="report_id">
-            </div>
-        </div>
-        <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
-            <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
-            <button type="submit" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-primary/20">Enregistrer</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
 
-<!-- Move Report Modal -->
-<div class="modal fade" id="moveReportModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel">
-      <form id="moveReportForm" method="POST" action="{% url 'powerbi_report:edit_path' 0 %}">
-        {% csrf_token %}
-        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
-            <h5 class="text-lg font-bold text-white tracking-tight">Déplacer le rapport</h5>
-            <button type="button" class="text-slate-500 hover:text-white transition-colors" data-bs-dismiss="modal">
-                <span class="material-symbols-outlined text-[24px]">close</span>
-            </button>
-        </div>
-        <div class="p-6 space-y-4">
-            <div class="space-y-2">
-                <label for="reportPath" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Nouveau chemin</label>
-                <input type="text" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="reportPath" name="path" required>
-                <input type="hidden" id="moveReportId" name="report_id">
-                
-                <div id="pathList" class="mt-2 max-h-[150px] overflow-y-auto border border-slate-800 rounded-xl p-2 bg-background-dark/50 custom-scrollbar">
-                  <!-- Path list will be populated by JavaScript -->
-                </div>
-            </div>
-        </div>
-        <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
-            <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
-            <button type="submit" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-primary/20">Déplacer</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
 
 <style>
   .search-glow:focus-within {
@@ -269,40 +202,6 @@
     
     const rows = reportTable.querySelectorAll('tbody tr');
     const reportSearch = document.getElementById('reportSearch');
-    const pathList = document.getElementById('pathList');
-    const reportPathInput = document.getElementById('reportPath');
-
-    // Collect all paths for the Move Report Modal
-    const allPaths = new Set();
-    rows.forEach(row => {
-      const pathCell = row.querySelector('.group\\/path');
-      if (pathCell) {
-          allPaths.add(pathCell.getAttribute('title'));
-      }
-    });
-
-    // Function to populate path list in Move Report Modal
-    function populatePathList() {
-      pathList.innerHTML = '';
-      if (allPaths.size === 0) {
-        const noPaths = document.createElement('p');
-        noPaths.textContent = 'Aucun chemin disponible';
-        noPaths.className = 'text-slate-500 text-sm p-2 text-center italic';
-        pathList.appendChild(noPaths);
-      } else {
-        allPaths.forEach(path => {
-          const pathItem = document.createElement('div');
-          pathItem.textContent = path;
-          pathItem.className = 'p-2 text-sm text-slate-400 hover:text-white hover:bg-white/5 rounded-lg cursor-pointer transition-colors';
-          pathItem.addEventListener('click', function () {
-            reportPathInput.value = this.textContent;
-          });
-          pathList.appendChild(pathItem);
-        });
-      }
-
-    // Live Search with Debounce
-    const reportSearch = document.getElementById('reportSearch');
     const searchForm = reportSearch ? reportSearch.closest('form') : null;
     let debounceTimer;
 
@@ -327,41 +226,26 @@
         });
     }
 
-    // Handle Edit button click
-    const editReportModal = document.getElementById('editReportModal');
-    if (editReportModal) {
-        editReportModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const reportId = button.getAttribute('data-report-id');
-            const reportName = button.getAttribute('data-report-name');
-            document.getElementById('reportId').value = reportId;
-            document.getElementById('reportName').value = reportName;
-            const formAction = "{% url 'powerbi_report:edit_report' 0 %}".replace('0', reportId);
-            document.getElementById('editReportForm').action = formAction;
-        });
-    }
 
-    // Handle Move button click
-    const moveReportModal = document.getElementById('moveReportModal');
-    if (moveReportModal) {
-        moveReportModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const reportId = button.getAttribute('data-report-id');
-            const reportPath = button.getAttribute('data-report-path');
-            document.getElementById('moveReportId').value = reportId;
-            document.getElementById('reportPath').value = reportPath;
-            const formAction = "{% url 'powerbi_report:edit_path' 0 %}".replace('0', reportId);
-            document.getElementById('moveReportForm').action = formAction;
-            populatePathList(); // Populate path list when modal is opened
-        });
-    }
     
     // Auto-close alerts
     setTimeout(function () {
       let alerts = document.querySelectorAll('.alert');
       alerts.forEach(alert => {
-        let bsAlert = new bootstrap.Alert(alert);
-        bsAlert.close();
+        try {
+            if (typeof bootstrap !== 'undefined') {
+                let bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+                bsAlert.close();
+            } else {
+                // Fallback if bootstrap is not available (e.g., using jQuery)
+                alert.classList.remove('show');
+                setTimeout(() => alert.remove(), 150);
+            }
+        } catch (e) {
+            console.error("Error closing alert:", e);
+            // Fallback
+            alert.remove();
+        }
       });
     }, 5000);
   });

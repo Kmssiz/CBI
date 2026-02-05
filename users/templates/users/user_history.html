@@ -20,7 +20,24 @@
     <div class="bg-surface-dark border border-slate-800 rounded-3xl overflow-hidden shadow-xl shadow-black/20">
         <div class="px-8 py-6 border-b border-slate-800/50 flex items-center justify-between bg-white/[0.02]">
             <h3 class="font-bold text-white tracking-tight">Journal des Événements</h3>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-4">
+                <form method="get" class="flex items-center gap-2">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Filtrer :</span>
+                    <div class="relative">
+                        <select name="user_id" onchange="this.form.submit()" class="appearance-none bg-surface-dark border border-slate-700 hover:border-slate-600 text-xs font-bold text-slate-300 rounded-lg pl-3 pr-8 py-1.5 outline-none focus:ring-2 focus:ring-primary/50 transition-all cursor-pointer">
+                            <option value="">Tous les utilisateurs</option>
+                            {% for u in users %}
+                                <option value="{{ u.id }}" {% if selected_user_id == u.id %}selected{% endif %}>
+                                    {{ u.get_full_name|default:u.username }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                            <span class="material-symbols-outlined text-[16px]">expand_more</span>
+                        </div>
+                    </div>
+                </form>
+                <div class="h-4 w-px bg-slate-800"></div>
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total: {{ history|length }}</span>
             </div>
         </div>

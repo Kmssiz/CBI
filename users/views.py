@@ -210,17 +210,26 @@ def user_history(request):
         messages.error(request, "Permission denied. Admin access required.")
         return redirect('home')
 
-    history = UserHistory.objects.all().select_related('user').order_by('-timestamp')
+    users = CustomUser.objects.all().order_by('username')
+    
+    user_id = request.GET.get('user_id')
+    history_query = UserHistory.objects.all().select_related('user').order_by('-timestamp')
+    
+    if user_id:
+        history_query = history_query.filter(user_id=user_id)
+        
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = Notification.objects.filter(user=request.user, is_read=False).count()
     permissions = get_user_permissions(request.user)
 
     return render(request, 'users/user_history.html',
      { 
-     'history': history ,
+     'history': history_query,
      'notifications': notifications, 
      'unread': unread,
      'permissions': permissions,
+     'users': users,
+     'selected_user_id': int(user_id) if user_id else None
      })
 
 #################################################################################################################
@@ -259,7 +268,7 @@ def home_view(request):
         log_history(request.user, "Viewed report_list_hierarchy page")
         return redirect('powerbi_report:report_list_hierarchy')
     
-    return redirect('profile')
+    return redirect('logout')
 
 #################################################################################################################
 #                    Retrieves a dictionary of user permissions                                                 #
@@ -277,7 +286,41 @@ def user_management(request):
     
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread_count = notifications.filter(is_read=False).count()
+    
+    # Start with all users
     users_list = CustomUser.objects.all().order_by('id')
+    
+    # Server-side search filtering
+    search_query = request.GET.get('search', '').strip()
+    role_filter = request.GET.get('role', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    societe_filter = request.GET.get('societe', '').strip()
+    
+    if search_query:
+        from django.db.models import Q
+        users_list = users_list.filter(
+            Q(username__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(ad2000__icontains=search_query)
+        )
+    
+    if role_filter:
+        users_list = users_list.filter(role__name__iexact=role_filter)
+    
+    if status_filter:
+        users_list = users_list.filter(status__iexact=status_filter)
+    
+    if societe_filter:
+        users_list = users_list.filter(societe__iexact=societe_filter)
+    
+    # Get distinct sociétés for the filter dropdown
+    societes = CustomUser.objects.exclude(
+        societe__isnull=True
+    ).exclude(
+        societe=''
+    ).values_list('societe', flat=True).distinct().order_by('societe')
     
     # Pagination
     paginator = Paginator(users_list, 10)  # Show 10 users per page
@@ -294,7 +337,12 @@ def user_management(request):
         'unread': unread_count,
         'users': users,
         'roles': roles,
-        'permissions': permissions,  
+        'societes': societes,
+        'permissions': permissions,
+        'search_query': search_query,
+        'role_filter': role_filter,
+        'status_filter': status_filter,
+        'societe_filter': societe_filter,
     })
 
 #################################################################################################################
@@ -494,6 +542,11 @@ def sync_users(request):
     # Use default LDAP service account for user synchronization
     ldap_username = settings.LDAP_SERVICE_USERNAME
     ldap_password = settings.LDAP_SERVICE_PASSWORD
+    
+    # Validate that service credentials are configured
+    if not ldap_username or not ldap_password:
+        messages.error(request, "LDAP service account not configured. Please set LDAP_SERVICE_USERNAME and LDAP_SERVICE_PASSWORD in .env")
+        return redirect('users_view')
 
     ldap_users = get_ad_users(ldap_username, ldap_password)
     
@@ -502,63 +555,72 @@ def sync_users(request):
          return redirect('users_view')
 
     count = 0
+    skipped = 0
+    already_exist = 0
+    
+    # Debug: print first 5 LDAP users to see actual data
+    for i, ldap_user in enumerate(ldap_users[:5]):
+        print(f"[SYNC DEBUG] Sample user {i}: sAMAccountName='{ldap_user.get('sAMAccountName')}', ad2000='{ldap_user.get('ad2000')}'")
+    
     for ldap_user in ldap_users:
         ad2000 = ldap_user.get("ad2000", "").strip()
-        # Fallback to creating ad2000 from samaccountname if missing, or skip
+        sam_account = ldap_user.get("sAMAccountName", "").strip()
+        
+        # Fallback to sAMAccountName if ad2000 (extensionAttribute1) is empty or just "[]"
+        if not ad2000 or ad2000 == "[]":
+            ad2000 = sam_account
+        
+        # Skip if still no identifier available
         if not ad2000:
-             continue 
+            skipped += 1
+            continue
 
+        # Check if user already exists by ad2000 OR by username
         user = CustomUser.objects.filter(ad2000__iexact=ad2000).first()
+        matched_by = "ad2000" if user else None
+        
+        if not user:
+            user = CustomUser.objects.filter(username__iexact=sam_account).first()
+            if user:
+                matched_by = "username"
+        
+        # Debug: Print first few matches to understand why they're matching
+        if user and already_exist < 5:
+            print(f"[SYNC DEBUG] Match found for LDAP user '{sam_account}' (ad2000='{ad2000}') - matched by {matched_by} to DB user id={user.id}, username='{user.username}', ad2000='{user.ad2000}'")
+        
         if not user:
             user_role, _ = Role.objects.get_or_create(name="user")
 
-            user = CustomUser(
-                username=ldap_user.get("sAMAccountName"),  
-                ad2000=ad2000,
-                first_name=ldap_user.get("name", "").split(' ')[0], # Rough approx
-                last_name=" ".join(ldap_user.get("name", "").split(' ')[1:]),
-                email=ldap_user.get("mail", "").strip(),
-                role=user_role,
-                status="Not Active"
-            )
-            user.save()  
-            user.user_permissions.set(user_role.permissions.all())  
-            count += 1
+            try:
+                user = CustomUser(
+                    username=sam_account,  
+                    ad2000=ad2000,
+                    societe=ldap_user.get("company", "").strip(),
+                    first_name=ldap_user.get("name", "").split(' ')[0],
+                    last_name=" ".join(ldap_user.get("name", "").split(' ')[1:]),
+                    email=ldap_user.get("mail", "").strip(),
+                    role=user_role,
+                    status="Not Active"
+                )
+                user.save()  
+                user.user_permissions.set(user_role.permissions.all())  
+                count += 1
+            except Exception as e:
+                print(f"[SYNC DEBUG] Failed to save user {sam_account}: {e}")
+        else:
+            # Update société for existing users if not set
+            if not user.societe and ldap_user.get("company"):
+                user.societe = ldap_user.get("company", "").strip()
+                user.save(update_fields=['societe'])
+            already_exist += 1
 
-    messages.success(request, f"User synchronization completed. {count} new users added.")
+    print(f"[SYNC DEBUG] Total LDAP users: {len(ldap_users)}, Created: {count}, Already exist: {already_exist}, Skipped (no ID): {skipped}")
+    messages.success(request, f"User synchronization completed. {count} new users added. ({already_exist} already existed)")
     return redirect('users_view')
 
-#################################################################################################################
-#                    Displays the user's profile page                                                           #
-#################################################################################################################
-@login_required
-def profile(request):
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread_count = Notification.objects.filter(user=request.user, is_read=False).count()
-    
-    log_history(request.user, "Viewed profile")
-    permissions = get_user_permissions(request.user)
 
-    context = {
-        'user': request.user,
-        'notifications': notifications,
-        'unread': unread_count,
-        'permissions': permissions,  
-    }
-    return render(request, 'users/profile.html', context)
 
-#################################################################################################################
-#                    Handles profile image updates for the user                                                 #
-#################################################################################################################
-@login_required
-def edit_profile(request):
-    if request.method == "POST":
-        if 'profile_image' in request.FILES:
-            request.user.profile_image = request.FILES['profile_image']
-            request.user.save()
-        return redirect('profile')
-    else:
-        return redirect('profile')
+
 
 #################################################################################################################
 #                   Displays details for a specific user or the current user                                    #

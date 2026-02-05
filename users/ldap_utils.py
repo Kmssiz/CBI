@@ -97,33 +97,48 @@ def get_ad_users(username: str, password: str) -> list[dict]:
     try:
         conn = Connection(server, user=user_dn, password=password, authentication=NTLM, auto_bind=True)
 
-        conn.search(
+        # Use paged search to retrieve all users (AD limits results to 1000 per page by default)
+        entry_generator = conn.extend.standard.paged_search(
             search_base=LDAP_SEARCH_BASE,
             search_filter='(objectclass=person)',
             attributes=[
                 'mail', 'sAMAccountName', 'company', 'department', 'name',
                 'title', 'ipPhone', 'telephoneNumber', 'extensionAttribute1'
-            ]
+            ],
+            paged_size=500,  # Fetch 500 results per page
+            generator=True   # Use generator to iterate through pages
         )
 
-        for entry in conn.entries:
+        for entry in entry_generator:
+            # paged_search returns dict with 'attributes' key, not Entry objects
+            if entry['type'] != 'searchResEntry':
+                continue
+            
+            attrs = entry['attributes']
             try:
-                sam_account_name = str(entry.sAMAccountName) if hasattr(entry, 'sAMAccountName') else ""
-                department = str(entry.department) if hasattr(entry, 'department') else ""
+                # Get attribute value - handle both single value and list
+                def get_attr(attr_name):
+                    val = attrs.get(attr_name, "")
+                    if isinstance(val, list):
+                        return str(val[0]) if val else ""
+                    return str(val) if val else ""
+                
+                sam_account_name = get_attr('sAMAccountName')
+                department = get_attr('department')
 
                 # Filter out service accounts
                 if 'user_' not in sam_account_name or len(department) > 0:
                     user_list.append({
-                        'mail': str(entry.mail) if hasattr(entry, 'mail') else "",
+                        'mail': get_attr('mail'),
                         'sAMAccountName': sam_account_name,
-                        'company': str(entry.company) if hasattr(entry, 'company') else "",
+                        'company': get_attr('company'),
                         'department': department,
-                        'name': str(entry.name) if hasattr(entry, 'name') else "",
-                        'title': str(entry.title) if hasattr(entry, 'title') else "",
-                        'ad2000': str(entry.extensionAttribute1) if hasattr(entry, 'extensionAttribute1') else "",
+                        'name': get_attr('name'),
+                        'title': get_attr('title'),
+                        'ad2000': get_attr('extensionAttribute1'),
                     })
-            except AttributeError:
-                # Skip entries with missing required attributes
+            except (KeyError, IndexError, TypeError):
+                # Skip entries with missing or malformed attributes
                 continue
 
         logger.info(f"LDAP sync completed. Retrieved {len(user_list)} users.")

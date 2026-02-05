@@ -2,190 +2,192 @@
 {% load static %}
 {% block title %}Notifications{% endblock %}
 {% block content %}
-<div class="pc-container">
-  <div class="pc-content">
-    <!-- [ Breadcrumb ] start -->
-    <div class="page-header">
-      <div class="page-block">
-        <div class="row align-items-center">
-          <div class="col-md-12">
-            <div class="page-header-title">
-              <h5 class="mb-0">Notifications</h5>
-            </div>
-          </div>
-          <div class="col-md-12">
-            <ul class="breadcrumb mb-0">
-              <li class="breadcrumb-item"><a href="{% url 'home' %}">Accueil</a></li>
-              <li class="breadcrumb-item active" aria-current="page">Notifications</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- [ Breadcrumb ] end -->
 
-    <!-- [ Actions and Filter Section ] start -->
-    <div class="row mt-3">
-      <div class="col-md-12">
-        <div class="card shadow-sm border-0 bg-gradient-to-r from-indigo-50 to-purple-50 p-3 rounded-lg">
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div class="d-flex flex-wrap gap-2" id="filterButtons">
-              <button class="btn btn-sm btn-outline-secondary active" data-filter="all"
-                onclick="filterNotifications('all')">
-                <i class="feather icon-filter"></i> Tous
-              </button>
-              <button class="btn btn-sm btn-outline-success" data-filter="read" onclick="filterNotifications('read')">
-                <i class="feather icon-check-circle"></i> Lu
-              </button>
-              <button class="btn btn-sm btn-outline-warning" data-filter="unread"
-                onclick="filterNotifications('unread')">
-                <i class="feather icon-bell"></i> Non lu
-              </button>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-              <button class="btn btn-outline-primary btn-sm shadow-sm d-flex align-items-center gap-1"
-                onclick="showMarkAllAsReadConfirmation()">
-                <i class="feather icon-check"></i> Tout marquer comme lu
-              </button>
-              {% if permissions.delete_notification %}
-              <button class="btn btn-outline-danger btn-sm shadow-sm d-flex align-items-center gap-1"
-                onclick="showClearAllConfirmation()">
-                <i class="feather icon-trash"></i> Tout effacer
-              </button>
-              {% endif %}
-            </div>
-          </div>
+<div class="max-w-7xl mx-auto w-full">
+    <div class="p-4 lg:p-8">
+        <!-- Breadcrumb -->
+        <div class="flex items-center gap-2 text-[11px] font-bold text-slate-500 mb-2">
+            <a href="{% url 'home' %}" class="hover:text-slate-300 cursor-pointer transition-colors">Accueil</a>
+            <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+            <span class="text-slate-400">Notifications</span>
         </div>
-      </div>
-    </div>
-    <!-- [ Actions and Filter Section ] end -->
+        <h1 class="text-2xl lg:text-3xl font-black text-white tracking-tight mb-6 lg:mb-8">Notifications</h1>
 
-    <!-- [ Notifications Cards ] start -->
-    <div class="row" id="notificationsContainer">
-      {% if notifications %}
-      {% for notification in notifications %}
-      <div class="col-md-6 mb-3 notification-card" id="notification-{{ notification.id }}"
-        data-id="{{ notification.id }}">
-        <div class="card">
-          <div class="card-body {% if not notification.is_read %}unread{% else %}read{% endif %}">
-            <h6 class="card-title text-truncate">{{ notification.message }}</h6>
-            <p class="card-text text-muted text-truncate">{{ notification.created_at }}</p>
-            <div class="d-flex justify-content-end">
-              <button class="btn btn-outline-primary btn-sm mr-3" style="margin-right: 5px;"
-                onclick="showDetails({{ notification.id }}, '{{ notification.message|escapejs }}', '{{ notification.created_at }}'); ">
-                Voir
-              </button>
-              {% if permissions.delete_notification %}
-              <button class="btn btn-outline-danger btn-sm ml-3" onclick="confirmDelete({{ notification.id }})">
-                Supprimer
-              </button>
-              {% endif %}
+        <!-- Actions and Filter Section -->
+        <div class="bg-surface-dark/50 border border-slate-800/60 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto" id="filterButtons">
+                 <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border border-white text-xs font-bold text-white bg-white/5 transition-all active-filter"
+                    data-filter="all" onclick="filterNotifications('all')">
+                    <span class="material-symbols-outlined text-[16px]">filter_list</span>
+                    Tous
+                </button>
+                <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border border-slate-800/60 hover:border-emerald-500/50 text-xs font-bold text-emerald-500 transition-all"
+                    data-filter="read" onclick="filterNotifications('read')">
+                    <span class="material-symbols-outlined text-[16px]">check_circle</span>
+                    Lu
+                </button>
+                <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border border-slate-800/60 hover:border-orange-500/50 text-xs font-bold text-orange-500 transition-all"
+                    data-filter="unread" onclick="filterNotifications('unread')">
+                    <span class="material-symbols-outlined text-[16px]">error</span>
+                    Non lu
+                </button>
             </div>
-          </div>
+            <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-start sm:justify-end">
+                 <button class="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-primary/40 hover:bg-primary/10 text-xs font-bold text-primary transition-all uppercase tracking-wide"
+                    onclick="showMarkAllAsReadConfirmation()">
+                    <span class="material-symbols-outlined text-[16px]">done_all</span>
+                    Tout marquer
+                </button>
+                {% if permissions.delete_notification %}
+                <button class="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-red-500/40 hover:bg-red-500/10 text-xs font-bold text-red-500 transition-all uppercase tracking-wide"
+                    onclick="showClearAllConfirmation()">
+                    <span class="material-symbols-outlined text-[16px]">delete_sweep</span>
+                    Tout effacer
+                </button>
+                {% endif %}
+            </div>
         </div>
-      </div>
-      {% endfor %}
-      {% else %}
-      <div class="col-12 d-flex flex-column align-items-center justify-content-center" style="height: 100%;">
-        <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs"
-          type="module"></script>
-        <dotlottie-player src="https://lottie.host/cbe9a3e0-4de2-4a56-b425-a93c3331a1ec/qINEoZDpMo.lottie"
-          background="transparent" speed="1" style="width: 500px; height: 500px;" loop autoplay>
-        </dotlottie-player>
-        <p class="mt-2 text-center">Aucune notification disponible.</p>
-      </div>
-      {% endif %}
+
+        <!-- Notifications Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="notificationsContainer">
+            {% if notifications %}
+            {% for notification in notifications %}
+            <div class="bg-card-dark border border-slate-800/60 rounded-xl p-5 hover:border-slate-700 transition-all flex flex-col gap-4 notification-card group" 
+                 id="notification-{{ notification.id }}" 
+                 data-id="{{ notification.id }}">
+                 
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest status-container">
+                        {% if not notification.is_read %}
+                        <span class="size-2 rounded-full bg-orange-500 animate-pulse status-dot"></span>
+                        <span class="text-orange-500 status-text">NON LU</span>
+                        {% else %}
+                        <span class="size-2 rounded-full bg-slate-500 status-dot"></span>
+                        <span class="text-slate-500 status-text">LU</span>
+                        {% endif %}
+                    </div>
+                    <span class="text-[11px] font-medium text-slate-500">{{ notification.created_at|date:"d M Y, H:i" }}</span>
+                </div>
+                
+                <p class="text-sm leading-relaxed text-slate-300 group-hover:text-white transition-colors cursor-pointer" 
+                   onclick="showDetails({{ notification.id }}, '{{ notification.message|escapejs }}', '{{ notification.created_at|date:"d M Y, H:i" }}');">
+                    {{ notification.message }}
+                </p>
+                
+                <div class="flex items-center gap-6 mt-2">
+                    {% if permissions.delete_notification %}
+                    <button class="text-[11px] font-black text-red-500 hover:text-red-400 uppercase tracking-widest transition-colors flex items-center gap-1"
+                        onclick="confirmDelete({{ notification.id }})">
+                        Supprimer
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="col-span-1 lg:col-span-2 flex flex-col items-center justify-center h-96">
+                 <span class="material-symbols-outlined text-slate-700 text-[60px] mb-4">notifications_off</span>
+                 <p class="text-slate-500 font-medium">Aucune notification</p>
+            </div>
+            {% endif %}
+        </div>
     </div>
-    <!-- [ Notifications Cards ] end -->
-  </div>
 </div>
 
 <!-- Back to Top Button -->
 <button class="back-to-top" onclick="scrollToTop()">↑</button>
 
 <!-- Notification Details Modal -->
-<div class="modal" id="notificationModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="modalTitle">Détails de la notification</h5>
-        <button type="button" class="close" onclick="closeModal()">
-          <span>×</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <p id="modalMessage"></p>
-        <p id="modalDate" class="text-muted"></p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline-secondary" onclick="closeModal()">Fermer</button>
+  <div class="modal fade" id="notificationModal" tabindex="-1" aria-hidden="true" style="display: none;">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl">
+        <div class="p-6 border-b border-slate-800/50 flex items-center justify-between">
+          <h5 class="text-lg font-bold text-white tracking-tight" id="modalTitle">Détails de la notification</h5>
+          <button type="button" class="text-slate-500 hover:text-white transition-colors" onclick="closeModal()">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+             <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Message</span>
+             <p id="modalMessage" class="text-slate-300 text-sm leading-relaxed"></p>
+          </div>
+          <div>
+             <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Date de réception</span>
+             <p id="modalDate" class="text-primary font-medium text-xs"></p>
+          </div>
+        </div>
+        <div class="p-6 border-t border-slate-800/50 flex justify-end bg-white/[0.02]">
+          <button class="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all" onclick="closeModal()">Fermer</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
+  
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-hidden="true" style="display: none;">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl">
+        <div class="p-6 border-b border-slate-800/50 flex items-center justify-between">
+          <h5 class="text-lg font-bold text-white tracking-tight">Confirmer la suppression</h5>
+          <button type="button" class="text-slate-500 hover:text-white transition-colors" onclick="closeDeleteConfirmation()">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+        <div class="p-6">
+          <p class="text-sm text-slate-300">Êtes-vous sûr de vouloir supprimer cette notification ? Cette action est irréversible.</p>
+        </div>
+        <div class="p-6 border-t border-slate-800/50 flex justify-end gap-3 bg-white/[0.02]">
+          <button class="px-4 py-2 text-slate-400 hover:text-white font-bold text-xs uppercase tracking-wider transition-all" onclick="closeDeleteConfirmation()">Annuler</button>
+          <button id="confirmDeleteButton" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-lg shadow-red-500/20">Supprimer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Clear All Confirmation Modal -->
+  <div class="modal fade" id="clearAllConfirmationModal" tabindex="-1" aria-hidden="true" style="display: none;">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl">
+        <div class="p-6 border-b border-slate-800/50 flex items-center justify-between">
+          <h5 class="text-lg font-bold text-white tracking-tight">Confirmer la suppression totale</h5>
+          <button type="button" class="text-slate-500 hover:text-white transition-colors" onclick="closeClearAllConfirmation()">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+        <div class="p-6">
+          <p class="text-sm text-slate-300">Êtes-vous sûr de vouloir supprimer toutes les notifications ? Cette action est irréversible.</p>
+        </div>
+        <div class="p-6 border-t border-slate-800/50 flex justify-end gap-3 bg-white/[0.02]">
+          <button class="px-4 py-2 text-slate-400 hover:text-white font-bold text-xs uppercase tracking-wider transition-all" onclick="closeClearAllConfirmation()">Annuler</button>
+          <button class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-lg shadow-red-500/20" onclick="clearAllNotifications()">Tout effacer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Mark All as Read Confirmation Modal -->
+  <div class="modal fade" id="markAllAsReadConfirmationModal" tabindex="-1" aria-hidden="true" style="display: none;">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl">
+        <div class="p-6 border-b border-slate-800/50 flex items-center justify-between">
+          <h5 class="text-lg font-bold text-white tracking-tight">Confirmer le marquage global</h5>
+          <button type="button" class="text-slate-500 hover:text-white transition-colors" onclick="closeMarkAllAsReadConfirmation()">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+        <div class="p-6">
+          <p class="text-sm text-slate-300">Êtes-vous sûr de vouloir marquer toutes les notifications comme lues ?</p>
+        </div>
+        <div class="p-6 border-t border-slate-800/50 flex justify-end gap-3 bg-white/[0.02]">
+          <button class="px-4 py-2 text-slate-400 hover:text-white font-bold text-xs uppercase tracking-wider transition-all" onclick="closeMarkAllAsReadConfirmation()">Annuler</button>
+          <button class="px-4 py-2 bg-primary hover:bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-lg shadow-primary/20" onclick="markAllAsRead()">Tout marquer comme lu</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<!-- Delete Confirmation Modal -->
-<div class="modal" id="deleteConfirmationModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Confirmer la suppression</h5>
-        <button type="button" class="close" onclick="closeDeleteConfirmation()">
-          <span>×</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <p>Êtes-vous sûr de vouloir supprimer cette notification ? Cette action est irréversible.</p>
-      </div>
-      <div class="modal-footer">
-        <button id="confirmDeleteButton" class="btn btn-outline-danger">Supprimer</button>
-        <button class="btn btn-outline-secondary" onclick="closeDeleteConfirmation()">Annuler</button>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- Clear All Confirmation Modal -->
-<div class="modal" id="clearAllConfirmationModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Confirmer la suppression totale</h5>
-        <button type="button" class="close" onclick="closeClearAllConfirmation()">
-          <span>×</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <p>Êtes-vous sûr de vouloir supprimer toutes les notifications ? Cette action est irréversible.</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline-danger" onclick="clearAllNotifications()">Tout effacer</button>
-        <button class="btn btn-outline-secondary" onclick="closeClearAllConfirmation()">Annuler</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Mark All as Read Confirmation Modal -->
-<div class="modal" id="markAllAsReadConfirmationModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Confirmer le marquage global</h5>
-        <button type="button" class="close" onclick="closeMarkAllAsReadConfirmation()">
-          <span>×</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <p>Êtes-vous sûr de vouloir marquer toutes les notifications comme lues ?</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline-primary" onclick="markAllAsRead()">Tout marquer comme lu</button>
-        <button class="btn btn-outline-secondary" onclick="closeMarkAllAsReadConfirmation()">Annuler</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script>
   // Filter notifications based on button clicks
@@ -193,27 +195,40 @@
     const cards = document.querySelectorAll('.notification-card');
     const buttons = document.querySelectorAll('#filterButtons button');
 
-    // Update active button
+    // Update active button visual state
     buttons.forEach(button => {
-      button.classList.toggle('active', button.getAttribute('data-filter') === filter);
+        const btnFilter = button.getAttribute('data-filter');
+        if (btnFilter === filter) {
+             button.classList.add('ring-2', 'ring-white/20');
+        } else {
+             button.classList.remove('ring-2', 'ring-white/20');
+        }
     });
 
     // Filter cards
     cards.forEach(card => {
-      const cardBody = card.querySelector('.card-body');
-      if (filter === 'all') {
-        card.style.display = '';
-      } else {
-        card.style.display = cardBody.classList.contains(filter) ? '' : 'none';
-      }
+        const isUnread = card.querySelector('.status-text').innerText.toLowerCase().includes('non lu');
+        
+        if (filter === 'all') {
+            card.style.display = '';
+        } else if (filter === 'read') {
+            card.style.display = !isUnread ? '' : 'none';
+        } else if (filter === 'unread') {
+            card.style.display = isUnread ? '' : 'none';
+        }
     });
   }
 
   function showDetails(id, message, createdAt) {
-    document.getElementById('modalTitle').innerText = `Notification Details (ID: ${id})`;
+    document.getElementById('modalTitle').innerText = `Détails de la notification`;
     document.getElementById('modalMessage').innerText = message;
     document.getElementById('modalDate').innerText = `Date : ${createdAt}`;
-    document.getElementById('notificationModal').style.display = 'block';
+    
+    const modal = document.getElementById('notificationModal');
+    modal.style.display = 'block';
+    // Add show class after a small delay to trigger transition if css supports it, 
+    // or just to ensure visibility if strict bootstrap css is used
+    setTimeout(() => modal.classList.add('show'), 10);
 
     // Mark notification as read
     fetch(`/notifications/mark_as_read/${id}/`, {
@@ -226,9 +241,18 @@
     })
       .then(response => {
         if (response.ok) {
-          const notificationCard = document.querySelector(`.notification-card[data-id="${id}"] .card-body`);
+          const notificationCard = document.querySelector(`.notification-card[data-id="${id}"]`);
           if (notificationCard) {
-            notificationCard.classList.remove('unread');
+            // Update UI to reflect read status SAME AS DESIGN LULU
+            const statusContainer = notificationCard.querySelector('.status-container');
+            
+            // Rebuild status html for "LU"
+            statusContainer.innerHTML = `
+                <span class="size-2 rounded-full bg-slate-500 status-dot"></span>
+                <span class="text-slate-500 status-text">LU</span>
+            `;
+            
+            notificationCard.classList.remove('unread'); // Remove unread class for filter
             notificationCard.classList.add('read');
           }
         } else {
@@ -241,17 +265,23 @@
   }
 
   function closeModal() {
-    document.getElementById('notificationModal').style.display = 'none';
+    const modal = document.getElementById('notificationModal');
+    modal.classList.remove('show');
+    setTimeout(() => modal.style.display = 'none', 150); // Match fade duration
   }
 
   let notificationToDelete = null;
   function confirmDelete(id) {
     notificationToDelete = id;
-    document.getElementById('deleteConfirmationModal').style.display = 'block';
+    const modal = document.getElementById('deleteConfirmationModal');
+    modal.style.display = 'block';
+    setTimeout(() => modal.classList.add('show'), 10);
   }
 
   function closeDeleteConfirmation() {
-    document.getElementById('deleteConfirmationModal').style.display = 'none';
+    const modal = document.getElementById('deleteConfirmationModal');
+    modal.classList.remove('show');
+    setTimeout(() => modal.style.display = 'none', 150);
   }
 
   document.getElementById('confirmDeleteButton').onclick = function () {
@@ -284,11 +314,15 @@
   };
 
   function showClearAllConfirmation() {
-    document.getElementById('clearAllConfirmationModal').style.display = 'block';
+    const modal = document.getElementById('clearAllConfirmationModal');
+    modal.style.display = 'block';
+    setTimeout(() => modal.classList.add('show'), 10);
   }
 
   function closeClearAllConfirmation() {
-    document.getElementById('clearAllConfirmationModal').style.display = 'none';
+    const modal = document.getElementById('clearAllConfirmationModal');
+    modal.classList.remove('show');
+    setTimeout(() => modal.style.display = 'none', 150);
   }
 
   function clearAllNotifications() {
@@ -302,7 +336,7 @@
     })
       .then(response => {
         if (response.ok) {
-          document.getElementById('notificationsContainer').innerHTML = '<div class="col-12"><p class="text-center">Aucune notification disponible.</p></div>';
+          document.getElementById('notificationsContainer').innerHTML = '<div class="col-span-1 lg:col-span-2 flex flex-col items-center justify-center p-8"><span class="material-symbols-outlined text-slate-700 text-[60px] mb-4">notifications_off</span><p class="text-slate-500 font-medium">Aucune notification</p></div>';
           closeClearAllConfirmation();
         } else {
           alert('Échec de la suppression des notifications.');
@@ -315,11 +349,15 @@
   }
 
   function showMarkAllAsReadConfirmation() {
-    document.getElementById('markAllAsReadConfirmationModal').style.display = 'block';
+    const modal = document.getElementById('markAllAsReadConfirmationModal');
+    modal.style.display = 'block';
+    setTimeout(() => modal.classList.add('show'), 10);
   }
 
   function closeMarkAllAsReadConfirmation() {
-    document.getElementById('markAllAsReadConfirmationModal').style.display = 'none';
+    const modal = document.getElementById('markAllAsReadConfirmationModal');
+    modal.classList.remove('show');
+    setTimeout(() => modal.style.display = 'none', 150);
   }
 
   function markAllAsRead() {
@@ -366,54 +404,24 @@
 </script>
 
 <style>
-  /* Minimal modal styling */
+  /* Manual backdrop logic since we are not using bootstrap JS */
+  .modal.show {
+    background-color: rgba(0, 0, 0, 0.7); /* Dark semi-transparent backdrop */
+    opacity: 1; /* Ensure visibility */
+  }
+  
+  /* Fallback visibility if not show class */
   .modal {
-    display: none;
-    position: fixed;
-    z-index: 1050;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background-color: rgba(0, 0, 0, 0.5);
+      transition: opacity 0.15s linear;
   }
-
-  .modal-dialog {
-    margin: 10% auto;
-    max-width: 500px;
-  }
-
-  /* Style for the close (X) button in modals */
-  .modal .close {
-    color: red;
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    font-size: 1.5rem;
-    background: transparent;
-    border: none;
-  }
-
-  /* Notification card status */
-  .unread {
-    font-weight: bold;
-    background-color: rgb(255, 242, 243);
-    border-left: 5px solid #dc3545;
-  }
-
-  .read {
-    background-color: #fff;
-    border-left: 5px solid transparent;
-  }
-
+  
   /* Back to Top Button Styles */
   .back-to-top {
     position: fixed;
     bottom: 20px;
     right: 20px;
     display: none;
-    background: #17a2b8;
+    background: #17a2b8; /* Keep original color or match new theme? keeping blue as per code */
     color: white;
     border: none;
     border-radius: 50%;
@@ -429,12 +437,10 @@
   .back-to-top:hover {
     background: #138496;
   }
-
-  /* Truncate text to one line with ellipsis */
-  .text-truncate {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  
+  /* Transition for filter active state */
+  .active-filter {
+      /* Handled by tailwind classes usually, but preserving if exists */
   }
 </style>
 {% endblock %}

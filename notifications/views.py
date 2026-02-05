@@ -33,6 +33,10 @@ def delete_notification(request, id):
     if request.method == 'POST':  
         log_history(request.user, f"Deleted notification {notification.id}")
         notification.delete()
+        
+        if request.headers.get('Content-Type') == 'application/json':
+            return JsonResponse({'success': True})
+            
         return redirect('notifications') 
 
     return render(request, 'notifications/notifications.html', {'notifications': Notification.objects.filter(user=request.user)})
@@ -45,6 +49,10 @@ def delete_all_notifications(request):
 
     if request.method == 'POST':
         notifications.delete()
+        
+        if request.headers.get('Content-Type') == 'application/json':
+            return JsonResponse({'success': True})
+            
         return redirect('notifications') 
     
     return render(request, 'notifications/notifications.html', {'notifications': notifications})
@@ -59,6 +67,10 @@ def mark_notifications(request):
         notifications.update(is_read=True)  
         
         log_history(request.user, f"Marked {count} notifications as read")
+        
+        if request.headers.get('Content-Type') == 'application/json':
+            return JsonResponse({'success': True})
+            
         return redirect('notifications')
     
     return render(request, 'notifications/notifications.html', {'notifications': notifications})

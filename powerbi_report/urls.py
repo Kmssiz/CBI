@@ -41,6 +41,7 @@ urlpatterns = [
     
     path('reports/edit/<str:report_id>/', views.edit_powerbi_report_name, name='edit_report'),
     path('reports/move/<str:report_id>/', views.edit_powerbi_report_path, name='edit_path'),
+    path('reports/replace/<str:report_id>/', views.replace_powerbi_report, name='replace_report'),
     path('reports/delete/<str:report_id>/', views.delete_powerbi_report_server, name='delete_report_server'),
     path('report/<str:report_id>/edit-description/', views.edit_powerbi_report_description, name='edit_report_description'),
 

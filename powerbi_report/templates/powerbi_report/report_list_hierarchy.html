@@ -1,3 +1,4 @@
+{% extends 'base.html' %}
 {% block title %}Rapports{% endblock %}
 
 {% block header_title %}Gestion des Rapports{% endblock %}
@@ -44,33 +45,10 @@
       {% endif %}
 
       <div class="flex flex-wrap gap-3">
-        {% if permissions.add_powerbireport %}
-          {% if current_path %}
-          <a href="{% url 'powerbi_report:report_folders_list_folder' folder_path=current_path|default:'' %}"
-            class="flex items-center gap-2 px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-sm font-bold rounded-lg transition-all border border-purple-500/20">
-            <span class="material-symbols-outlined text-[20px]">visibility</span> Tout afficher
-          </a>
-          {% else %}
-          <a href="{% url 'powerbi_report:report_folders_list' %}"
-            class="flex items-center gap-2 px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-sm font-bold rounded-lg transition-all border border-purple-500/20">
-            <span class="material-symbols-outlined text-[20px]">visibility</span> Tout afficher
-          </a>
-          {% endif %}
-        {% endif %}
-
         {% if not current_path %}
         <a href="{% url 'powerbi_report:report_list_flat' %}" class="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary text-sm font-bold rounded-lg transition-all border border-primary/20">
           <span class="material-symbols-outlined text-[20px]">list</span> Vue Liste
         </a>
-        {% endif %}
-
-        {% if permissions.add_powerbireport %}
-        <button class="flex items-center gap-2 px-4 py-2 bg-accent-teal/10 hover:bg-accent-teal/20 text-emerald-400 text-sm font-bold rounded-lg transition-all border border-accent-teal/20" data-bs-toggle="modal" data-bs-target="#createFolderModal">
-          <span class="material-symbols-outlined text-[20px]">create_new_folder</span> Nouveau Dossier
-        </button>
-        <button class="flex items-center gap-2 px-4 py-2 bg-accent-gold/10 hover:bg-accent-gold/20 text-accent-gold text-sm font-bold rounded-lg transition-all border border-accent-gold/20" data-bs-toggle="modal" data-bs-target="#uploadReportModal">
-          <span class="material-symbols-outlined text-[20px]">upload</span> Téléverser
-        </button>
         {% endif %}
       </div>
     </div>

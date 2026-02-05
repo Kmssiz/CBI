@@ -15,6 +15,7 @@ class CustomUser(AbstractUser):
     ]
     
     ad2000 = models.CharField(max_length=255,blank=True, null=True, unique=True,help_text="AD2000 identifier from LDAP")
+    societe = models.CharField(max_length=255, blank=True, null=True, help_text="Company/Société from LDAP")
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, default='Not Active')
     profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)

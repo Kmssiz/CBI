@@ -71,16 +71,16 @@ def get_current_user_auth(request):
 #                    Fetches all Power BI reports from the report server using API                              #
 ################################################################################################################# 
 
-def get_powerbi_reports(request):
+def get_powerbi_reports(request, endpoint="CatalogItems"):
     user_id = request.user.id if request.user.is_authenticated else "anonymous"
-    cache_key = f"powerbi_reports_cache_{user_id}"  
+    cache_key = f"powerbi_reports_cache_{user_id}_{endpoint}"  
     cached_reports = cache.get(cache_key)
 
     if cached_reports:
-        print(f"Returning cached Power BI reports for user {user_id}.")
+        print(f"Returning cached Power BI reports for user {user_id} (Endpoint: {endpoint}).")
         return cached_reports
 
-    url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports"
+    url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/{endpoint}"
     auth = get_current_user_auth(request)
     
     # Handle missing auth (session expired)
@@ -95,9 +95,21 @@ def get_powerbi_reports(request):
         response = session.get(url, auth=auth, timeout=10)  
         response.raise_for_status()
 
-        reports = response.json().get('value', []) if response.status_code == 200 else []
-        cache.set(cache_key, reports, timeout=200) 
-        return reports
+        items = response.json().get('value', []) if response.status_code == 200 else []
+        
+        filtered_items = []
+        if endpoint == "CatalogItems":
+            # Filter for only Folders and PowerBIReports
+            filtered_items = [
+                item for item in items 
+                if item.get('Type') in ['PowerBIReport', 'Folder']
+            ]
+        else:
+             # Assume PowerBIReports or similar specific endpoint returns desired items directly
+             filtered_items = items
+
+        cache.set(cache_key, filtered_items, timeout=200) 
+        return filtered_items
     except requests.exceptions.Timeout:
         print(f"Request timed out for user {user_id}.")
         return []
@@ -115,17 +127,17 @@ def get_report_permissions(request, report_id):
     try:
         response = requests.get(url, auth=auth)
         response.raise_for_status()
-        print(f"Policies API Response Code: {response.status_code}")
-        print(f"Policies API Response Content: {response.text}")
+        logger.info(f"Policies API Response Code: {response.status_code}")
+        # logger.info(f"Policies API Response Content: {response.text}") # Too verbose if successful
         if response.status_code == 200:
             return response.json().get('Policies', [])
         else:
             return []
     except requests.exceptions.HTTPError as errh:
-        print(f"HTTP Error (Permissions): {errh}")
+        logger.error(f"HTTP Error (Permissions): {errh}")
         return []
     except requests.exceptions.RequestException as err:
-        print(f"Request Error (Permissions): {err}")
+        logger.error(f"Request Error (Permissions): {err}")
         return []
 #################################################################################################################
 #                    Retrieves permissions for a specific folder on the report server                           #
@@ -335,14 +347,28 @@ def edit_powerbi_report_name(request, report_id):
         new_name = request.POST.get("name")
         if not new_name:
             messages.error(request, "Please provide a new report name.")
-            return redirect('powerbi_report:report_list')
+            return redirect('powerbi_report:report_detail', report_id=report_id)
 
         update_url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})"
         auth = get_current_user_auth(request)
+        
+        if not auth:
+            messages.error(request, "Session expirée. Veuillez vous reconnecter.")
+            return redirect('login')
+        
         data = {"Name": new_name}
         headers = {"Content-Type": "application/json"}
 
         try:
+            logger.info(f"[EDIT NAME] User {request.user.username} attempting to rename report {report_id} to '{new_name}'")
+            
+            # DEBUG: Check permissions explicitly
+            try:
+                policies = get_report_permissions(request, report_id)
+                logger.info(f"[DEBUG_PERMS] Policies for report {report_id} for user {request.user.username}: {policies}")
+            except Exception as e:
+                logger.error(f"[DEBUG_PERMS] Failed to fetch policies: {e}")
+
             response = requests.patch(update_url, json=data, auth=auth, headers=headers)
             response.raise_for_status()
             messages.success(request, "Report name updated successfully!")
@@ -359,16 +385,25 @@ def edit_powerbi_report_name(request, report_id):
             print(f"Sent notifications to {len(admin_users)} admin users about renaming report ID '{report_id}' to '{new_name}'.")
             # Clear the cache for the current user
             user_id = request.user.id
+            cache_key = f"powerbi_reports_cache_{user_id}"
             cache.delete(cache_key)
-            print(f"Cleared cache for user {user_id} after uploading report.")
+            print(f"Cleared cache for user {user_id} after renaming report.")
             
             _update_report_metadata(report_id, request.user)
 
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 403:
+                logger.error(f"Edit name forbidden for report {report_id} by user {request.user.username}: {e.response.text}")
+                messages.error(request, f"Accès refusé. Vous n'avez pas les permissions nécessaires sur le serveur de rapports pour modifier ce rapport.")
+            else:
+                messages.error(request, f"Failed to update report name: {e}")
+                logger.error(f"HTTP error updating report name {report_id}: {e}")
         except requests.exceptions.RequestException as e:
             messages.error(request, f"Failed to update report name: {e}")
-        return redirect('powerbi_report:report_list')
+            logger.error(f"Request error updating report name {report_id}: {e}")
+        return redirect('powerbi_report:report_detail', report_id=report_id)
 
-    return redirect('powerbi_report:report_list')
+    return redirect('powerbi_report:report_detail', report_id=report_id)
 
 #################################################################################################################
 #                    Updates the path of a Power BI report                                                      #
@@ -400,6 +435,108 @@ def edit_powerbi_report_path(request, report_id):
         return redirect('powerbi_report:report_list')
 
     return redirect('powerbi_report:report_list')
+
+
+#################################################################################################################
+#                    Updates the description of a Power BI report and notifies admin users                      #
+#################################################################################################################
+
+#################################################################################################################
+#                    Replaces an existing Power BI report with a new PBIX file                                  #
+#################################################################################################################
+
+@login_required
+def replace_powerbi_report(request, report_id):
+    """Replace an existing Power BI report with a new PBIX file."""
+    if not request.user.has_perm('powerbi_report.change_powerbireport'):
+        messages.error(request, "Vous n'avez pas la permission de remplacer les rapports.")
+        return redirect('powerbi_report:report_detail', report_id=report_id)
+
+    if request.method == 'POST':
+        pbix_file = request.FILES.get('pbix_file')
+        report_path = request.POST.get('report_path', '').strip()
+
+        if not pbix_file:
+            messages.error(request, "Veuillez fournir un fichier .pbix valide.")
+            return redirect('powerbi_report:report_detail', report_id=report_id)
+
+        if not report_path:
+            messages.error(request, "Le chemin du rapport est manquant.")
+            return redirect('powerbi_report:report_detail', report_id=report_id)
+
+        # Encode the path for the API call
+        # Use ID instead of path to avoid encoding issues with special characters
+        api_url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Model.Upload"
+
+        # Setup authentication
+        auth = get_current_user_auth(request)
+        if not auth:
+            messages.error(request, "Erreur d'authentification. Veuillez vous reconnecter.")
+            return redirect('login')
+
+        session = requests.Session()
+        session.auth = auth
+
+        # Prepare the file for upload
+        files = {
+            'file': (pbix_file.name, pbix_file.read(), 'application/octet-stream')
+        }
+
+        headers = {
+            'Accept': 'application/json'
+        }
+
+        try:
+            logger.info(f"[REPLACE] User {request.user.username} attempting to replace report {report_id} at path {report_path}")
+            
+            # DEBUG: Check permissions explicitly
+            try:
+                policies = get_report_permissions(request, report_id)
+                logger.info(f"[DEBUG_PERMS] Policies for report {report_id} for user {request.user.username}: {policies}")
+            except Exception as e:
+                logger.error(f"[DEBUG_PERMS] Failed to fetch policies: {e}")
+
+            # Perform the POST request to upload the PBIX file
+            response = session.post(api_url, headers=headers, files=files, timeout=120)
+            response.raise_for_status()
+            
+            report_name = report_path.split('/')[-1]
+            messages.success(request, f"Le rapport '{report_name}' a été remplacé avec succès.")
+            log_history(request.user, f"Replaced Power BI report: {report_path}")
+            
+            # Clear the cache for the current user
+            user_id = request.user.id
+            cache_key = f"powerbi_reports_cache_{user_id}"
+            cache.delete(cache_key)
+            logger.info(f"Cleared cache for user {user_id} after replacing report.")
+
+            # Update report metadata
+            _update_report_metadata(report_id, request.user)
+
+            # Notify all admin users
+            admin_users = CustomUser.objects.filter(is_superuser=True)
+            for admin in admin_users:
+                if admin.id != request.user.id:
+                    Notification.objects.create(
+                        user=admin,
+                        message=f"Le rapport '{report_name}' a été remplacé par {request.user.username}."
+                    )
+            logger.info(f"Sent notifications to admin users about replacing report '{report_name}'.")
+
+        except requests.exceptions.HTTPError as errh:
+            if errh.response.status_code == 403:
+                logger.error(f"Replace forbidden for report {report_id} by user {request.user.username}: {errh.response.text}")
+                messages.error(request, f"Accès refusé. Vous n'avez pas les permissions nécessaires sur le serveur de rapports pour remplacer ce rapport.")
+            else:
+                messages.error(request, f"Échec du remplacement du rapport. Erreur HTTP: {errh}")
+                logger.error(f"HTTP Error replacing report {report_path}: {errh}")
+        except requests.exceptions.RequestException as err:
+            messages.error(request, f"Échec du remplacement du rapport. Erreur: {err}")
+            logger.error(f"Request Error replacing report {report_path}: {err}")
+
+        return redirect('powerbi_report:report_detail', report_id=report_id)
+
+    return redirect('powerbi_report:report_detail', report_id=report_id)
 
 
 #################################################################################################################
@@ -509,18 +646,34 @@ from django.conf import settings
 from requests_ntlm import HttpNtlmAuth
 import requests 
 
+@login_required
 def download_report(request, report_id):
     url = f'{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Content/$value'
        
     auth = get_current_user_auth(request)
-    info = get_powerbi_report_info(request, report_id)  # Pass request here
+    
+    # Check if auth is available
+    if not auth:
+        messages.error(request, "Session expirée. Veuillez vous reconnecter.")
+        return redirect('login')
+    
+    info = get_powerbi_report_info(request, report_id)
 
     if not info:
-        messages.error(request, "Failed to retrieve report information.")
-        return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
+        messages.error(request, "Échec de la récupération des informations du rapport.")
+        return redirect(request.META.get("HTTP_REFERER", "powerbi_report:report_list"))
 
     try:
-        response = requests.get(url, auth=auth, headers={'Accept': 'application/octet-stream'}, stream=True)
+        logger.info(f"[DOWNLOAD] User {request.user.username} attempting to download report {report_id}")
+        
+        # DEBUG: Check permissions explicitly
+        try:
+            policies = get_report_permissions(request, report_id)
+            logger.info(f"[DEBUG_PERMS] Policies for report {report_id} for user {request.user.username}: {policies}")
+        except Exception as e:
+            logger.error(f"[DEBUG_PERMS] Failed to fetch policies: {e}")
+
+        response = requests.get(url, auth=auth, headers={'Accept': 'application/octet-stream'}, stream=True, timeout=60)
         
         if response.status_code == 200:
             file_response = StreamingHttpResponse(
@@ -530,20 +683,32 @@ def download_report(request, report_id):
             file_response['Content-Disposition'] = f'attachment; filename="report_{info["name"]}.pbix"'
             log_history(request.user, f"Successfully download report {info['name']} from {info['path']}.")
             return file_response
+        elif response.status_code == 403:
+            logger.error(f"Download forbidden for report {report_id} by user {request.user.username}: {response.text}")
+            messages.error(request, f"Accès refusé. Vous n'avez pas les permissions nécessaires sur le serveur de rapports pour télécharger ce rapport.")
+            return redirect(request.META.get("HTTP_REFERER", "powerbi_report:report_list"))
         else:
-            messages.error(request, f"Failed to retrieve report. Status code: {response.status_code}")
-            return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
+            messages.error(request, f"Échec du téléchargement du rapport. Code: {response.status_code}")
+            logger.error(f"Download failed for report {report_id}: status {response.status_code}")
+            return redirect(request.META.get("HTTP_REFERER", "powerbi_report:report_list"))
     
+    except requests.exceptions.Timeout:
+        messages.error(request, "Le téléchargement a expiré. Veuillez réessayer.")
+        logger.error(f"Timeout downloading report {report_id}")
+        return redirect(request.META.get("HTTP_REFERER", "powerbi_report:report_list"))
     except Exception as e:
-        messages.error(request, f"Error downloading report: {str(e)}")
-        return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
+        messages.error(request, f"Erreur lors du téléchargement: {str(e)}")
+        logger.error(f"Error downloading report {report_id}: {e}")
+        return redirect(request.META.get("HTTP_REFERER", "powerbi_report:report_list"))
 #################################################################################################################
 #                    Displays a flat list of Power BI reports for authenticated users                           #
 #################################################################################################################
 
 @login_required
 def report_list_flat(request):
-    reports = get_powerbi_reports(request)
+    # Use PowerBIReports endpoint to get all reports recursively (flat list)
+    reports = get_powerbi_reports(request, endpoint="PowerBIReports")
+    
     base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
     for report in reports:
         path = report.get("Path", "")
@@ -579,22 +744,32 @@ def report_list_flat(request):
 @login_required
 def report_list_hierarchy(request, folder_path=""):
     force_refresh = request.GET.get('force_refresh', 'false').lower() == 'true'
-    reports = get_powerbi_reports(request)
+    items = get_powerbi_reports(request)
     base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
     
     folder_dict = {}
 
-    for report in reports:
-        path = report.get("Path", "").strip("/")
+    for item in items:
+        path = item.get("Path", "").strip("/")
+        if not path:
+            continue
+            
         parts = path.split("/")
+        item_type = item.get("Type")
+        item_name = parts[-1]
         
+        # Traverse to the parent container
         current_level = folder_dict
         for part in parts[:-1]:  
             current_level = current_level.setdefault(part, {})
 
-        report_name = parts[-1]
-        encoded_path = urllib.parse.quote(path, safe="/")
-        current_level[report_name] = f"{base_embed_url}{encoded_path}?rs:embed=true"
+        if item_type == 'Folder':
+            # Ensure the folder entry exists as a dictionary
+            current_level.setdefault(item_name, {})
+        elif item_type == 'PowerBIReport':
+             # For reports, assign the embed URL
+            encoded_path = urllib.parse.quote(item.get("Path", ""), safe="/")
+            current_level[item_name] = f"{base_embed_url}{encoded_path}?rs:embed=true"
 
     current_folder = folder_dict
     breadcrumbs = []

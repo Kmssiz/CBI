@@ -49,9 +49,20 @@
                     <p class="text-xs text-slate-500 font-mono">{{ report.Id }}</p>
                 </div>
             </div>
-            <button type="button" class="px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2" data-bs-toggle="modal" data-bs-target="#editDescriptionModal">
-                <span class="material-symbols-outlined text-[18px]">edit</span> Modifier Description
-            </button>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'powerbi_report:download_report' report_id=report.Id %}" id="downloadBtn" onclick="showDownloadLoading(this)" class="px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">download</span> <span class="btn-text">Télécharger</span>
+                </a>
+                <button type="button" class="px-4 py-2 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2" data-bs-toggle="modal" data-bs-target="#editReportNameModal">
+                    <span class="material-symbols-outlined text-[18px]">edit</span> Modifier Nom
+                </button>
+                <button type="button" class="px-4 py-2 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 border border-cyan-500/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2" data-bs-toggle="modal" data-bs-target="#replaceReportModal">
+                    <span class="material-symbols-outlined text-[18px]">find_replace</span> Remplacer
+                </button>
+                <button type="button" class="px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2" data-bs-toggle="modal" data-bs-target="#editDescriptionModal">
+                    <span class="material-symbols-outlined text-[18px]">edit</span> Modifier Description
+                </button>
+            </div>
         </div>
         <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-4">
@@ -164,6 +175,63 @@
         <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
             <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
             <button type="submit" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-primary/20">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Report Name Modal -->
+<div class="modal fade" id="editReportNameModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel">
+      <form method="POST" action="{% url 'powerbi_report:edit_report' report.Id %}">
+        {% csrf_token %}
+        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
+            <h5 class="text-lg font-bold text-white tracking-tight">Modifier le nom du rapport</h5>
+            <button type="button" class="text-slate-500 hover:text-white transition-colors" data-bs-dismiss="modal">
+                <span class="material-symbols-outlined text-[24px]">close</span>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="space-y-2">
+                <label for="reportName" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Nom du rapport</label>
+                <input type="text" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="reportName" name="name" value="{{ report.Name }}" required>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
+            <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-amber-500/20">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Replace Report Modal -->
+<div class="modal fade" id="replaceReportModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel">
+      <form id="replaceReportForm" method="POST" action="{% url 'powerbi_report:replace_report' report.Id %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
+            <h5 class="text-lg font-bold text-white tracking-tight">Remplacer le rapport</h5>
+            <button type="button" class="text-slate-500 hover:text-white transition-colors" data-bs-dismiss="modal">
+                <span class="material-symbols-outlined text-[24px]">close</span>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="space-y-2">
+                <p class="text-sm text-slate-300 mb-4">Rapport: {{ report.Name }}</p>
+                <label for="pbixFile" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Nouveau fichier PBIX</label>
+                <input type="file" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-500/20 file:text-cyan-400 hover:file:bg-cyan-500/30" id="pbixFile" name="pbix_file" accept=".pbix" required>
+                <input type="hidden" name="report_path" value="{{ report.Path }}">
+                <p class="text-xs text-slate-500 mt-2">Sélectionnez un fichier .pbix pour remplacer le modèle du rapport existant.</p>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
+            <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" id="btnReplaceSubmit" class="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-cyan-500/20">Remplacer</button>
         </div>
       </form>
     </div>
@@ -472,5 +540,57 @@ async function showErrorDetails(planId) {
         content.innerHTML = `<div class="text-red-400">Erreur lors du chargement des détails: ${e.message}</div>`;
     }
 }
+</script>
+
+<script>
+function showDownloadLoading(btn) {
+    const originalContent = btn.innerHTML;
+    const btnText = btn.querySelector('.btn-text');
+    
+    // Disable clicks temporarily to prevent double download
+    btn.style.pointerEvents = 'none';
+    btn.style.opacity = '0.7';
+    
+    if (btnText) {
+        btnText.textContent = 'Téléchargement...';
+    }
+    
+    // Create spinner
+    const spinner = document.createElement('span');
+    spinner.className = 'spinner-border spinner-border-sm ml-2';
+    spinner.setAttribute('role', 'status');
+    spinner.setAttribute('aria-hidden', 'true');
+    
+    // Ensure the icon is replaced or spinner added
+    // For this specific button structure: icon + text
+    // We can just add the spinner class to the existing icon or replace it
+    const icon = btn.querySelector('.material-symbols-outlined');
+    if (icon) {
+        icon.classList.remove('material-symbols-outlined');
+        icon.classList.add('spinner-border', 'spinner-border-sm');
+        icon.textContent = ''; // Remove icon text content
+    }
+
+    // Revert after 5 seconds (reasonable timeout for download start)
+    setTimeout(() => {
+        btn.innerHTML = originalContent;
+        btn.style.pointerEvents = 'auto';
+        btn.style.opacity = '1';
+    }, 5000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const replaceForm = document.getElementById('replaceReportForm');
+    if (replaceForm) {
+        replaceForm.addEventListener('submit', function() {
+            const submitBtn = document.getElementById('btnReplaceSubmit');
+            if (submitBtn) {
+                const originalText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span> Remplacement...';
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

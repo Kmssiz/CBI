@@ -29,43 +29,53 @@
     {% endif %}
 
     <!-- [ Search and Filter Section ] start -->
+    <form method="get" action="{% url 'users_view' %}" id="filterForm">
     <div class="flex flex-wrap items-center justify-between gap-6 mb-8">
         <div class="flex items-center gap-4 flex-1 min-w-[300px]">
             <div class="relative flex-1 max-w-sm">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
-                <input type="text" id="userSearch" class="w-full pl-10 pr-4 py-2 bg-surface-dark border border-slate-800 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all text-slate-300" placeholder="Rechercher par nom...">
+                <input type="text" name="search" id="userSearch" value="{{ search_query|default:'' }}" class="w-full pl-10 pr-4 py-2 bg-surface-dark border border-slate-800 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all text-slate-300" placeholder="Rechercher par nom...">
             </div>
             
-            <select id="roleFilter" class="bg-surface-dark border border-slate-800 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-slate-300">
+            <select name="role" id="roleFilter" class="bg-surface-dark border border-slate-800 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-slate-300" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Tous les rôles</option>
                 {% for role in roles %}
-                <option value="{{ role.name|lower }}">{{ role.name }}</option>
+                <option value="{{ role.name }}" {% if role_filter == role.name %}selected{% endif %}>{{ role.name }}</option>
                 {% endfor %}
             </select>
 
-            <select id="statusFilter" class="bg-surface-dark border border-slate-800 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-slate-300">
+            <select name="status" id="statusFilter" class="bg-surface-dark border border-slate-800 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-slate-300" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Tous les statuts</option>
-                <option value="active">Actif</option>
-                <option value="not active">Inactif</option>
+                <option value="Active" {% if status_filter == 'Active' %}selected{% endif %}>Actif</option>
+                <option value="Not Active" {% if status_filter == 'Not Active' %}selected{% endif %}>Inactif</option>
             </select>
+
+            <select name="societe" id="societeFilter" class="bg-surface-dark border border-slate-800 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-slate-300" onchange="document.getElementById('filterForm').submit()">
+                <option value="">Tous les groupes</option>
+                {% for societe in societes %}
+                <option value="{{ societe }}" {% if societe_filter == societe %}selected{% endif %}>{{ societe }}</option>
+                {% endfor %}
+            </select>
+
         </div>
 
         <div class="flex items-center gap-3">
-            <button class="flex items-center gap-2 px-4 py-2 border border-slate-800 hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-400" onclick="window.location.href='{% url 'sync_users' %}'">
+            <button type="button" id="syncUsersBtn" class="flex items-center gap-2 px-4 py-2 border border-slate-800 hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-400" onclick="startSyncUsers()">
                 <span class="material-symbols-outlined text-[18px]">sync</span> Synchroniser
             </button>
             
             {% if permissions.view_role %}
-            <button class="flex items-center gap-2 px-4 py-2 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/5 rounded-lg text-sm font-bold transition-all" onclick="window.location.href='{% url 'manage_roles' %}'">
+            <button type="button" class="flex items-center gap-2 px-4 py-2 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/5 rounded-lg text-sm font-bold transition-all" onclick="window.location.href='{% url 'manage_roles' %}'">
                 <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span> Rôles
             </button>
             {% endif %}
             
-            <button class="p-2 bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-all" id="showAll">
+            <a href="{% url 'users_view' %}" class="p-2 bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-all" id="showAll">
                 <span class="material-symbols-outlined text-[20px]">refresh</span>
-            </button>
+            </a>
         </div>
     </div>
+    </form>
 
     <!-- [ User List Section ] start -->
     <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-sm overflow-hidden">
@@ -80,6 +90,7 @@
                     <tr class="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/50">
                         <th class="px-6 py-4">Utilisateur</th>
                         <th class="px-6 py-4">Email</th>
+                        <th class="px-6 py-4">Groupe</th>
                         <th class="px-6 py-4">Rôle</th>
                         <th class="px-6 py-4 text-center">Vue par défaut</th>
                         <th class="px-6 py-4 text-center">Statut</th>
@@ -101,6 +112,9 @@
                             </div>
                         </td>
                         <td class="px-6 py-4 text-sm text-slate-500">{{ user.email }}</td>
+                        <td class="px-6 py-4">
+                            <span class="text-sm text-slate-400">{{ user.societe|default:"-" }}</span>
+                        </td>
                         <td class="px-6 py-4">
                             <span class="text-sm font-medium text-slate-400">{{ user.role|default:"None" }}</span>
                         </td>
@@ -137,7 +151,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="px-6 py-12 text-center text-slate-600 font-medium">Aucun utilisateur trouvé.</td>
+                        <td colspan="7" class="px-6 py-12 text-center text-slate-600 font-medium">Aucun utilisateur trouvé.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -149,7 +163,7 @@
             <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Affichage de {{ users.start_index }} à {{ users.end_index }} sur {{ users.paginator.count }} utilisateurs</p>
             <div class="flex items-center gap-2">
                 {% if users.has_previous %}
-                <a href="?page={{ users.previous_page_number }}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700">
+                <a href="?page={{ users.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if societe_filter %}&societe={{ societe_filter }}{% endif %}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700">
                     <span class="material-symbols-outlined text-[18px]">chevron_left</span>
                 </a>
                 {% else %}
@@ -162,12 +176,12 @@
                     {% if users.number == i %}
                         <span class="size-8 rounded bg-primary flex items-center justify-center text-white text-[11px] font-black border border-primary shadow-[0_0_15px_rgba(19,127,236,0.3)]">{{ i }}</span>
                     {% elif i > users.number|add:'-3' and i < users.number|add:'3' %}
-                        <a href="?page={{ i }}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white text-[11px] font-bold border border-slate-700 transition-all">{{ i }}</a>
+                        <a href="?page={{ i }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if societe_filter %}&societe={{ societe_filter }}{% endif %}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white text-[11px] font-bold border border-slate-700 transition-all">{{ i }}</a>
                     {% endif %}
                 {% endfor %}
 
                 {% if users.has_next %}
-                <a href="?page={{ users.next_page_number }}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700">
+                <a href="?page={{ users.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if societe_filter %}&societe={{ societe_filter }}{% endif %}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700">
                     <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                 </a>
                 {% else %}
@@ -219,7 +233,25 @@
     </div>
 </div>
 
-<!-- Loading Prompt -->
+<!-- Loading Overlay for Sync -->
+<div id="syncLoadingOverlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999]" style="display: none;">
+  <div class="bg-surface-dark border border-slate-800 rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl max-w-sm mx-4">
+    <div class="relative">
+      <span class="material-symbols-outlined text-[48px] text-primary animate-spin">sync</span>
+    </div>
+    <div class="text-center">
+      <h3 class="text-lg font-bold text-white mb-2">Synchronisation en cours...</h3>
+      <p class="text-sm text-slate-400">Récupération des utilisateurs depuis Active Directory. Cette opération peut prendre plusieurs minutes.</p>
+    </div>
+    <div class="flex items-center gap-2 mt-2">
+      <div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+      <div class="w-2 h-2 bg-primary rounded-full animate-pulse" style="animation-delay: 0.2s;"></div>
+      <div class="w-2 h-2 bg-primary rounded-full animate-pulse" style="animation-delay: 0.4s;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Prompt for Permissions -->
 <div id="loadingPrompt" class="loading-overlay">
   <div class="loading-content">
     <div class="spinner-border text-primary" role="status">
@@ -230,6 +262,17 @@
 </div>
 
 <script>
+  // Function to start user sync with loading overlay
+  function startSyncUsers() {
+    const overlay = document.getElementById('syncLoadingOverlay');
+    overlay.style.display = 'flex';
+    
+    // Navigate to sync URL after a small delay to ensure overlay is visible
+    setTimeout(function() {
+      window.location.href = "{% url 'sync_users' %}";
+    }, 100);
+  }
+
   // Function to open the edit modal
   function openEditModal(userId, currentRole, currentView) {
     document.getElementById('editUserId').value = userId;
@@ -250,47 +293,12 @@
     $('#editModal').modal('hide');
   }
 
-  // Combined filter function
-  function applyFilters() {
-    const searchValue = document.getElementById('userSearch').value.toLowerCase();
-    const roleValue = document.getElementById('roleFilter').value.toLowerCase();
-    const statusValue = document.getElementById('statusFilter').value.toLowerCase();
-    const rows = document.querySelectorAll('#userTable tbody tr');
-
-    rows.forEach(row => {
-      const userName = row.querySelector('td') ? row.querySelector('td').textContent.toLowerCase() : '';
-      const role = row.getAttribute('data-user-role') || '';
-      const status = row.getAttribute('data-user-status') || '';
-
-      const matchesSearch = userName.includes(searchValue);
-      const matchesRole = (roleValue === '' || role === roleValue);
-      const matchesStatus = (statusValue === '' || status === statusValue);
-
-      row.style.display = (matchesSearch && matchesRole && matchesStatus) ? '' : 'none';
-    });
-  }
-
-  // Event listeners for filters
-  document.getElementById('userSearch').addEventListener('input', applyFilters);
-  document.getElementById('roleFilter').addEventListener('change', applyFilters);
-  document.getElementById('statusFilter').addEventListener('change', applyFilters);
-
-  // "No Permission" filter
-  document.getElementById('filterNoPermission').addEventListener('click', function () {
-    const rows = document.querySelectorAll('#userTable tbody tr');
-    rows.forEach(row => {
-      const permission = row.getAttribute('data-permission');
-      row.style.display = (permission === 'false') ? '' : 'none';
-    });
-  });
-
-  // Show all rows button
-  document.getElementById('showAll').addEventListener('click', function () {
-    const rows = document.querySelectorAll('#userTable tbody tr');
-    rows.forEach(row => { row.style.display = ''; });
-    document.getElementById('roleFilter').selectedIndex = 0;
-    document.getElementById('statusFilter').selectedIndex = 0;
-    document.getElementById('userSearch').value = '';
+  // Submit search only on Enter key
+  document.getElementById('userSearch').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('filterForm').submit();
+    }
   });
 
   document.addEventListener("DOMContentLoaded", function () {

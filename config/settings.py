@@ -39,8 +39,8 @@ LDAP_DOMAIN = config('LDAP_DOMAIN')
 LDAP_SEARCH_BASE = config('LDAP_SEARCH_BASE')
 
 # LDAP Service Account (for user sync operations)
-LDAP_SERVICE_USERNAME = config('LDAP_SERVICE_USERNAME')
-LDAP_SERVICE_PASSWORD = config('LDAP_SERVICE_PASSWORD')
+LDAP_SERVICE_USERNAME = config('LDAP_SERVICE_USERNAME', default='')
+LDAP_SERVICE_PASSWORD = config('LDAP_SERVICE_PASSWORD', default='')
 
 # Role names (centralized to avoid hardcoded strings)
 ADMIN_ROLE_NAME = 'admin'
