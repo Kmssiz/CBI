@@ -205,18 +205,49 @@ def login_view(request):
 #                    Displays user history for a specific user                                                  #
 #################################################################################################################
 @login_required
+@login_required
 def user_history(request):
     if not request.user.role or request.user.role.name != "admin":
         messages.error(request, "Permission denied. Admin access required.")
         return redirect('home')
 
-    users = CustomUser.objects.all().order_by('username')
-    
-    user_id = request.GET.get('user_id')
+    # Base query
     history_query = UserHistory.objects.all().select_related('user').order_by('-timestamp')
     
-    if user_id:
-        history_query = history_query.filter(user_id=user_id)
+    # Search filtering
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        from django.db.models import Q
+        history_query = history_query.filter(
+            Q(user__username__icontains=search_query) |
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query) |
+            Q(action__icontains=search_query)
+        )
+
+    # Action filtering
+    action_filter = request.GET.get('action', '').strip()
+    if action_filter:
+        history_query = history_query.filter(action__icontains=action_filter)
+
+    # Defined general action categories for dropdown
+    actions = [
+        "User logged in", 
+        "User logged out", 
+        "Updated role", 
+        "Updated default view"
+    ]
+
+    # Pagination
+    paginator = Paginator(history_query, 10)  # 10 items per page
+    page_number = request.GET.get('page')
+    history_page = paginator.get_page(page_number)
+    
+    # Calculate page range for pagination UI
+    try:
+        page_range = paginator.get_elided_page_range(history_page.number, on_each_side=2, on_ends=1)
+    except:
+        page_range = []
         
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = Notification.objects.filter(user=request.user, is_read=False).count()
@@ -224,12 +255,14 @@ def user_history(request):
 
     return render(request, 'users/user_history.html',
      { 
-     'history': history_query,
+     'history': history_page,
+     'page_range': page_range,
      'notifications': notifications, 
      'unread': unread,
      'permissions': permissions,
-     'users': users,
-     'selected_user_id': int(user_id) if user_id else None
+     'search_query': search_query,
+     'actions': actions,
+     'selected_action': action_filter
      })
 
 #################################################################################################################
@@ -251,21 +284,21 @@ def clear_history(request, user_id):
 @login_required
 def home_view(request):
     if request.user.role and request.user.role.name == "admin":
-        log_history(request.user, "Viewed home page")
+        # log_history(request.user, "Viewed home page")
         return redirect('powerbi_report:dashboard')
     
     if request.user.role and request.user.role.name == "user":
         # Check default view preference
         if hasattr(request.user, 'default_view'):
             if request.user.default_view == 'business':
-                log_history(request.user, "Viewed Business View (Home)")
+                # log_history(request.user, "Viewed Business View (Home)")
                 return redirect('powerbi_report:custom_business')
             elif request.user.default_view == 'department':
-                log_history(request.user, "Viewed Department View (Home)")
+                # log_history(request.user, "Viewed Department View (Home)")
                 return redirect('powerbi_report:custom_department')
         
         # Fallback
-        log_history(request.user, "Viewed report_list_hierarchy page")
+        # log_history(request.user, "Viewed report_list_hierarchy page")
         return redirect('powerbi_report:report_list_hierarchy')
     
     return redirect('logout')
@@ -328,7 +361,7 @@ def user_management(request):
     users = paginator.get_page(page_number)
     
     roles = Role.objects.all()
-    log_history(request.user, "Accessed user management page")
+    # log_history(request.user, "Accessed user management page")
 
     permissions = get_user_permissions(request.user)
 

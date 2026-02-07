@@ -128,7 +128,7 @@
         {% endif %}
 
         {% if permissions.view_powerbireport %}
-        <a href="{% url 'powerbi_report:report_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if '/custom/' not in request.path and '/embed/' not in request.path and request.GET.context != 'department' and request.GET.context != 'biblio' and request.GET.context != 'business' or '/embed/' in request.path and request.GET.context != 'department' and request.GET.context != 'biblio' and request.GET.context != 'business' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+        <a href="{% url 'powerbi_report:report_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name in 'report_list,report_list_hierarchy,report_list_hierarchy_folder' or request.resolver_match.url_name in 'report_list_flat,embed_report' and request.GET.context != 'department' and request.GET.context != 'biblio' and request.GET.context != 'business' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">folder_managed</span>
           <span class="text-sm font-medium">Gestion Rapports</span>
         </a>
@@ -191,6 +191,16 @@
 
       {% endif %}
     </div>
+
+    <!-- Sidebar Footer (Logout) -->
+    {% if user.is_authenticated %}
+    <div class="p-4 border-t border-slate-800/10 mt-auto">
+      <a href="{% url 'logout' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-500 hover:text-white hover:bg-red-500/10 transition-all group">
+        <span class="material-symbols-outlined text-[20px]">logout</span>
+        <span class="text-sm font-bold">Déconnexion</span>
+      </a>
+    </div>
+    {% endif %}
 
   </aside>
   <!-- [ Sidebar Menu ] end -->
@@ -280,30 +290,18 @@
           </div>
 
           <!-- Profile -->
-          <div class="dropdown">
-            <button class="flex items-center gap-3 p-1 rounded-full hover:bg-white/5 transition-all text-left" data-bs-toggle="dropdown">
-              <div class="size-9 rounded-full bg-primary/20 border border-primary/20 flex items-center justify-center text-sm font-bold text-primary">
-                {% if user.profile_image %}
-                  <img src="{{ user.profile_image.url }}" alt="AV" class="size-full rounded-full object-cover">
-                {% else %}
-                  {{ user.username|slice:":1"|upper }}
-                {% endif %}
-              </div>
-              <div class="hidden md:flex flex-col">
-                <span class="text-xs font-bold text-white">{{ user.get_full_name|default:user.username }}</span>
-                <span class="text-[10px] text-slate-500">{{ user.ad2000 }}</span>
-              </div>
-              <span class="material-symbols-outlined text-slate-500 text-[18px]">expand_more</span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end p-2 !bg-[#121922] border border-slate-800 shadow-2xl rounded-xl w-56">
-
-              <li>
-                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-all" href="{% url 'logout' %}">
-                  <span class="material-symbols-outlined text-[20px]">logout</span>
-                  <span class="text-xs font-bold">Déconnexion</span>
-                </a>
-              </li>
-            </ul>
+          <div class="flex items-center gap-3 p-1 rounded-full text-left">
+            <div class="size-9 rounded-full bg-primary/20 border border-primary/20 flex items-center justify-center text-sm font-bold text-primary">
+              {% if user.profile_image %}
+                <img src="{{ user.profile_image.url }}" alt="AV" class="size-full rounded-full object-cover">
+              {% else %}
+                {{ user.username|slice:":1"|upper }}
+              {% endif %}
+            </div>
+            <div class="hidden md:flex flex-col">
+              <span class="text-xs font-bold text-white">{{ user.get_full_name|default:user.username }}</span>
+              <span class="text-[10px] text-slate-500">{{ user.ad2000 }}</span>
+            </div>
           </div>
         {% endif %}
       </div>

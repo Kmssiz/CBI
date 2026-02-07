@@ -16,17 +16,17 @@
         <!-- Actions and Filter Section -->
         <div class="bg-surface-dark/50 border border-slate-800/60 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto" id="filterButtons">
-                 <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border border-white text-xs font-bold text-white bg-white/5 transition-all active-filter"
+                 <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold transition-all active-filter bg-white/10 border-white text-white"
                     data-filter="all" onclick="filterNotifications('all')">
                     <span class="material-symbols-outlined text-[16px]">filter_list</span>
                     Tous
                 </button>
-                <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border border-slate-800/60 hover:border-emerald-500/50 text-xs font-bold text-emerald-500 transition-all"
+                <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold transition-all bg-transparent border-slate-800/60 text-emerald-500 hover:border-emerald-500/50"
                     data-filter="read" onclick="filterNotifications('read')">
                     <span class="material-symbols-outlined text-[16px]">check_circle</span>
                     Lu
                 </button>
-                <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border border-slate-800/60 hover:border-orange-500/50 text-xs font-bold text-orange-500 transition-all"
+                <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold transition-all bg-transparent border-slate-800/60 text-orange-500 hover:border-orange-500/50"
                     data-filter="unread" onclick="filterNotifications('unread')">
                     <span class="material-symbols-outlined text-[16px]">error</span>
                     Non lu
@@ -198,10 +198,30 @@
     // Update active button visual state
     buttons.forEach(button => {
         const btnFilter = button.getAttribute('data-filter');
+        
+        // Reset base styles (inactive state)
+        button.className = "flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold transition-all";
+        
         if (btnFilter === filter) {
-             button.classList.add('ring-2', 'ring-white/20');
+             // Apply Active Styles
+             if (filter === 'all') {
+                 button.classList.add('bg-white/10', 'border-white', 'text-white');
+             } else if (filter === 'read') {
+                 button.classList.add('bg-emerald-500/10', 'border-emerald-500', 'text-emerald-500');
+             } else if (filter === 'unread') {
+                 button.classList.add('bg-orange-500/10', 'border-orange-500', 'text-orange-500');
+             }
         } else {
-             button.classList.remove('ring-2', 'ring-white/20');
+             // Apply Inactive Styles (Base + specific text color)
+             button.classList.add('bg-transparent', 'border-slate-800/60');
+             
+             if (btnFilter === 'all') {
+                 button.classList.add('text-white', 'hover:border-white/50');
+             } else if (btnFilter === 'read') {
+                 button.classList.add('text-emerald-500', 'hover:border-emerald-500/50');
+             } else if (btnFilter === 'unread') {
+                 button.classList.add('text-orange-500', 'hover:border-orange-500/50');
+             }
         }
     });
 

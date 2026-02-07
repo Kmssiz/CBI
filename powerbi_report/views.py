@@ -274,7 +274,7 @@ def report_list(request):
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = Notification.objects.filter(user=request.user, is_read=False).count()
     permissions = get_user_permissions(request.user)
-    log_history(request.user, f"Viewed Power BI report management {f'(Search: {query})' if query else ''}")
+    # log_history(request.user, f"Viewed Power BI report management {f'(Search: {query})' if query else ''}")
 
     # Sort reports by name
     reports.sort(key=lambda x: x.get("Name", "").lower())
@@ -564,7 +564,7 @@ def edit_powerbi_report_description(request, report_id):
             
             messages.success(request, "Report description updated successfully!")
             _update_report_metadata(report_id, request.user)
-            # log_history(request.user, f"Updated description for report {info["name"]} ID: {report_id}  path {info["path"]} to '{new_description}'")
+            log_history(request.user, f"Updated description for report {info['name']} ID: {report_id}  path {info['path']} to '{new_description}'")
             
             # Notify admin users
             admin_users = CustomUser.objects.filter(is_superuser=True)
@@ -618,7 +618,7 @@ def embed_report(request, report_path):
 
         notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
         unread = Notification.objects.filter(user=request.user, is_read=False).count()
-        log_history(request.user, f"Viewed Power BI report: {report_path} (ID: {report_id})")
+        # log_history(request.user, f"Viewed Power BI report: {report_path} (ID: {report_id})")
         permissions = get_user_permissions(request.user)
 
         return render(request, "powerbi_report/embed_report.html", {
@@ -681,7 +681,7 @@ def download_report(request, report_id):
                 content_type='application/octet-stream'
             )
             file_response['Content-Disposition'] = f'attachment; filename="report_{info["name"]}.pbix"'
-            log_history(request.user, f"Successfully download report {info['name']} from {info['path']}.")
+            # log_history(request.user, f"Successfully download report {info['name']} from {info['path']}.")
             return file_response
         elif response.status_code == 403:
             logger.error(f"Download forbidden for report {report_id} by user {request.user.username}: {response.text}")
@@ -718,7 +718,7 @@ def report_list_flat(request):
         report["embed_url"] = f"{base_embed_url}{encoded_path}?rs:embed=true"
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = Notification.objects.filter(user=request.user, is_read=False).count()
-    log_history(request.user, "Viewed Power BI report list (flat)")
+    # log_history(request.user, "Viewed Power BI report list (flat)")
     permissions = get_user_permissions(request.user)
 
     # Sort reports by name
@@ -803,8 +803,8 @@ def report_list_hierarchy(request, folder_path=""):
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
      # Log only when folder_path is root (empty or "/")
-    if not folder_path or folder_path == "/":
-        log_history(request.user, "Viewed Power BI report list (hierarchy)")
+    # if not folder_path or folder_path == "/":
+        # log_history(request.user, "Viewed Power BI report list (hierarchy)")
 
     permissions = get_user_permissions(request.user)
 
@@ -991,7 +991,7 @@ def report_folders_list(request, folder_path=""):
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
 
-    log_history(request.user, "Viewed Power BI report folders list")
+    # log_history(request.user, "Viewed Power BI report folders list")
     permissions = get_user_permissions(request.user)
 
     return render(request, 'powerbi_report/report_folders_list.html', {
@@ -1142,8 +1142,8 @@ def report_detail(request, report_id):
     if not report:
         log_history(request.user, f"Attempted to view non-existent report ID: {report_id}")
         raise Http404("Report not found")
-    log_history(request.user, f"Viewed Power BI report details: {report.get('Name', 'Unknown')} (ID: {report_id})")
-    log_history(request.user, f"Viewed Power BI report details: {report.get('Name', 'Unknown')} (ID: {report_id})")
+    # log_history(request.user, f"Viewed Power BI report details: {report.get('Name', 'Unknown')} (ID: {report_id})")
+    # log_history(request.user, f"Viewed Power BI report details: {report.get('Name', 'Unknown')} (ID: {report_id})")
     refresh_plans = get_refresh_plans(report_id, request)
     shared_schedules = get_shared_schedules(request)
 
@@ -1622,7 +1622,7 @@ def report_permissions(request, report_id):
         raise Http404("Report not found")
     
     report_name = report.get('Name', 'Unknown Report') 
-    log_history(request.user, f"Viewed permissions for Power BI report: {report_name} (ID: {report_id})") 
+    # log_history(request.user, f"Viewed permissions for Power BI report: {report_name} (ID: {report_id})") 
 
     policies = get_report_permissions(request, report_id)
     if not policies:
@@ -2324,7 +2324,7 @@ def missing_permissions(request, username):
         if not user_has_permission:
             missing_reports.append(report)
 
-    log_history(request.user, f"Viewed no access report permissions for user :{username})")
+    # log_history(request.user, f"Viewed no access report permissions for user :{username})")
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
@@ -2844,7 +2844,7 @@ def remove_selected_permissions(request, username):
 
 @login_required
 def dashboard(request):
-    log_history(request.user, "Accessed the dashboard")
+    # log_history(request.user, "Accessed the dashboard")
 
     user_id = request.user.id
     cache_key = f"dashboard_data_{user_id}"
