@@ -42,8 +42,8 @@ from notifications.models import Notification
 from users.models import CustomUser, UserHistory, Role
 from users.utils import log_history, get_user_permissions
 
-from .models import ReportRef, CustomFolder, FolderReportItem
-from .services import PBIRSClient
+from .models import ReportRef, CustomFolder, FolderReportItem, UserReportPermission, PermissionSyncLog
+from .services import PBIRSClient, sync_all_user_permissions
 
 logger = logging.getLogger('powerbi_report')
 
@@ -524,6 +524,12 @@ def replace_powerbi_report(request, report_id):
                         message=f"Le rapport '{report_name}' a été remplacé par {request.user.username}."
                     )
             logger.info(f"Sent notifications to admin users about replacing report '{report_name}'.")
+
+            # Trigger permission sync to ensure permissions are up to date
+            try:
+                sync_all_user_permissions(triggered_by=request.user)
+            except Exception as e:
+                logger.error(f"Auto-sync permissions failed after replace: {e}")
 
         except requests.exceptions.HTTPError as errh:
             if errh.response.status_code == 403:
@@ -3168,8 +3174,19 @@ def get_report_refresh_list(request):
 def get_visible_report_ids(request):
     """
     Get PBIRS report IDs the current user has access to.
-    Returns a set of report IDs from PBIRS that the user can see.
+    Reads from local UserReportPermission table (synced from PBIRS).
+    Falls back to PBIRS API if no local permissions exist.
     """
+    user = request.user
+    
+    # Try to get from local database first
+    local_permissions = UserReportPermission.objects.filter(user=user)
+    if local_permissions.exists():
+        return set(local_permissions.values_list('report__pbirs_id', flat=True))
+    
+    # Fallback: If no local permissions, check PBIRS directly
+    # This handles the case before first sync or for new users
+    logger.debug(f"No local permissions for {user.username}, falling back to PBIRS API")
     pbirs_reports = get_powerbi_reports(request)
     return {r.get('Id') for r in pbirs_reports if r.get('Id')}
 
@@ -3258,10 +3275,40 @@ def sync_reports_from_pbirs(request):
     messages.success(request, f"Successfully synced {synced_count} reports from PBIRS.")
     log_history(request.user, f"Synced {synced_count} reports from PBIRS to local cache")
     
+    # Trigger permission sync to ensure new reports have correct permissions
+    try:
+        users, perms = sync_all_user_permissions(triggered_by=request.user)
+        messages.info(request, f"Permissions auto-refreshed: {users} users updated.")
+    except Exception as e:
+        logger.error(f"Auto-sync permissions failed: {e}")
+    
     return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_business'))
 
 
 @login_required
+def sync_permissions(request):
+    """
+    Sync report permissions from PBIRS to local database.
+    Admin only operation that refreshes UserReportPermission table.
+    """
+    if not request.user.is_superuser:
+        messages.error(request, "Seuls les administrateurs peuvent synchroniser les permissions.")
+        return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_business'))
+    
+    try:
+        users_synced, permissions_created = sync_all_user_permissions(triggered_by=request.user)
+        messages.success(
+            request, 
+            f"Permissions synchronisées avec succès. {users_synced} utilisateurs, {permissions_created} permissions."
+        )
+        log_history(request.user, f"Synced permissions: {users_synced} users, {permissions_created} permissions")
+    except Exception as e:
+        messages.error(request, f"Échec de la synchronisation des permissions: {str(e)}")
+        log_history(request.user, f"Permission sync failed: {str(e)}")
+    
+    return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_business'))
+
+
 def custom_folders_list(request, view_type='business', folder_id=None):
     """
     Display custom folders and reports for a specific view type.
@@ -3605,6 +3652,12 @@ def delete_powerbi_report_server(request, report_id):
                     user=admin,
                     message=f"Report (ID: {report_id}) has been deleted from server by {request.user.username}."
                 )
+            
+            # Trigger permission sync to update local cache (remove deleted report permissions)
+            try:
+                sync_all_user_permissions(triggered_by=request.user)
+            except Exception as e:
+                logger.error(f"Auto-sync permissions failed after delete: {e}")
                 
         except requests.exceptions.RequestException as e:
             messages.error(request, f"Failed to delete report: {str(e)}")

@@ -19,6 +19,7 @@ from django.core.paginator import Paginator
 
 from .ldap_utils import connexion_ad2000, get_ad_users
 from .utils import log_history, get_user_permissions
+from powerbi_report.services import sync_user_permissions_on_login
 
 #################################################################################################################
 #                    Handles user login with LDAP authentication                                                #
@@ -167,6 +168,13 @@ def login_view(request):
             
             login(request, user)
             log_history(user, "User logged in")
+            
+            # Sync user permissions from PBIRS using their credentials
+            try:
+                permissions_synced = sync_user_permissions_on_login(user, password)
+                print(f"[LOGIN] Synced {permissions_synced} report permissions for user {user.username}")
+            except Exception as e:
+                print(f"[LOGIN] Failed to sync permissions for {user.username}: {e}")
             
             # Clear cached data to ensure fresh fetch for this user
             cache.delete(f"powerbi_reports_cache_{user.id}")

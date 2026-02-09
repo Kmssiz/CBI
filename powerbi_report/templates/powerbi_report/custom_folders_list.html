@@ -60,6 +60,10 @@
                     title="Sync reports from PBIRS">
                     <i class="feather icon-refresh-cw"></i> Synchroniser PBIRS
                 </a>
+                <a href="{% url 'powerbi_report:sync_permissions' %}" class="btn btn-outline-info"
+                    title="Sync user permissions from PBIRS">
+                    <i class="feather icon-users"></i> Synchroniser Permissions
+                </a>
                 <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#createFolderModal">
                     <i class="feather icon-folder-plus"></i> Nouveau dossier
                 </button>
