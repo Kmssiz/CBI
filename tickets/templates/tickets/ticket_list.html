@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block header_title %}Système de Tickets{% endblock %}
+{% block header_subtitle %}Gérez vos demandes et signalez des bugs{% endblock %}
+
+{% block content %}
+<div class="p-4 lg:p-8 max-w-7xl mx-auto">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+    <div>
+      <h2 class="text-xl font-bold text-white mb-2">Vos Tickets</h2>
+      <p class="text-slate-400 text-sm">Consultez l'état de vos demandes et rapports.</p>
+    </div>
+    <a href="{% url 'tickets:create_ticket' %}" class="px-4 py-2 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2">
+      <span class="material-symbols-outlined text-[20px]">add</span>
+      Nouveau Ticket
+    </a>
+  </div>
+
+  <div class="bg-card-dark border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-surface-dark border-b border-slate-800 text-xs uppercase tracking-wider text-slate-500 font-bold">
+            <th class="p-4">Titre</th>
+            <th class="p-4">Type</th>
+            <th class="p-4">Catégorie</th>
+            <th class="p-4">Priorité</th>
+            <th class="p-4">Statut</th>
+            <th class="p-4">Assigné à</th>
+            <th class="p-4">Date de Création</th>
+            <th class="p-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800">
+          {% for ticket in tickets %}
+          <tr class="hover:bg-white/[0.02] transition-colors group">
+            <td class="p-4">
+              <a href="{% url 'tickets:ticket_detail' ticket.id %}" class="font-bold text-white hover:text-primary transition-colors block">{{ ticket.title }}</a>
+            </td>
+            <td class="p-4">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold 
+                {% if ticket.ticket_type == 'bug' %}bg-red-500/10 text-red-500 border border-red-500/20
+                {% elif ticket.ticket_type == 'dashboard' %}bg-purple-500/10 text-purple-500 border border-purple-500/20
+                {% elif ticket.ticket_type == 'refresh' %}bg-blue-500/10 text-blue-500 border border-blue-500/20
+                {% else %}bg-slate-500/10 text-slate-500 border border-slate-500/20{% endif %}">
+                {% if ticket.ticket_type == 'bug' %}<span class="material-symbols-outlined text-[14px]">bug_report</span>{% endif %}
+                {% if ticket.ticket_type == 'dashboard' %}<span class="material-symbols-outlined text-[14px]">dashboard</span>{% endif %}
+                {% if ticket.ticket_type == 'refresh' %}<span class="material-symbols-outlined text-[14px]">refresh</span>{% endif %}
+                {{ ticket.get_ticket_type_display }}
+              </span>
+            </td>
+            <td class="p-4">
+              <span class="text-xs font-bold text-slate-400 uppercase">{{ ticket.get_category_display }}</span>
+            </td>
+            <td class="p-4">
+              <div class="flex items-center gap-2">
+                {% if ticket.priority == 'high' %}
+                  <span class="size-2 rounded-full bg-red-500"></span> <span class="text-red-400 font-medium">Haute</span>
+                {% elif ticket.priority == 'medium' %}
+                  <span class="size-2 rounded-full bg-yellow-500"></span> <span class="text-yellow-400 font-medium">Moyenne</span>
+                {% else %}
+                  <span class="size-2 rounded-full bg-green-500"></span> <span class="text-green-400 font-medium">Basse</span>
+                {% endif %}
+              </div>
+            </td>
+            <td class="p-4">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold
+                {% if ticket.status == 'open' %}bg-emerald-500/10 text-emerald-400
+                {% elif ticket.status == 'in_progress' %}bg-blue-500/10 text-blue-400
+                {% elif ticket.status == 'closed' %}bg-slate-700 text-slate-400
+                {% elif ticket.status == 'rejected' %}bg-red-900/20 text-red-400{% endif %}">
+                {{ ticket.get_status_display }}
+              </span>
+            </td>
+            <td class="p-4">
+              {% if ticket.assigned_to %}
+              <div class="flex items-center gap-2">
+                <div class="size-6 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-[10px]">{{ ticket.assigned_to.username|slice:":1"|upper }}</div>
+                <span class="text-sm text-white">{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}</span>
+              </div>
+              {% else %}
+              <span class="text-xs text-slate-500">--</span>
+              {% endif %}
+            </td>
+            <td class="p-4 text-slate-400 text-sm">
+              {{ ticket.created_at|date:"d M Y" }}
+            </td>
+            <td class="p-4 text-right">
+              <a href="{% url 'tickets:ticket_detail' ticket.id %}" class="text-slate-500 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-lg inline-flex">
+                <span class="material-symbols-outlined text-[20px]">visibility</span>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="p-8 text-center text-slate-500">
+              <div class="flex flex-col items-center justify-center">
+                <div class="size-16 rounded-full bg-slate-800/50 flex items-center justify-center mb-4">
+                    <span class="material-symbols-outlined text-3xl opacity-50">confirmation_number</span>
+                </div>
+                <p class="font-medium">Aucun ticket trouvé</p>
+                <p class="text-xs mt-1 opacity-70">Créez votre premier ticket pour commencer.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

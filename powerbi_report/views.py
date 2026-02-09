@@ -258,6 +258,8 @@ def get_folder_list(request):
 def report_list(request):
     query = request.GET.get('q', '').strip()
     reports = get_powerbi_reports(request)
+    # Filter out folders, keep only reports
+    reports = [r for r in reports if r.get("Type") == 'PowerBIReport']
     base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
 
     for report in reports:

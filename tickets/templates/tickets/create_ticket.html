@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block header_title %}Nouveau Ticket{% endblock %}
+{% block header_subtitle %}Soumettre un bug ou une demande{% endblock %}
+
+{% block content %}
+<div class="p-4 lg:p-8 max-w-3xl mx-auto">
+  <div class="mb-8">
+    <a href="{% url 'tickets:ticket_list' %}" class="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-4 text-sm font-bold uppercase tracking-wider">
+      <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+      Retour à la liste
+    </a>
+    <h2 class="text-2xl font-bold text-white">Créer un nouveau ticket</h2>
+    <p class="text-slate-400 mt-2">Détaillez votre demande ci-dessous pour aider notre équipe à comprendre vos besoins.</p>
+  </div>
+
+  <div class="bg-card-dark border border-slate-800 rounded-xl p-6 lg:p-8 shadow-xl">
+    <form method="post" action="{% url 'tickets:create_ticket' %}">
+      {% csrf_token %}
+      
+      {% if form.errors %}
+      <div class="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-200 text-sm">
+        <p class="font-bold flex items-center gap-2 mb-2">
+          <span class="material-symbols-outlined text-[20px]">error</span>
+          Veuillez corriger les erreurs suivantes :
+        </p>
+        <ul class="list-disc list-inside opacity-80">
+          {% for field in form %}
+            {% for error in field.errors %}
+              <li>{{ field.label }}: {{ error }}</li>
+            {% endfor %}
+          {% endfor %}
+          {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <div class="space-y-6">
+        <div>
+          <label for="{{ form.title.id_for_label }}" class="block text-sm font-bold text-slate-300 mb-2 uppercase tracking-wider">Titre du ticket</label>
+          <input type="text" name="{{ form.title.name }}" id="{{ form.title.id_for_label }}" class="w-full bg-surface-dark border border-slate-700/50 rounded-lg px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all" placeholder="Ex: Erreur lors du chargement..." value="{{ form.title.value|default:'' }}" required>
+          {% if form.title.help_text %}
+            <p class="text-xs text-slate-500 mt-1">{{ form.title.help_text }}</p>
+          {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="{{ form.ticket_type.id_for_label }}" class="block text-sm font-bold text-slate-300 mb-2 uppercase tracking-wider">Type de demande</label>
+            <div class="relative">
+                <select name="{{ form.ticket_type.name }}" id="{{ form.ticket_type.id_for_label }}" class="w-full bg-surface-dark border border-slate-700/50 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all appearance-none">
+                    {% for value, label in form.ticket_type.field.choices %}
+                    <option value="{{ value }}" {% if form.ticket_type.value == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-slate-500">
+                    <span class="material-symbols-outlined">expand_more</span>
+                </div>
+            </div>
+          </div>
+          
+          <div>
+            <label for="{{ form.category.id_for_label }}" class="block text-sm font-bold text-slate-300 mb-2 uppercase tracking-wider">Catégorie</label>
+            <div class="relative">
+                <select name="{{ form.category.name }}" id="{{ form.category.id_for_label }}" class="w-full bg-surface-dark border border-slate-700/50 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all appearance-none">
+                    {% for value, label in form.category.field.choices %}
+                    <option value="{{ value }}" {% if form.category.value == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-slate-500">
+                    <span class="material-symbols-outlined">expand_more</span>
+                </div>
+            </div>
+          </div>
+
+          <div>
+            <label for="{{ form.priority.id_for_label }}" class="block text-sm font-bold text-slate-300 mb-2 uppercase tracking-wider">Priorité</label>
+            <div class="relative">
+                <select name="{{ form.priority.name }}" id="{{ form.priority.id_for_label }}" class="w-full bg-surface-dark border border-slate-700/50 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all appearance-none">
+                    {% for value, label in form.priority.field.choices %}
+                    <option value="{{ value }}" {% if form.priority.value == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-slate-500">
+                    <span class="material-symbols-outlined">expand_more</span>
+                </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label for="{{ form.description.id_for_label }}" class="block text-sm font-bold text-slate-300 mb-2 uppercase tracking-wider">Description détaillée</label>
+          <textarea name="{{ form.description.name }}" id="{{ form.description.id_for_label }}" rows="6" class="w-full bg-surface-dark border border-slate-700/50 rounded-lg px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all resize-y" placeholder="Expliquez votre problème ou votre demande en détail..." required>{{ form.description.value|default:'' }}</textarea>
+        </div>
+
+        <div class="pt-4 border-t border-slate-800/50 flex justify-end gap-3">
+          <a href="{% url 'tickets:ticket_list' %}" class="px-6 py-2.5 rounded-lg border border-slate-700 text-slate-300 hover:text-white hover:bg-white/5 font-bold text-sm transition-all">Annuler</a>
+          <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-bold text-sm shadow-lg shadow-primary/20 transition-all flex items-center gap-2">
+            <span class="material-symbols-outlined text-[20px]">send</span>
+            Soumettre le ticket
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

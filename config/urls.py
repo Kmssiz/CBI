@@ -25,6 +25,7 @@ urlpatterns = [
     path('notifications/', include('notifications.urls')),
 
     path('powerbi/', include('powerbi_report.urls', namespace='powerbi_report')),
+    path('tickets/', include('tickets.urls')),
 
 
 ]

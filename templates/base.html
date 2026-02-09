@@ -104,7 +104,7 @@
             <path clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fill-rule="evenodd"></path>
           </svg>
         </div>
-        <span class="text-lg font-bold tracking-tight text-white">BI & Analytics</span>
+        <span class="text-lg font-bold tracking-tight text-white">Portail BI</span>
       </a>
     </div>
 
@@ -164,6 +164,14 @@
           <span class="material-symbols-outlined text-[20px]">library_books</span>
           <span class="text-sm font-medium">Bibliothèque</span>
         </a>
+        <div class="h-4"></div>
+        <div class="h-4"></div>
+        <p class="px-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Support</p>
+        <a href="{% url 'tickets:ticket_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'tickets' in request.path %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+          <span class="material-symbols-outlined text-[20px]">confirmation_number</span>
+          <span class="text-sm font-medium">Tickets</span>
+        </a>
+
         <div class="h-4"></div>
         <p class="px-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Paramètres</p>
 
