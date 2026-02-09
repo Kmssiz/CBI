@@ -127,13 +127,14 @@ def get_report_permissions(request, report_id):
     try:
         response = requests.get(url, auth=auth)
         response.raise_for_status()
-        logger.info(f"Policies API Response Code: {response.status_code}")
-        # logger.info(f"Policies API Response Content: {response.text}") # Too verbose if successful
         if response.status_code == 200:
             return response.json().get('Policies', [])
         else:
             return []
     except requests.exceptions.HTTPError as errh:
+        # 403 Forbidden is expected when user lacks admin rights to view policies - not an error
+        if hasattr(errh, 'response') and errh.response is not None and errh.response.status_code == 403:
+            return []
         logger.error(f"HTTP Error (Permissions): {errh}")
         return []
     except requests.exceptions.RequestException as err:
@@ -149,17 +150,18 @@ def get_folder_permissions(request, folder_id):
     try:
         response = requests.get(url, auth=auth)
         response.raise_for_status()
-        print(f"Folder Policies API Response Code: {response.status_code}")
-        print(f"Folder Policies API Response Content: {response.text}")
         if response.status_code == 200:
             return response.json().get('Policies', [])
         else:
             return []
     except requests.exceptions.HTTPError as errh:
-        print(f"HTTP Error (Folder Permissions): {errh}")
+        # 403 Forbidden is expected when user lacks admin rights to view policies - not an error
+        if hasattr(errh, 'response') and errh.response is not None and errh.response.status_code == 403:
+            return []
+        logger.error(f"HTTP Error (Folder Permissions): {errh}")
         return []
     except requests.exceptions.RequestException as err:
-        print(f"Request Error (Folder Permissions): {err}")
+        logger.error(f"Request Error (Folder Permissions): {err}")
         return []
 
 
@@ -3031,13 +3033,6 @@ def dashboard(request):
         date_joined__year=current_year,
         date_joined__month=current_month
     ).count()
-    
-    # Platform health - refresh success rate
-    refresh_success_rate = 0
-    if refresh_data:
-        total_refreshes = refresh_data.get('completed_refreshes', 0) + refresh_data.get('failed_refreshes', 0)
-        if total_refreshes > 0:
-            refresh_success_rate = round((refresh_data.get('completed_refreshes', 0) / total_refreshes) * 100, 1)
 
     context = {
         'total_users': total_users,
@@ -3062,7 +3057,6 @@ def dashboard(request):
         'login_trend': login_trend,
         'login_trend_percent': login_trend_percent,
         'new_users_this_month': new_users_this_month,
-        'refresh_success_rate': refresh_success_rate,
         'business_folder_count': business_folders.count(),
         'biblio_folder_count': biblio_folders.count(),
     }
@@ -3149,8 +3143,9 @@ def get_report_refresh_list(request):
                     except ValueError:
                         pass
 
-        except requests.exceptions.RequestException as err:
-            print(f"Error fetching refresh details for report {report_id}: {err}")
+        except requests.exceptions.RequestException:
+            # Silently skip reports that don't support CacheRefreshPlans (e.g., 400 errors)
+            pass
 
     context = {
         'completed_refreshes': completed_refreshes,

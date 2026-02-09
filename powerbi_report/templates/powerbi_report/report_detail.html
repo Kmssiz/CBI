@@ -32,20 +32,20 @@
 
     <!-- Back Button -->
     <div class="mb-6">
-        <a href="{% url 'powerbi_report:report_list' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-surface-dark border border-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-sm font-bold shadow-sm">
+        <a href="{% url 'powerbi_report:report_list' %}" class="inline-flex items-center gap-2 px-4 py-2 card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-sm font-bold shadow-sm">
             <span class="material-symbols-outlined text-[18px]">arrow_back</span> Retour à la liste
         </a>
     </div>
 
     <!-- [ Report Details Card ] start -->
-    <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-xl overflow-hidden glass-panel mb-8">
-        <div class="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-white/5">
+    <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl dark:shadow-none overflow-hidden glass-panel mb-8">
+        <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-white/5">
             <div class="flex items-center gap-3">
                 <div class="size-10 rounded-lg bg-yellow-400/10 flex items-center justify-center border border-yellow-400/20">
                     <span class="material-symbols-outlined text-yellow-500">description</span>
                 </div>
                 <div>
-                    <h5 class="text-lg font-bold text-white tracking-tight">{{ report.Name }}</h5>
+                    <h5 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{{ report.Name }}</h5>
                     <p class="text-xs text-slate-500 font-mono">{{ report.Id }}</p>
                 </div>
             </div>
@@ -66,23 +66,23 @@
         </div>
         <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-4">
-                <div class="p-4 rounded-xl bg-background-dark/50 border border-slate-800">
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-background-dark/50 border border-slate-200 dark:border-slate-800">
                     <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Description</label>
-                    <p class="text-sm text-slate-300 leading-relaxed">{{ report.Description|default:"Aucune description disponible pour ce rapport." }}</p>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{{ report.Description|default:"Aucune description disponible pour ce rapport." }}</p>
                 </div>
             </div>
             <div class="space-y-4">
-                <div class="p-4 rounded-xl bg-background-dark/50 border border-slate-800">
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-background-dark/50 border border-slate-200 dark:border-slate-800">
                     <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Chemin d'accès</label>
-                    <div class="flex items-center gap-2 text-slate-300">
-                        <span class="material-symbols-outlined text-[18px] text-slate-500">folder</span>
+                    <div class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                        <span class="material-symbols-outlined text-[18px] text-slate-400 dark:text-slate-500">folder</span>
                         <span class="text-sm font-mono truncate" title="{{ report.Path }}">{{ report.Path }}</span>
                     </div>
                 </div>
-                <div class="p-4 rounded-xl bg-background-dark/50 border border-slate-800">
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-background-dark/50 border border-slate-200 dark:border-slate-800">
                     <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Taille</label>
-                    <div class="flex items-center gap-2 text-slate-300">
-                        <span class="material-symbols-outlined text-[18px] text-slate-500">data_usage</span>
+                    <div class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                        <span class="material-symbols-outlined text-[18px] text-slate-400 dark:text-slate-500">data_usage</span>
                         <span class="text-sm font-mono">{{ report.Size|filesizeformat }}</span>
                     </div>
                 </div>
@@ -92,11 +92,11 @@
     <!-- [ Report Details Card ] end -->
 
     <!-- [ Refresh Plans List ] start -->
-    <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-xl overflow-hidden glass-panel">
-        <div class="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-white/5">
-            <h5 class="text-lg font-bold text-white tracking-tight">Plans de rafraîchissement</h5>
+    <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl dark:shadow-none overflow-hidden glass-panel">
+        <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+            <h5 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Plans de rafraîchissement</h5>
             <div class="flex items-center gap-2">
-                <button type="button" onclick="window.location.reload()" class="p-2 bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-all" title="Actualiser">
+                <button type="button" onclick="window.location.reload()" class="p-2 bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-all" title="Actualiser">
                     <span class="material-symbols-outlined text-[20px]">refresh</span>
                 </button>
                 <button type="button" class="px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2" data-bs-toggle="modal" data-bs-target="#addRefreshPlanModal">
@@ -107,18 +107,18 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="bg-slate-900/50 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/50">
+                    <tr class="bg-slate-50 dark:bg-slate-900/50 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800/50">
                         <th class="px-6 py-4">Description</th>
                         <th class="px-6 py-4">Dernière exécution</th>
                         <th class="px-6 py-4">Statut</th>
                         <th class="px-6 py-4 text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800/50">
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
                     {% for plan in refresh_plans %}
-                    <tr class="hover:bg-white/5 transition-all">
-                        <td class="px-6 py-4 text-sm text-slate-300 font-medium">{{ plan.Description|default:"Aucune description" }}</td>
-                        <td class="px-6 py-4 text-sm text-slate-400">{{ plan.LastRunTime|default:"Jamais" }}</td>
+                    <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+                        <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 font-medium">{{ plan.Description|default:"Aucune description" }}</td>
+                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">{{ plan.LastRunTime|default:"Jamais" }}</td>
                         <td class="px-6 py-4">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border {% if plan.LastStatus == 'Success' %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20{% else %}bg-amber-500/10 text-amber-400 border-amber-500/20{% endif %}">
                                 {{ plan.LastStatus|default:"Inconnu" }}
@@ -157,11 +157,11 @@
 <!-- Edit Description Modal -->
 <div class="modal fade" id="editDescriptionModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel">
+    <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel">
       <form method="POST" action="{% url 'powerbi_report:edit_report_description' report.Id %}">
         {% csrf_token %}
-        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
-            <h5 class="text-lg font-bold text-white tracking-tight">Modifier la description</h5>
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+            <h5 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Modifier la description</h5>
             <button type="button" class="text-slate-500 hover:text-white transition-colors" data-bs-dismiss="modal">
                 <span class="material-symbols-outlined text-[24px]">close</span>
             </button>
@@ -169,11 +169,11 @@
         <div class="p-6 space-y-4">
             <div class="space-y-2">
                 <label for="description" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Description</label>
-                <textarea id="description" name="description" rows="4" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-3 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all resize-none">{{ report.Description }}</textarea>
+                <textarea id="description" name="description" rows="4" class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all resize-none">{{ report.Description }}</textarea>
             </div>
         </div>
-        <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
-            <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
+        <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800/50 flex justify-end gap-3 bg-slate-50 dark:bg-white/5">
+            <button type="button" class="px-5 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
             <button type="submit" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-primary/20">Enregistrer</button>
         </div>
       </form>
@@ -184,11 +184,11 @@
 <!-- Edit Report Name Modal -->
 <div class="modal fade" id="editReportNameModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel">
+    <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel">
       <form method="POST" action="{% url 'powerbi_report:edit_report' report.Id %}">
         {% csrf_token %}
-        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
-            <h5 class="text-lg font-bold text-white tracking-tight">Modifier le nom du rapport</h5>
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+            <h5 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Modifier le nom du rapport</h5>
             <button type="button" class="text-slate-500 hover:text-white transition-colors" data-bs-dismiss="modal">
                 <span class="material-symbols-outlined text-[24px]">close</span>
             </button>
@@ -196,11 +196,11 @@
         <div class="p-6 space-y-4">
             <div class="space-y-2">
                 <label for="reportName" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Nom du rapport</label>
-                <input type="text" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="reportName" name="name" value="{{ report.Name }}" required>
+                <input type="text" class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="reportName" name="name" value="{{ report.Name }}" required>
             </div>
         </div>
-        <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
-            <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
+        <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800/50 flex justify-end gap-3 bg-slate-50 dark:bg-white/5">
+            <button type="button" class="px-5 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
             <button type="submit" class="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-amber-500/20">Enregistrer</button>
         </div>
       </form>
@@ -211,26 +211,26 @@
 <!-- Replace Report Modal -->
 <div class="modal fade" id="replaceReportModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel">
+    <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel">
       <form id="replaceReportForm" method="POST" action="{% url 'powerbi_report:replace_report' report.Id %}" enctype="multipart/form-data">
         {% csrf_token %}
-        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
-            <h5 class="text-lg font-bold text-white tracking-tight">Remplacer le rapport</h5>
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+            <h5 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Remplacer le rapport</h5>
             <button type="button" class="text-slate-500 hover:text-white transition-colors" data-bs-dismiss="modal">
                 <span class="material-symbols-outlined text-[24px]">close</span>
             </button>
         </div>
         <div class="p-6 space-y-4">
             <div class="space-y-2">
-                <p class="text-sm text-slate-300 mb-4">Rapport: {{ report.Name }}</p>
+                <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">Rapport: {{ report.Name }}</p>
                 <label for="pbixFile" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Nouveau fichier PBIX</label>
-                <input type="file" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-500/20 file:text-cyan-400 hover:file:bg-cyan-500/30" id="pbixFile" name="pbix_file" accept=".pbix" required>
+                <input type="file" class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-500/20 file:text-cyan-400 hover:file:bg-cyan-500/30" id="pbixFile" name="pbix_file" accept=".pbix" required>
                 <input type="hidden" name="report_path" value="{{ report.Path }}">
                 <p class="text-xs text-slate-500 mt-2">Sélectionnez un fichier .pbix pour remplacer le modèle du rapport existant.</p>
             </div>
         </div>
-        <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
-            <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
+        <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800/50 flex justify-end gap-3 bg-slate-50 dark:bg-white/5">
+            <button type="button" class="px-5 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
             <button type="submit" id="btnReplaceSubmit" class="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-cyan-500/20">Remplacer</button>
         </div>
       </form>
@@ -241,25 +241,25 @@
 <!-- Add Refresh Plan Modal -->
 <div class="modal fade" id="addRefreshPlanModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel">
+    <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel">
       <form method="POST" action="{% url 'powerbi_report:add_refresh_plan' report.Id %}">
         {% csrf_token %}
-        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
-            <h5 class="text-lg font-bold text-white tracking-tight">Nouveau plan de rafraîchissement</h5>
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+            <h5 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Nouveau plan de rafraîchissement</h5>
             <button type="button" class="text-slate-500 hover:text-white transition-colors" data-bs-dismiss="modal">
                 <span class="material-symbols-outlined text-[24px]">close</span>
             </button>
         </div>
         <div class="p-6 space-y-4">
                 <div class="space-y-4">
-                     <div class="p-4 rounded-xl bg-background-dark/50 border border-slate-800 space-y-4">
+                     <div class="p-4 rounded-xl bg-slate-50 dark:bg-background-dark/50 border border-slate-200 dark:border-slate-800 space-y-4">
                         <label class="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Type de planification</label>
                         
                         <!-- Shared Plan Option -->
                         <div class="space-y-3">
                             <div class="flex items-center gap-3">
-                                <input type="radio" id="plan_type_shared" name="plan_type" value="shared" class="w-4 h-4 text-primary bg-background-dark border-slate-600 focus:ring-primary focus:ring-2" onchange="togglePlanType()">
-                                <label for="plan_type_shared" class="text-sm font-medium text-slate-300 cursor-pointer">Planification partagée</label>
+                                <input type="radio" id="plan_type_shared" name="plan_type" value="shared" class="w-4 h-4 text-primary bg-slate-100 dark:bg-background-dark border-slate-300 dark:border-slate-600 focus:ring-primary focus:ring-2" onchange="togglePlanType()">
+                                <label for="plan_type_shared" class="text-sm font-medium text-slate-600 dark:text-slate-300 cursor-pointer">Planification partagée</label>
                             </div>
                             <div id="shared_plan_options" class="ml-7 hidden">
                                  <select name="shared_schedule_id" id="shared_schedule_id" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all">
@@ -274,8 +274,8 @@
                         <!-- Specific Plan Option -->
                         <div class="space-y-3">
                             <div class="flex items-center gap-3">
-                                <input type="radio" id="plan_type_specific" name="plan_type" value="specific" class="w-4 h-4 text-primary bg-background-dark border-slate-600 focus:ring-primary focus:ring-2" checked onchange="togglePlanType()">
-                                <label for="plan_type_specific" class="text-sm font-medium text-slate-300 cursor-pointer">Planification spécifique aux rapports</label>
+                                <input type="radio" id="plan_type_specific" name="plan_type" value="specific" class="w-4 h-4 text-primary bg-slate-100 dark:bg-background-dark border-slate-300 dark:border-slate-600 focus:ring-primary focus:ring-2" checked onchange="togglePlanType()">
+                                <label for="plan_type_specific" class="text-sm font-medium text-slate-600 dark:text-slate-300 cursor-pointer">Planification spécifique aux rapports</label>
                             </div>
                             
                             <div id="specific_plan_options" class="ml-7 space-y-4 border-l-2 border-slate-800 pl-4">
@@ -368,11 +368,11 @@
 
                     <div class="space-y-2">
                         <label for="refresh_description" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Description</label>
-                        <input type="text" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="refresh_description" name="description" value="{{ report.Name }}" required>
+                        <input type="text" class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all" id="refresh_description" name="description" value="{{ report.Name }}" required>
                     </div>
                     <div class="space-y-2">
                         <label for="catalog_item_path" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Chemin du rapport</label>
-                        <input type="text" class="w-full bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-500 focus:ring-0 outline-none cursor-not-allowed" id="catalog_item_path" name="catalog_item_path" value="{{ report.Path }}" readonly>
+                        <input type="text" class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-500 focus:ring-0 outline-none cursor-not-allowed" id="catalog_item_path" name="catalog_item_path" value="{{ report.Path }}" readonly>
                     </div>
                 </div>
 
@@ -434,8 +434,8 @@
                         }
                     });
                 </script>
-        <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end gap-3 bg-white/5">
-            <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
+        <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800/50 flex justify-end gap-3 bg-slate-50 dark:bg-white/5">
+            <button type="button" class="px-5 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
             <button type="submit" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-primary/20">Ajouter le plan</button>
         </div>
       </form>

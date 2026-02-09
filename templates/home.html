@@ -27,80 +27,72 @@
   {% if permissions.view_dashboard %}
   
   <!-- Quick Stats Row -->
-  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
     
     <!-- Logins Today -->
-    <div class="bg-surface-dark/60 border border-slate-800/50 rounded-xl p-4">
+    <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm dark:shadow-none">
       <div class="flex items-center gap-2 mb-2">
         <span class="material-symbols-outlined text-primary text-[18px]">login</span>
         <span class="text-[10px] font-bold text-slate-500 uppercase">Aujourd'hui</span>
       </div>
-      <p class="text-2xl font-black text-white">{{ logins_today }}</p>
+      <p class="text-2xl font-black text-theme text-slate-900">{{ logins_today }}</p>
       <div class="flex items-center gap-1 mt-1">
         {% if login_trend >= 0 %}
-        <span class="material-symbols-outlined text-emerald-400 text-[14px]">trending_up</span>
-        <span class="text-[11px] text-emerald-400">+{{ login_trend_percent }}%</span>
+        <span class="material-symbols-outlined text-emerald-500 dark:text-emerald-400 text-[14px]">trending_up</span>
+        <span class="text-[11px] text-emerald-500 dark:text-emerald-400">+{{ login_trend_percent }}%</span>
         {% else %}
-        <span class="material-symbols-outlined text-red-400 text-[14px]">trending_down</span>
-        <span class="text-[11px] text-red-400">{{ login_trend_percent }}%</span>
+        <span class="material-symbols-outlined text-red-500 dark:text-red-400 text-[14px]">trending_down</span>
+        <span class="text-[11px] text-red-500 dark:text-red-400">{{ login_trend_percent }}%</span>
         {% endif %}
-        <span class="text-[10px] text-slate-600">vs hier</span>
+        <span class="text-[10px] text-slate-500 dark:text-slate-600">vs hier</span>
       </div>
     </div>
 
     <!-- Active Users -->
     <a href="{% url 'users_view' %}" class="group block">
-      <div class="bg-surface-dark/60 border border-slate-800/50 rounded-xl p-4 hover:border-primary/30 transition-all">
+      <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:border-primary/30 transition-all shadow-sm dark:shadow-none">
         <div class="flex items-center gap-2 mb-2">
-          <span class="material-symbols-outlined text-emerald-400 text-[18px]">group</span>
+          <span class="material-symbols-outlined text-emerald-500 dark:text-emerald-400 text-[18px]">group</span>
           <span class="text-[10px] font-bold text-slate-500 uppercase">Utilisateurs</span>
         </div>
-        <p class="text-2xl font-black text-white">{{ active_users }}</p>
-        <p class="text-[10px] text-slate-600 mt-1">sur {{ total_users }} au total</p>
+        <p class="text-2xl font-black text-theme text-slate-900">{{ active_users }}</p>
+        <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-1">sur {{ total_users }} au total</p>
       </div>
     </a>
 
     <!-- Reports -->
     <a href="{% url 'powerbi_report:report_list' %}" class="group block">
-      <div class="bg-surface-dark/60 border border-slate-800/50 rounded-xl p-4 hover:border-primary/30 transition-all">
+      <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:border-primary/30 transition-all shadow-sm dark:shadow-none">
         <div class="flex items-center gap-2 mb-2">
-          <span class="material-symbols-outlined text-amber-400 text-[18px]">analytics</span>
+          <span class="material-symbols-outlined text-amber-500 dark:text-amber-400 text-[18px]">analytics</span>
           <span class="text-[10px] font-bold text-slate-500 uppercase">Rapports</span>
         </div>
-        <p class="text-2xl font-black text-white">{{ total_reports }}</p>
-        <p class="text-[10px] text-slate-600 mt-1">{{ total_synced_reports }} synchronisés</p>
+        <p class="text-2xl font-black text-theme text-slate-900">{{ total_reports }}</p>
+        <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-1">{{ total_synced_reports }} synchronisés</p>
       </div>
     </a>
 
     <!-- Folders -->
-    <div class="bg-surface-dark/60 border border-slate-800/50 rounded-xl p-4">
+    <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm dark:shadow-none">
       <div class="flex items-center gap-2 mb-2">
-        <span class="material-symbols-outlined text-violet-400 text-[18px]">folder</span>
+        <span class="material-symbols-outlined text-violet-500 dark:text-violet-400 text-[18px]">folder</span>
         <span class="text-[10px] font-bold text-slate-500 uppercase">Dossiers</span>
       </div>
-      <p class="text-2xl font-black text-white">{{ business_folder_count|add:biblio_folder_count }}</p>
-      <p class="text-[10px] text-slate-600 mt-1">{{ business_folder_count }} société, {{ biblio_folder_count }} biblio</p>
+      <p class="text-2xl font-black text-theme text-slate-900">{{ business_folder_count|add:biblio_folder_count }}</p>
+      <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-1">{{ business_folder_count }} société, {{ biblio_folder_count }} biblio</p>
     </div>
 
     <!-- New Users -->
-    <div class="bg-surface-dark/60 border border-slate-800/50 rounded-xl p-4">
+    <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm dark:shadow-none">
       <div class="flex items-center gap-2 mb-2">
-        <span class="material-symbols-outlined text-cyan-400 text-[18px]">person_add</span>
+        <span class="material-symbols-outlined text-cyan-500 dark:text-cyan-400 text-[18px]">person_add</span>
         <span class="text-[10px] font-bold text-slate-500 uppercase">Nouveaux</span>
       </div>
-      <p class="text-2xl font-black text-white">{{ new_users_this_month }}</p>
-      <p class="text-[10px] text-slate-600 mt-1">ce mois-ci</p>
+      <p class="text-2xl font-black text-theme text-slate-900">{{ new_users_this_month }}</p>
+      <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-1">ce mois-ci</p>
     </div>
 
-    <!-- Refresh Status -->
-    <div class="bg-surface-dark/60 border border-slate-800/50 rounded-xl p-4">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="material-symbols-outlined text-{% if refresh_success_rate >= 90 %}emerald{% elif refresh_success_rate >= 70 %}amber{% else %}red{% endif %}-400 text-[18px]">sync</span>
-        <span class="text-[10px] font-bold text-slate-500 uppercase">Refresh</span>
-      </div>
-      <p class="text-2xl font-black text-white">{{ refresh_success_rate }}%</p>
-      <p class="text-[10px] text-slate-600 mt-1">taux de succès</p>
-    </div>
+
 
   </div>
 
@@ -111,13 +103,13 @@
     <div class="xl:col-span-2 space-y-6">
       
       <!-- Login Charts Section -->
-      <div class="bg-surface-dark/60 border border-slate-800/50 rounded-2xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between">
+      <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm dark:shadow-none">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between">
           <div>
-            <h3 class="text-base font-bold text-white">Activité des connexions</h3>
+            <h3 class="text-base font-bold text-theme text-slate-900">Activité des connexions</h3>
             <p class="text-xs text-slate-500 mt-0.5">Tendances d'accès à la plateforme</p>
           </div>
-          <div class="flex gap-1 bg-slate-900/50 p-1 rounded-lg">
+          <div class="flex gap-1 bg-slate-100 dark:bg-slate-900/50 p-1 rounded-lg">
             <button class="graph-btn active px-3 py-1.5 rounded-md text-xs font-medium" data-graph="monthly">Mois</button>
             <button class="graph-btn px-3 py-1.5 rounded-md text-xs font-medium" data-graph="daily">Jour</button>
             <button class="graph-btn px-3 py-1.5 rounded-md text-xs font-medium" data-graph="weekly">Semaine</button>
@@ -144,8 +136,8 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         <!-- Report Distribution -->
-        <div class="bg-surface-dark/60 border border-slate-800/50 rounded-2xl p-6">
-          <h3 class="text-sm font-bold text-white mb-4">Distribution des rapports</h3>
+        <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm dark:shadow-none">
+          <h3 class="text-sm font-bold text-theme text-slate-900 mb-4">Distribution des rapports</h3>
           <div class="flex items-center justify-center mb-4">
             <canvas id="distribution-chart" class="!h-[160px] !w-[160px]"></canvas>
           </div>
@@ -154,35 +146,35 @@
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <span class="size-3 rounded-full" style="background-color: {{ item.color }}"></span>
-                <span class="text-sm text-slate-400">{{ item.name }}</span>
+                <span class="text-sm text-slate-600 dark:text-slate-400">{{ item.name }}</span>
               </div>
-              <span class="text-sm font-bold text-white">{{ item.count }}</span>
+              <span class="text-sm font-bold text-theme text-slate-900">{{ item.count }}</span>
             </div>
             {% endfor %}
           </div>
         </div>
 
         <!-- Top Folders -->
-        <div class="bg-surface-dark/60 border border-slate-800/50 rounded-2xl p-6">
-          <h3 class="text-sm font-bold text-white mb-4">Top dossiers</h3>
+        <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm dark:shadow-none">
+          <h3 class="text-sm font-bold text-theme text-slate-900 mb-4">Top dossiers</h3>
           {% if top_folders %}
           <div class="space-y-3">
             {% for folder in top_folders %}
             <div class="flex items-center gap-3">
-              <div class="size-8 rounded-lg {% if folder.view_type == 'business' %}bg-primary/10 text-primary{% else %}bg-emerald-500/10 text-emerald-400{% endif %} flex items-center justify-center">
+              <div class="size-8 rounded-lg {% if folder.view_type == 'business' %}bg-primary/10 text-primary{% else %}bg-emerald-500/10 text-emerald-500 dark:text-emerald-400{% endif %} flex items-center justify-center">
                 <span class="material-symbols-outlined text-[16px]">folder</span>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-white truncate">{{ folder.name }}</p>
-                <p class="text-[10px] text-slate-600">{{ folder.view_type }}</p>
+                <p class="text-sm font-medium text-theme text-slate-900 truncate">{{ folder.name }}</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-600">{{ folder.view_type }}</p>
               </div>
-              <span class="text-sm font-bold text-white">{{ folder.report_count }}</span>
+              <span class="text-sm font-bold text-theme text-slate-900">{{ folder.report_count }}</span>
             </div>
             {% endfor %}
           </div>
           {% else %}
           <div class="py-8 text-center">
-            <span class="material-symbols-outlined text-[32px] text-slate-700 mb-2">folder_off</span>
+            <span class="material-symbols-outlined text-[32px] text-slate-400 dark:text-slate-700 mb-2">folder_off</span>
             <p class="text-xs text-slate-500">Aucun dossier avec rapports</p>
           </div>
           {% endif %}
@@ -196,29 +188,29 @@
     <div class="space-y-6">
 
       <!-- Recent Activity -->
-      <div class="bg-surface-dark/60 border border-slate-800/50 rounded-2xl overflow-hidden">
-        <div class="px-5 py-4 border-b border-slate-800/50">
-          <h3 class="text-sm font-bold text-white">Activité récente</h3>
+      <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm dark:shadow-none">
+        <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800/50">
+          <h3 class="text-sm font-bold text-theme text-slate-900">Activité récente</h3>
         </div>
-        <div class="divide-y divide-slate-800/30 max-h-[320px] overflow-y-auto custom-scrollbar">
+        <div class="divide-y divide-slate-100 dark:divide-slate-800/30 max-h-[320px] overflow-y-auto custom-scrollbar">
           {% for activity in recent_activity %}
-          <div class="px-5 py-3 hover:bg-white/[0.02] transition-colors">
+          <div class="px-5 py-3 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
             <div class="flex items-start gap-3">
               <div class="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0 mt-0.5">
                 {{ activity.user__username|slice:":1"|upper }}
               </div>
               <div class="min-w-0 flex-1">
-                <p class="text-[13px] text-white leading-snug">
+                <p class="text-[13px] text-theme text-slate-900 leading-snug">
                   <span class="font-medium">{{ activity.user__username }}</span>
-                  <span class="text-slate-400">{{ activity.action|truncatechars:50 }}</span>
+                  <span class="text-slate-600 dark:text-slate-400">{{ activity.action|truncatechars:50 }}</span>
                 </p>
-                <p class="text-[10px] text-slate-600 mt-0.5">{{ activity.timestamp|timesince }} ago</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-0.5">{{ activity.timestamp|timesince }} ago</p>
               </div>
             </div>
           </div>
           {% empty %}
           <div class="py-8 text-center">
-            <span class="material-symbols-outlined text-[32px] text-slate-700 mb-2">history</span>
+            <span class="material-symbols-outlined text-[32px] text-slate-400 dark:text-slate-700 mb-2">history</span>
             <p class="text-xs text-slate-500">Aucune activité récente</p>
           </div>
           {% endfor %}
@@ -226,18 +218,18 @@
       </div>
 
       <!-- Users by Company -->
-      <div class="bg-surface-dark/60 border border-slate-800/50 rounded-2xl p-5">
-        <h3 class="text-sm font-bold text-white mb-4">Utilisateurs par société</h3>
+      <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-5 shadow-sm dark:shadow-none">
+        <h3 class="text-sm font-bold text-theme text-slate-900 mb-4">Utilisateurs par société</h3>
         {% if users_by_company %}
         <div class="space-y-3">
           {% for company in users_by_company %}
           <div class="flex items-center gap-3">
             <div class="flex-1">
               <div class="flex items-center justify-between mb-1">
-                <span class="text-xs text-slate-400 truncate">{{ company.societe|default:"Non renseigné" }}</span>
-                <span class="text-xs font-bold text-white">{{ company.count }}</span>
+                <span class="text-xs text-slate-600 dark:text-slate-400 truncate">{{ company.societe|default:"Non renseigné" }}</span>
+                <span class="text-xs font-bold text-theme text-slate-900">{{ company.count }}</span>
               </div>
-              <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div class="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div class="h-full bg-gradient-to-r from-primary to-cyan-400 rounded-full" style="width: {% widthratio company.count users_by_company.0.count 100 %}%"></div>
               </div>
             </div>
@@ -246,7 +238,7 @@
         </div>
         {% else %}
         <div class="py-6 text-center">
-          <span class="material-symbols-outlined text-[28px] text-slate-700 mb-2">business</span>
+          <span class="material-symbols-outlined text-[28px] text-slate-400 dark:text-slate-700 mb-2">business</span>
           <p class="text-xs text-slate-500">Données non disponibles</p>
         </div>
         {% endif %}

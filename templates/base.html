@@ -1,8 +1,17 @@
 {% load static %}
 <!doctype html>
-<html lang="fr">
+<html lang="fr" id="html-root">
 
 <head>
+  <script>
+    // Theme initialization - prevent flash of wrong theme
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  </script>
   <title>{% block title %}{% endblock %}</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
@@ -10,7 +19,8 @@
   <meta name="author" content="Aid abderrahmane" />
 
   <!-- [Favicon] -->
-  <link rel="icon" href="{% static 'assets/images/favicon.svg' %}" />
+  <link rel="icon" href="{% static 'assets/images/logo-cbi.png' %}" />
+  <link rel="icon" href="{% static 'assets/images/logo-cbi-dark.png' %}" media="(prefers-color-scheme: dark)" />
 
   <!-- [Fonts & Icons] -->
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;500;700;800&display=swap" rel="stylesheet" />
@@ -30,11 +40,15 @@
           colors: {
             "primary": "#137fec",
             "background-dark": "#0a0f14",
+            "background-light": "#f8fafc",
             "surface-dark": "#121922",
+            "surface-light": "#ffffff",
             "card-dark": "#161d26",
+            "card-light": "#f1f5f9",
             "accent-gold": "#d4af37",
             "accent-teal": "#2d6a4f",
             "deep-charcoal": "#1c2229",
+            "deep-charcoal-light": "#e2e8f0",
           },
           fontFamily: {
             "display": ["Manrope", "sans-serif"]
@@ -68,9 +82,136 @@
       background-image: radial-gradient(at 0% 0%, rgba(19, 127, 236, 0.05) 0px, transparent 50%),
                         radial-gradient(at 100% 100%, rgba(212, 175, 55, 0.03) 0px, transparent 50%);
     }
-    /* Override Able Pro sidebar if needed, but we might replace it entirely */
     .pc-sidebar {
         z-index: 1050;
+    }
+  </style>
+  
+  <!-- Dark mode CSS overrides -->
+  <style>
+    /* Card and panel backgrounds */
+    .dark .card-theme {
+      background-color: #1e293b !important;
+      border-color: #334155 !important;
+    }
+    .dark .card-theme-alt {
+      background-color: rgba(30, 41, 59, 0.8) !important;
+      border-color: #334155 !important;
+    }
+    /* Text colors */
+    .dark .text-theme {
+      color: #f8fafc !important;
+    }
+    .dark .text-theme-muted {
+      color: #94a3b8 !important;
+    }
+    /* Input backgrounds */
+    .dark .input-theme {
+      background-color: #1e293b !important;
+      border-color: #334155 !important;
+      color: #e2e8f0 !important;
+    }
+    /* Table backgrounds */
+    .dark .table-theme {
+      background-color: #1e293b !important;
+    }
+    .dark .table-row-theme:hover {
+      background-color: rgba(51, 65, 85, 0.5) !important;
+    }
+    
+    /* Sidebar theming */
+    .sidebar-theme {
+      background-color: #ffffff;
+      border-color: #e2e8f0;
+    }
+    .dark .sidebar-theme {
+      background-color: #070b0f !important;
+      border-color: rgba(30, 41, 59, 0.5) !important;
+    }
+    
+    /* Sidebar section labels */
+    .sidebar-theme p {
+      color: #94a3b8;
+    }
+    .dark .sidebar-theme p {
+      color: #475569 !important;
+    }
+    
+    /* Sidebar nav links - inactive state */
+    .sidebar-theme a:not(.bg-primary\/10) {
+      color: #475569;
+    }
+    .sidebar-theme a:not(.bg-primary\/10):hover {
+      color: #0f172a;
+      background-color: #f1f5f9;
+    }
+    .dark .sidebar-theme a:not(.bg-primary\/10) {
+      color: #64748b !important;
+    }
+    .dark .sidebar-theme a:not(.bg-primary\/10):hover {
+      color: #f8fafc !important;
+      background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    
+    /* Sidebar logo title */
+    .sidebar-theme .logo-title {
+      color: #0f172a;
+    }
+    .dark .sidebar-theme .logo-title {
+      color: #f8fafc !important;
+    }
+    
+    /* Folder icons - vibrant colors for both modes */
+    .folder-icon {
+      color: #8b5cf6 !important;
+    }
+    .folder-icon-business {
+      color: #3b82f6 !important;
+    }
+    .folder-icon-department {
+      color: #10b981 !important;
+    }
+    
+    /* Hide scrollbar for Chrome, Safari and Opera by default */
+    .custom-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Hide scrollbar for IE, Edge and Firefox by default */
+    .custom-scrollbar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+
+    /* Dark Mode Scrollbar Global Styles */
+    .dark ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    .dark ::-webkit-scrollbar-track {
+      background: #0f172a; /* background-dark */
+      border-left: 1px solid #1e293b; /* border-slate-800 */
+    }
+
+    .dark ::-webkit-scrollbar-thumb {
+      background: #334155; /* slate-700 */
+      border: 2px solid #0f172a; /* match track bg for padding effect */
+      border-radius: 5px;
+    }
+
+    .dark ::-webkit-scrollbar-thumb:hover {
+      background: #475569; /* slate-600 */
+    }
+
+    .dark ::-webkit-scrollbar-corner {
+      background: #0f172a;
+    }
+    
+    /* Ensure Firefox supports dark scrollbars */
+    .dark {
+      scrollbar-color: #334155 #0f172a;
+      scrollbar-width: thin;
     }
   </style>
 
@@ -89,109 +230,112 @@
 </head>
 
 
-<body data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" data-pc-theme="light" class="bg-background-dark text-slate-300 min-h-screen font-display overflow-x-hidden">
+<body data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" data-pc-theme="light" class="bg-background-light dark:bg-background-dark text-slate-700 dark:text-slate-300 min-h-screen font-display overflow-x-hidden">
   <!-- Sidebar Overlay (Mobile) -->
   <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1040] hidden lg:hidden transition-opacity duration-300 opacity-0"></div>
 
   <div class="flex h-screen w-full relative">
 
   <!-- [ Sidebar Menu ] start -->
-  <aside class="pc-sidebar w-64 flex flex-col border-r border-slate-800/50 bg-[#070b0f] z-[1050] fixed lg:relative h-full -translate-x-full lg:translate-x-0 transition-transform duration-300 overflow-hidden" id="sidebar">
-    <div class="p-6 flex items-center gap-3 border-b border-slate-800/10">
+  <aside class="pc-sidebar sidebar-theme w-64 flex flex-col border-r z-[1050] fixed inset-y-0 left-0 lg:relative lg:inset-auto h-full -translate-x-full lg:translate-x-0 transition-transform duration-300 overflow-hidden" id="sidebar">
+    <div class="p-6 flex items-center gap-3 border-b border-slate-200 dark:border-slate-800/10">
       <a href="{% url 'home' %}" class="flex items-center gap-2">
-        <div class="size-8 text-primary">
-          <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-            <path clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fill-rule="evenodd"></path>
-          </svg>
+        <div class="h-10 text-primary">
+          <img src="{% static 'assets/images/logo-cbi.png' %}" alt="Portail BI" class="h-full w-auto object-contain dark:hidden" />
+          <img src="{% static 'assets/images/logo-cbi-dark.png' %}" alt="Portail BI" class="h-full w-auto object-contain hidden dark:block" />
         </div>
-        <span class="text-lg font-bold tracking-tight text-white">Portail BI</span>
+        <span class="logo-title text-lg font-bold tracking-tight">Portail BI</span>
       </a>
     </div>
 
     <div class="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
       {% if user.is_authenticated %}
         
-        <p class="px-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Admin</p>
+        {% if permissions.view_dashboard or permissions.view_customuser or permissions.view_powerbireport %}
+        <p class="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-2">Admin</p>
+        {% endif %}
         
         {% if permissions.view_dashboard or permissions.view_refresh %}
-        <a href="{% url 'powerbi_report:dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'dashboard' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+        <a href="{% url 'powerbi_report:dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'dashboard' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">home</span>
           <span class="text-sm font-medium">Dashboard</span>
         </a>
         {% endif %}
 
         {% if permissions.view_customuser %}
-        <a href="{% url 'users_view' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'users_view' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+        <a href="{% url 'users_view' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'users_view' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">group</span>
           <span class="text-sm font-medium">Utilisateurs</span>
         </a>
         {% endif %}
 
         {% if permissions.view_powerbireport %}
-        <a href="{% url 'powerbi_report:report_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name in 'report_list,report_list_hierarchy,report_list_hierarchy_folder' or request.resolver_match.url_name in 'report_list_flat,embed_report' and request.GET.context != 'department' and request.GET.context != 'biblio' and request.GET.context != 'business' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+        <a href="{% url 'powerbi_report:report_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name in 'report_list,report_list_hierarchy,report_list_hierarchy_folder' or request.resolver_match.url_name in 'report_list_flat,embed_report' and request.GET.context != 'department' and request.GET.context != 'biblio' and request.GET.context != 'business' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">folder_managed</span>
           <span class="text-sm font-medium">Gestion Rapports</span>
         </a>
         {% endif %}
 
         <div class="h-4"></div>
-        <p class="px-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Navigation</p>
+        <p class="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-2">Navigation</p>
 
         {% if permissions.view_dashboard %}
-          <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/business' in request.path or request.GET.context == 'business' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+          <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/business' in request.path or request.GET.context == 'business' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
             <span class="material-symbols-outlined text-[20px]">business_center</span>
             <span class="text-sm font-medium">Société</span>
           </a>
-          <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/department' in request.path or request.GET.context == 'department' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+          <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/department' in request.path or request.GET.context == 'department' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
             <span class="material-symbols-outlined text-[20px]">groups</span>
             <span class="text-sm font-medium">Pôle</span>
           </a>
         {% else %}
           {% if user.default_view == 'department' %}
-            <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/department' in request.path or request.GET.context == 'department' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+            <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/department' in request.path or request.GET.context == 'department' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
               <span class="material-symbols-outlined text-[20px]">groups</span>
-              <span class="text-sm font-medium">Vue Département</span>
+              <span class="text-sm font-medium">Rapport</span>
             </a>
           {% else %}
-            <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/business' in request.path or request.GET.context == 'business' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+            <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/business' in request.path or request.GET.context == 'business' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
               <span class="material-symbols-outlined text-[20px]">business_center</span>
-              <span class="text-sm font-medium">Vue Métier</span>
+              <span class="text-sm font-medium">Rapport</span>
             </a>
           {% endif %}
         {% endif %}
 
-        <a href="{% url 'powerbi_report:custom_biblio' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/biblio' in request.path or request.GET.context == 'biblio' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+        <a href="{% url 'powerbi_report:custom_biblio' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/biblio' in request.path or request.GET.context == 'biblio' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">library_books</span>
           <span class="text-sm font-medium">Bibliothèque</span>
         </a>
         <div class="h-4"></div>
         <div class="h-4"></div>
-        <p class="px-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Support</p>
-        <a href="{% url 'tickets:ticket_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'tickets' in request.path %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+        <p class="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-2">Support</p>
+        <a href="{% url 'tickets:ticket_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'tickets' in request.path %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">confirmation_number</span>
           <span class="text-sm font-medium">Tickets</span>
         </a>
 
+        {% if permissions.view_notification or permissions.view_userhistory or permissions.view_role %}
         <div class="h-4"></div>
-        <p class="px-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">Paramètres</p>
+        <p class="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-2">Paramètres</p>
+        {% endif %}
 
 
         {% if permissions.view_notification %}
-        <a href="{% url 'notifications' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'notifications' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+        <a href="{% url 'notifications' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'notifications' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">notifications</span>
           <span class="text-sm font-medium">Notifications</span>
         </a>
         {% endif %}
 
         {% if permissions.view_userhistory %}
-        <a href="{% url 'user_history' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'user_history' %}bg-primary/10 text-primary{% else %}text-slate-500 hover:text-white hover:bg-white/5{% endif %} transition-all group">
+        <a href="{% url 'user_history' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'user_history' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">history</span>
           <span class="text-sm font-medium">Historique</span>
         </a>
         {% endif %}
 
         {% if permissions.view_customuser and permissions.view_role %}
-        <a href="{% url 'admin:index' %}" target="_blank" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-all group">
+        <a href="{% url 'admin:index' %}" target="_blank" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all group">
           <span class="material-symbols-outlined text-[20px]">admin_panel_settings</span>
           <span class="text-sm font-medium">Admin Panel</span>
         </a>
@@ -202,7 +346,7 @@
 
     <!-- Sidebar Footer (Logout) -->
     {% if user.is_authenticated %}
-    <div class="p-4 border-t border-slate-800/10 mt-auto">
+    <div class="p-4 border-t border-slate-200 dark:border-slate-800/10 mt-auto">
       <a href="{% url 'logout' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-500 hover:text-white hover:bg-red-500/10 transition-all group">
         <span class="material-symbols-outlined text-[20px]">logout</span>
         <span class="text-sm font-bold">Déconnexion</span>
@@ -215,31 +359,36 @@
 
 
 
-  <main class="flex-1 flex flex-col relative bg-mesh overflow-auto">
-    <header class="h-20 flex items-center justify-between px-4 lg:px-8 border-b border-slate-800/50 backdrop-blur-md sticky top-0 z-10 shrink-0">
+  <main class="flex-1 flex flex-col relative overflow-auto">
+    <header class="h-20 flex items-center justify-between px-4 lg:px-8 border-b border-slate-200 dark:border-slate-800/50 bg-white/80 dark:bg-transparent backdrop-blur-md sticky top-0 z-10 shrink-0">
       <div class="flex items-center gap-4">
-        <button id="mobile-menu-toggle" class="lg:hidden p-2 text-slate-400 hover:text-white transition-colors">
+        <button id="mobile-menu-toggle" class="lg:hidden p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
           <span class="material-symbols-outlined text-[24px]">menu</span>
         </button>
         <div>
-          <h1 class="text-lg lg:text-2xl font-black text-white tracking-tight">{% block header_title %}{% endblock %}</h1>
+          <h1 class="text-lg lg:text-2xl font-black text-slate-900 dark:text-white tracking-tight">{% block header_title %}{% endblock %}</h1>
           <p class="text-[10px] lg:text-xs text-slate-500 mt-0.5">{% block header_subtitle %}{% endblock %}</p>
         </div>
       </div>
       
-      <div class="flex items-center gap-6">
+      <div class="flex items-center gap-4">
         {% if user.is_authenticated %}
+          <!-- Theme Toggle -->
+          <button id="theme-toggle" class="size-9 flex items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/20 transition-all" title="Changer le thème">
+            <span class="material-symbols-outlined text-[20px]" id="theme-icon">light_mode</span>
+          </button>
+
           <!-- Notifications -->
           <div class="dropdown">
-            <button class="relative text-slate-400 hover:text-white transition-colors" data-bs-toggle="dropdown">
+            <button class="relative text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" data-bs-toggle="dropdown">
               <span class="material-symbols-outlined text-[24px]">notifications</span>
               {% if unread %}
                 <span class="absolute -top-1 -right-1 size-4 bg-primary text-[10px] font-bold text-white rounded-full flex items-center justify-center">{{ unread }}</span>
               {% endif %}
             </button>
-            <div class="dropdown-menu dropdown-menu-end p-0 !bg-deep-charcoal border border-slate-800 shadow-2xl overflow-hidden w-[420px]">
-              <div class="flex items-center justify-between p-4 border-b border-slate-800/50">
-                <h3 class="text-sm font-bold text-white uppercase tracking-tight">Notifications</h3>
+            <div class="dropdown-menu dropdown-menu-end p-0 !bg-white dark:!bg-deep-charcoal border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden w-[420px]">
+              <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800/50">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tight">Notifications</h3>
                  <form action="{% url 'mark_notifications' %}" method="post" class="m-0">
                     {% csrf_token %}
                     <button type="submit" class="text-[10px] font-bold text-primary hover:text-blue-400 uppercase tracking-wider transition-colors {% if not notifications %}opacity-50 cursor-default{% endif %}" {% if not notifications %}disabled{% endif %}>Tout marquer comme lu</button>
@@ -249,7 +398,7 @@
               {% if notifications %}
               <div class="max-h-[400px] overflow-y-auto custom-scrollbar">
                 {% for notification in notifications %}
-                <div class="p-4 border-b border-slate-800/30 hover:bg-white/[0.03] transition-colors relative cursor-pointer group/item">
+                <div class="p-4 border-b border-slate-100 dark:border-slate-800/30 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors relative cursor-pointer group/item">
                     <a href="{% url 'notifications' %}" class="flex gap-3" onclick="markNotificationAsRead(event, {{ notification.id }})">
                         {% if not notification.is_read %}
                         <span class="size-2 mt-1.5 rounded-full bg-primary flex-shrink-0"></span>
@@ -257,7 +406,7 @@
                         <span class="size-2 mt-1.5 rounded-full bg-transparent flex-shrink-0"></span>
                         {% endif %}
                         <div class="flex flex-col gap-1 {% if notification.is_read %}opacity-70{% endif %}">
-                            <p class="text-[13px] leading-relaxed text-white">{{ notification.message }}</p>
+                            <p class="text-[13px] leading-relaxed text-slate-900 dark:text-white">{{ notification.message }}</p>
                             <span class="text-[11px] text-slate-500">{{ notification.created_at|timesince }} ago</span>
                         </div>
                     </a>
@@ -266,29 +415,29 @@
               </div>
               <form action="{% url 'delete_all' %}" method="post" class="m-0">
                  {% csrf_token %}
-                 <button type="submit" class="w-full py-3 text-[11px] font-bold text-red-400/80 hover:text-red-400 hover:bg-red-500/5 transition-all uppercase tracking-[0.1em] border-t border-slate-800/50">
+                 <button type="submit" class="w-full py-3 text-[11px] font-bold text-red-400/80 hover:text-red-400 hover:bg-red-500/5 transition-all uppercase tracking-[0.1em] border-t border-slate-200 dark:border-slate-800/50">
                     Effacer tout
                  </button>
               </form>
               {% else %}
               <div class="py-16 px-8 flex flex-col items-center text-center">
                 <div class="relative mb-6">
-                    <div class="size-24 rounded-full bg-slate-800/30 flex items-center justify-center">
-                        <svg class="size-12 text-slate-500/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <div class="size-24 rounded-full bg-slate-100 dark:bg-slate-800/30 flex items-center justify-center">
+                        <svg class="size-12 text-slate-400 dark:text-slate-500/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path d="M18.36 18.36L5.64 5.64M11.5 5.5C11.5 5.22386 11.7239 5 12 5C12.2761 5 12.5 5.22386 12.5 5.5M17.5 13.5V10.5C17.5 8.9543 16.7163 7.5912 15.5401 6.78772M6.5 10.5V13.5L4.5 16.5H19.5L18.4231 14.8846M13.73 21C13.5542 21.3031 13.3031 21.5542 13 21.73C12.6969 21.9058 12.3518 22 12 22C11.6482 22 11.3031 21.9058 11 21.73C10.6969 21.5542 10.4458 21.3031 10.27 21" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
                         </svg>
                     </div>
-                    <div class="absolute -bottom-1 -right-1 size-8 rounded-full bg-deep-charcoal border-4 border-deep-charcoal flex items-center justify-center">
+                    <div class="absolute -bottom-1 -right-1 size-8 rounded-full bg-white dark:bg-deep-charcoal border-4 border-white dark:border-deep-charcoal flex items-center justify-center">
                         <span class="material-symbols-outlined text-[16px] text-primary/40">notifications_off</span>
                     </div>
                 </div>
-                <h4 class="text-white font-semibold text-base mb-2">Aucune nouvelle notification</h4>
+                <h4 class="text-slate-900 dark:text-white font-semibold text-base mb-2">Aucune nouvelle notification</h4>
                 <p class="text-slate-500 text-[13px] leading-relaxed max-w-[260px]">
                     Vous êtes à jour ! Revenez plus tard pour voir les nouveaux rapports et mises à jour.
                 </p>
               </div>
-              <div class="border-t border-slate-800/50">
-                <button class="w-full py-3 text-[11px] font-bold text-slate-600 cursor-not-allowed uppercase tracking-[0.1em] bg-slate-900/20" disabled="">
+              <div class="border-t border-slate-200 dark:border-slate-800/50">
+                <button class="w-full py-3 text-[11px] font-bold text-slate-400 dark:text-slate-600 cursor-not-allowed uppercase tracking-[0.1em] bg-slate-50 dark:bg-slate-900/20" disabled="">
                     Effacer tout
                 </button>
               </div>
@@ -307,7 +456,7 @@
               {% endif %}
             </div>
             <div class="hidden md:flex flex-col">
-              <span class="text-xs font-bold text-white">{{ user.get_full_name|default:user.username }}</span>
+              <span class="text-xs font-bold text-slate-900 dark:text-white">{{ user.get_full_name|default:user.username }}</span>
               <span class="text-[10px] text-slate-500">{{ user.ad2000 }}</span>
             </div>
           </div>
@@ -320,8 +469,8 @@
       {% endblock %}
     </div>
 
-    <footer class="p-6 border-t border-slate-800/30">
-      <div class="flex items-center gap-4 text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+    <footer class="p-6 border-t border-slate-200 dark:border-slate-800/30">
+      <div class="flex items-center gap-4 text-[10px] text-slate-500 dark:text-slate-600 font-bold uppercase tracking-widest">
         <a class="hover:text-primary transition-colors" href="{% url 'home' %}">Accueil</a>
         {% block breadcrumbs_footer %}{% endblock %}
       </div>
@@ -350,33 +499,32 @@
   <script src="{% static 'assets/js/plugins/feather.min.js' %}"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
+    // Theme Toggle Functionality
     const themeToggle = document.getElementById('theme-toggle');
-    const body = document.body;
+    const themeIcon = document.getElementById('theme-icon');
+    const html = document.documentElement;
 
-    // Vérifiez si le thème sombre est stocké dans le localStorage
-    if (localStorage.getItem('theme') === 'dark') {
-      body.setAttribute('data-pc-theme', 'dark');
-      themeToggle.innerHTML = '<i data-feather="sun"></i>'; // Icône pour le mode sombre
-    } else {
-      themeToggle.innerHTML = '<i data-feather="moon"></i>'; // Icône pour le mode clair
+    function updateThemeIcon() {
+      if (themeIcon) {
+        themeIcon.textContent = html.classList.contains('dark') ? 'dark_mode' : 'light_mode';
+      }
     }
 
-    // Écoutez les clics sur le bouton de basculement
-    themeToggle.addEventListener('click', () => {
-      if (body.getAttribute('data-pc-theme') === 'dark') {
-        body.setAttribute('data-pc-theme', 'light');
-        localStorage.setItem('theme', 'light');
-        themeToggle.innerHTML = '<i data-feather="moon"></i>'; // Changer l'icône en mode clair
-      } else {
-        body.setAttribute('data-pc-theme', 'dark');
-        localStorage.setItem('theme', 'dark');
-        themeToggle.innerHTML = '<i data-feather="sun"></i>'; // Changer l'icône en mode sombre
-      }
-      feather.replace(); // Remplace les icônes Feather
-    });
+    // Initialize icon based on current theme
+    updateThemeIcon();
+
+    // Theme toggle click handler
+    if (themeToggle) {
+      themeToggle.addEventListener('click', () => {
+        html.classList.toggle('dark');
+        const newTheme = html.classList.contains('dark') ? 'dark' : 'light';
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon();
+      });
+    }
 
     function markAsRead(link) {
-      link.classList.add('read-notification'); // Add the class to change the color
+      link.classList.add('read-notification');
     }
   </script>
 
@@ -386,15 +534,30 @@
     const toggle = document.getElementById('mobile-menu-toggle');
 
     function toggleSidebar() {
+      // Toggle the translate class to show/hide sidebar
       sidebar.classList.toggle('-translate-x-full');
-      overlay.classList.toggle('hidden');
-      setTimeout(() => {
-        overlay.classList.toggle('opacity-0');
-      }, 0);
+      
+      // Toggle overlay visibility
+      if (overlay.classList.contains('hidden')) {
+        overlay.classList.remove('hidden');
+        // Small delay to allow display:block to apply before opacity transition
+        setTimeout(() => {
+          overlay.classList.remove('opacity-0');
+        }, 10);
+      } else {
+        overlay.classList.add('opacity-0');
+        // Wait for transition to finish before hiding
+        setTimeout(() => {
+          overlay.classList.add('hidden');
+        }, 300);
+      }
     }
 
     if (toggle) {
-      toggle.addEventListener('click', toggleSidebar);
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleSidebar();
+      });
     }
 
     if (overlay) {
@@ -404,11 +567,15 @@
     // Close sidebar on window resize if it's open and we transition to desktop
     window.addEventListener('resize', () => {
       if (window.innerWidth >= 1024) {
-        sidebar.classList.remove('-translate-x-full');
+        sidebar.classList.remove('-translate-x-full'); // Always show on desktop
         overlay.classList.add('hidden');
         overlay.classList.add('opacity-0');
       } else {
-        sidebar.classList.add('-translate-x-full');
+        // On mobile, ensure it starts hidden if not explicitly opened (clean reset)
+        // Check if overlay is hidden to determine 'closed' state intention
+        if (overlay.classList.contains('hidden')) {
+            sidebar.classList.add('-translate-x-full');
+        }
       }
     });
   </script>

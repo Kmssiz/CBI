@@ -8,8 +8,8 @@
 <div class="p-4 lg:p-8 max-w-7xl mx-auto">
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
     <div>
-      <h2 class="text-xl font-bold text-white mb-2">Vos Tickets</h2>
-      <p class="text-slate-400 text-sm">Consultez l'état de vos demandes et rapports.</p>
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Vos Tickets</h2>
+      <p class="text-slate-500 dark:text-slate-400 text-sm">Consultez l'état de vos demandes et rapports.</p>
     </div>
     <a href="{% url 'tickets:create_ticket' %}" class="px-4 py-2 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2">
       <span class="material-symbols-outlined text-[20px]">add</span>
@@ -17,11 +17,11 @@
     </a>
   </div>
 
-  <div class="bg-card-dark border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+  <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xl shadow-black/5 dark:shadow-black/20">
     <div class="overflow-x-auto">
       <table class="w-full text-left border-collapse">
         <thead>
-          <tr class="bg-surface-dark border-b border-slate-800 text-xs uppercase tracking-wider text-slate-500 font-bold">
+          <tr class="bg-slate-50 dark:bg-surface-dark border-b border-slate-200 dark:border-slate-800 text-xs uppercase tracking-wider text-slate-500 font-bold">
             <th class="p-4">Titre</th>
             <th class="p-4">Type</th>
             <th class="p-4">Catégorie</th>
@@ -32,11 +32,11 @@
             <th class="p-4 text-right">Actions</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-800">
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
           {% for ticket in tickets %}
-          <tr class="hover:bg-white/[0.02] transition-colors group">
+          <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group">
             <td class="p-4">
-              <a href="{% url 'tickets:ticket_detail' ticket.id %}" class="font-bold text-white hover:text-primary transition-colors block">{{ ticket.title }}</a>
+              <a href="{% url 'tickets:ticket_detail' ticket.id %}" class="font-bold text-slate-900 dark:text-white hover:text-primary transition-colors block">{{ ticket.title }}</a>
             </td>
             <td class="p-4">
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold 
@@ -51,7 +51,7 @@
               </span>
             </td>
             <td class="p-4">
-              <span class="text-xs font-bold text-slate-400 uppercase">{{ ticket.get_category_display }}</span>
+              <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">{{ ticket.get_category_display }}</span>
             </td>
             <td class="p-4">
               <div class="flex items-center gap-2">
@@ -77,7 +77,7 @@
               {% if ticket.assigned_to %}
               <div class="flex items-center gap-2">
                 <div class="size-6 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-[10px]">{{ ticket.assigned_to.username|slice:":1"|upper }}</div>
-                <span class="text-sm text-white">{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}</span>
+                <span class="text-sm text-slate-700 dark:text-white">{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}</span>
               </div>
               {% else %}
               <span class="text-xs text-slate-500">--</span>
@@ -96,7 +96,7 @@
           <tr>
             <td colspan="8" class="p-8 text-center text-slate-500">
               <div class="flex flex-col items-center justify-center">
-                <div class="size-16 rounded-full bg-slate-800/50 flex items-center justify-center mb-4">
+                <div class="size-16 rounded-full bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center mb-4">
                     <span class="material-symbols-outlined text-3xl opacity-50">confirmation_number</span>
                 </div>
                 <p class="font-medium">Aucun ticket trouvé</p>

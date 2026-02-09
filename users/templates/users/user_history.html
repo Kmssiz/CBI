@@ -18,15 +18,15 @@
 {% block content %}
 <div class="px-8 py-6">
     <!-- [ History Section ] start -->
-    <div class="bg-surface-dark border border-slate-800 rounded-3xl overflow-hidden shadow-xl shadow-black/20">
-        <div class="px-8 py-6 border-b border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/[0.02]">
-            <h3 class="font-bold text-white tracking-tight">Journal des Événements</h3>
+    <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xl shadow-black/5 dark:shadow-black/20">
+        <div class="px-8 py-6 border-b border-slate-200 dark:border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50 dark:bg-white/[0.02]">
+            <h3 class="font-bold text-slate-900 dark:text-white tracking-tight">Journal des Événements</h3>
             
             <div class="flex items-center gap-4 w-full sm:w-auto">
                 <form method="get" class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
                     <!-- Action Filter -->
                     <div class="relative">
-                        <select name="action" onchange="this.form.submit()" class="appearance-none bg-surface-dark border border-slate-700 hover:border-slate-600 text-xs font-bold text-slate-300 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-primary/50 transition-all cursor-pointer w-full sm:w-48">
+                        <select name="action" onchange="this.form.submit()" class="appearance-none bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-xs font-bold text-slate-700 dark:text-slate-300 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-primary/50 transition-all cursor-pointer w-full sm:w-48">
                             <option value="">Toutes les actions</option>
                             {% for action in actions %}
                                 <option value="{{ action }}" {% if selected_action == action %}selected{% endif %}>
@@ -45,10 +45,10 @@
                             <span class="material-symbols-outlined text-[18px]">search</span>
                         </span>
                         <input type="text" name="search" value="{{ search_query }}" placeholder="Rechercher..." 
-                               class="w-full bg-surface-dark border border-slate-700 hover:border-slate-600 text-xs font-bold text-slate-300 rounded-lg pl-9 pr-4 py-2 outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:font-medium">
+                               class="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-xs font-bold text-slate-700 dark:text-slate-300 rounded-lg pl-9 pr-4 py-2 outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:font-medium placeholder:text-slate-400">
                     </div>
                 </form>
-                <div class="h-4 w-px bg-slate-800 hidden sm:block"></div>
+                <div class="h-4 w-px bg-slate-300 dark:bg-slate-800 hidden sm:block"></div>
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap hidden sm:block">Total: {{ history.paginator.count }}</span>
             </div>
         </div>
@@ -57,35 +57,35 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="border-b border-slate-800/50 bg-white/[0.01]">
+                    <tr class="border-b border-slate-200 dark:border-slate-800/50 bg-slate-50/50 dark:bg-white/[0.01]">
                         <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Utilisateur</th>
                         <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Action</th>
                         <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Date & Heure</th>
                         <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Il y a</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800/30">
+                <tbody class="divide-y divide-slate-200/50 dark:divide-slate-800/30">
                     {% for record in history %}
-                    <tr class="hover:bg-white/[0.02] transition-colors group">
+                        <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group">
                         <td class="px-8 py-5">
                             <div class="flex items-center gap-3">
                                 <div class="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
                                     <span class="material-symbols-outlined text-[18px]">person</span>
                                 </div>
-                                <span class="text-sm font-bold text-slate-200">{{ record.user.username }}</span>
+                                <span class="text-sm font-bold text-slate-700 dark:text-slate-200">{{ record.user.username }}</span>
                             </div>
                         </td>
                         <td class="px-8 py-5">
-                            <span class="text-sm text-slate-400 group-hover:text-white transition-colors">{{ record.action }}</span>
+                            <span class="text-sm text-slate-500 dark:text-slate-400 group-hover:text-primary dark:group-hover:text-white transition-colors">{{ record.action }}</span>
                         </td>
                         <td class="px-8 py-5">
                             <div class="flex flex-col">
-                                <span class="text-sm text-slate-300 font-medium">{{ record.timestamp|date:"d F Y" }}</span>
+                                <span class="text-sm text-slate-700 dark:text-slate-300 font-medium">{{ record.timestamp|date:"d F Y" }}</span>
                                 <span class="text-[10px] text-slate-500 font-bold uppercase">{{ record.timestamp|date:"H:i A" }}</span>
                             </div>
                         </td>
                         <td class="px-8 py-5 text-right">
-                            <span class="px-3 py-1 bg-slate-800 text-slate-400 rounded-full text-[10px] font-bold uppercase tracking-wider group-hover:bg-primary/20 group-hover:text-primary transition-all">
+                            <span class="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full text-[10px] font-bold uppercase tracking-wider group-hover:bg-primary/20 group-hover:text-primary transition-all">
                                 {{ record.timestamp|timesince }}
                             </span>
                         </td>
@@ -97,7 +97,7 @@
         
         <!-- Pagination -->
         {% if history.has_other_pages %}
-        <div class="px-8 py-4 border-t border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/[0.01]">
+        <div class="px-8 py-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 dark:bg-black/20">
             <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest order-2 sm:order-1">
                 Affichage {{ history.start_index }}-{{ history.end_index }} sur {{ history.paginator.count }}
             </span>
@@ -106,11 +106,11 @@
                 <!-- Previous Page -->
                 {% if history.has_previous %}
                 <a href="?page={{ history.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_action %}&action={{ selected_action }}{% endif %}" 
-                   class="size-8 flex items-center justify-center rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 hover:border-slate-700 transition-all mr-1">
+                   class="size-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-white hover:bg-slate-800 hover:border-slate-700 transition-all mr-1">
                     <span class="material-symbols-outlined text-[16px]">chevron_left</span>
                 </a>
                 {% else %}
-                <span class="size-8 flex items-center justify-center rounded-lg border border-slate-800/50 text-slate-600 cursor-not-allowed opacity-50 mr-1">
+                <span class="size-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-50 mr-1">
                     <span class="material-symbols-outlined text-[16px]">chevron_left</span>
                 </span>
                 {% endif %}
@@ -127,8 +127,8 @@
                                 {{ i }}
                             </span>
                         {% else %}
-                            <a href="?page={{ i }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_action %}&action={{ selected_action }}{% endif %}" 
-                               class="size-8 flex items-center justify-center rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 hover:border-slate-700 transition-all text-xs font-bold">
+                        <a href="?page={{ i }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_action %}&action={{ selected_action }}{% endif %}" 
+                           class="size-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-white hover:bg-slate-800 hover:border-slate-700 transition-all text-xs font-bold">
                                 {{ i }}
                             </a>
                         {% endif %}
@@ -138,11 +138,11 @@
                 <!-- Next Page -->
                 {% if history.has_next %}
                 <a href="?page={{ history.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_action %}&action={{ selected_action }}{% endif %}" 
-                   class="size-8 flex items-center justify-center rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 hover:border-slate-700 transition-all ml-1">
+                   class="size-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-white hover:bg-slate-800 hover:border-slate-700 transition-all ml-1">
                     <span class="material-symbols-outlined text-[16px]">chevron_right</span>
                 </a>
                 {% else %}
-                <span class="size-8 flex items-center justify-center rounded-lg border border-slate-800/50 text-slate-600 cursor-not-allowed opacity-50 ml-1">
+                <span class="size-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-50 ml-1">
                     <span class="material-symbols-outlined text-[16px]">chevron_right</span>
                 </span>
                 {% endif %}
@@ -151,14 +151,14 @@
         {% endif %}
 
         {% else %}
-        <div class="flex flex-col items-center justify-center py-20 border-t border-slate-800/30">
-            <div class="size-24 rounded-full bg-slate-900 flex items-center justify-center mb-6">
-                <span class="material-symbols-outlined text-[48px] text-slate-700">history</span>
+        <div class="flex flex-col items-center justify-center py-20 border-t border-slate-200 dark:border-slate-800">
+            <div class="size-24 rounded-full bg-slate-100 dark:bg-slate-900/50 flex items-center justify-center mb-6">
+                <span class="material-symbols-outlined text-[48px] text-slate-400 dark:text-slate-700">history</span>
             </div>
-            <h3 class="text-xl font-bold text-white mb-2">Aucun historique trouvé</h3>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Aucun historique trouvé</h3>
             <p class="text-slate-500 max-w-sm text-center">Aucun résultat ne correspond à votre recherche.</p>
             {% if search_query %}
-            <a href="{% url 'user_history' %}" class="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all">  
+            <a href="{% url 'user_history' %}" class="mt-4 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all">  
                 Effacer la recherche
             </a>
             {% endif %}

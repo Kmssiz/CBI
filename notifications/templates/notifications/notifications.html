@@ -6,27 +6,27 @@
 <div class="max-w-7xl mx-auto w-full">
     <div class="p-4 lg:p-8">
         <!-- Breadcrumb -->
-        <div class="flex items-center gap-2 text-[11px] font-bold text-slate-500 mb-2">
-            <a href="{% url 'home' %}" class="hover:text-slate-300 cursor-pointer transition-colors">Accueil</a>
+        <div class="flex items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-500 mb-2">
+            <a href="{% url 'home' %}" class="hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer transition-colors">Accueil</a>
             <span class="material-symbols-outlined text-[14px]">chevron_right</span>
-            <span class="text-slate-400">Notifications</span>
+            <span class="text-slate-400 dark:text-slate-400">Notifications</span>
         </div>
-        <h1 class="text-2xl lg:text-3xl font-black text-white tracking-tight mb-6 lg:mb-8">Notifications</h1>
+        <h1 class="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-6 lg:mb-8">Notifications</h1>
 
         <!-- Actions and Filter Section -->
-        <div class="bg-surface-dark/50 border border-slate-800/60 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div class="card-theme bg-white border border-slate-200 dark:border-slate-800/60 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 shadow-sm">
             <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto" id="filterButtons">
-                 <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold transition-all active-filter bg-white/10 border-white text-white"
+                 <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold transition-all active-filter bg-slate-900 border-slate-900 text-white dark:bg-white/10 dark:border-white dark:text-white"
                     data-filter="all" onclick="filterNotifications('all')">
                     <span class="material-symbols-outlined text-[16px]">filter_list</span>
                     Tous
                 </button>
-                <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold transition-all bg-transparent border-slate-800/60 text-emerald-500 hover:border-emerald-500/50"
+                <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold transition-all bg-transparent border-slate-200 dark:border-slate-800/60 text-emerald-600 dark:text-emerald-500 hover:border-emerald-500/50"
                     data-filter="read" onclick="filterNotifications('read')">
                     <span class="material-symbols-outlined text-[16px]">check_circle</span>
                     Lu
                 </button>
-                <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold transition-all bg-transparent border-slate-800/60 text-orange-500 hover:border-orange-500/50"
+                <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold transition-all bg-transparent border-slate-200 dark:border-slate-800/60 text-orange-500 hover:border-orange-500/50"
                     data-filter="unread" onclick="filterNotifications('unread')">
                     <span class="material-symbols-outlined text-[16px]">error</span>
                     Non lu
@@ -52,7 +52,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="notificationsContainer">
             {% if notifications %}
             {% for notification in notifications %}
-            <div class="bg-card-dark border border-slate-800/60 rounded-xl p-5 hover:border-slate-700 transition-all flex flex-col gap-4 notification-card group" 
+            <div class="bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-800/60 rounded-xl p-5 hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col gap-4 notification-card group shadow-sm" 
                  id="notification-{{ notification.id }}" 
                  data-id="{{ notification.id }}">
                  
@@ -69,7 +69,7 @@
                     <span class="text-[11px] font-medium text-slate-500">{{ notification.created_at|date:"d M Y, H:i" }}</span>
                 </div>
                 
-                <p class="text-sm leading-relaxed text-slate-300 group-hover:text-white transition-colors cursor-pointer" 
+                <p class="text-sm leading-relaxed text-slate-600 dark:text-slate-300 group-hover:text-primary dark:group-hover:text-white transition-colors cursor-pointer" 
                    onclick="showDetails({{ notification.id }}, '{{ notification.message|escapejs }}', '{{ notification.created_at|date:"d M Y, H:i" }}');">
                     {{ notification.message }}
                 </p>
@@ -100,17 +100,17 @@
 <!-- Notification Details Modal -->
   <div class="modal fade" id="notificationModal" tabindex="-1" aria-hidden="true" style="display: none;">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl">
-        <div class="p-6 border-b border-slate-800/50 flex items-center justify-between">
-          <h5 class="text-lg font-bold text-white tracking-tight" id="modalTitle">Détails de la notification</h5>
-          <button type="button" class="text-slate-500 hover:text-white transition-colors" onclick="closeModal()">
+      <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl">
+        <div class="p-6 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between">
+          <h5 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight" id="modalTitle">Détails de la notification</h5>
+          <button type="button" class="text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors" onclick="closeModal()">
             <span class="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
         <div class="p-6 space-y-4">
           <div>
              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Message</span>
-             <p id="modalMessage" class="text-slate-300 text-sm leading-relaxed"></p>
+             <p id="modalMessage" class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed"></p>
           </div>
           <div>
              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Date de réception</span>
@@ -127,18 +127,18 @@
   <!-- Delete Confirmation Modal -->
   <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-hidden="true" style="display: none;">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl">
-        <div class="p-6 border-b border-slate-800/50 flex items-center justify-between">
-          <h5 class="text-lg font-bold text-white tracking-tight">Confirmer la suppression</h5>
-          <button type="button" class="text-slate-500 hover:text-white transition-colors" onclick="closeDeleteConfirmation()">
+      <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl">
+        <div class="p-6 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between">
+          <h5 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Confirmer la suppression</h5>
+          <button type="button" class="text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors" onclick="closeDeleteConfirmation()">
             <span class="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
         <div class="p-6">
-          <p class="text-sm text-slate-300">Êtes-vous sûr de vouloir supprimer cette notification ? Cette action est irréversible.</p>
+          <p class="text-sm text-slate-600 dark:text-slate-300">Êtes-vous sûr de vouloir supprimer cette notification ? Cette action est irréversible.</p>
         </div>
-        <div class="p-6 border-t border-slate-800/50 flex justify-end gap-3 bg-white/[0.02]">
-          <button class="px-4 py-2 text-slate-400 hover:text-white font-bold text-xs uppercase tracking-wider transition-all" onclick="closeDeleteConfirmation()">Annuler</button>
+        <div class="p-6 border-t border-slate-200 dark:border-slate-800/50 flex justify-end gap-3 bg-slate-50 dark:bg-white/[0.02]">
+          <button class="px-4 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white font-bold text-xs uppercase tracking-wider transition-all" onclick="closeDeleteConfirmation()">Annuler</button>
           <button id="confirmDeleteButton" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-lg shadow-red-500/20">Supprimer</button>
         </div>
       </div>
@@ -148,18 +148,18 @@
   <!-- Clear All Confirmation Modal -->
   <div class="modal fade" id="clearAllConfirmationModal" tabindex="-1" aria-hidden="true" style="display: none;">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl">
-        <div class="p-6 border-b border-slate-800/50 flex items-center justify-between">
-          <h5 class="text-lg font-bold text-white tracking-tight">Confirmer la suppression totale</h5>
-          <button type="button" class="text-slate-500 hover:text-white transition-colors" onclick="closeClearAllConfirmation()">
+      <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl">
+        <div class="p-6 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between">
+          <h5 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Confirmer la suppression totale</h5>
+          <button type="button" class="text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors" onclick="closeClearAllConfirmation()">
             <span class="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
         <div class="p-6">
-          <p class="text-sm text-slate-300">Êtes-vous sûr de vouloir supprimer toutes les notifications ? Cette action est irréversible.</p>
+          <p class="text-sm text-slate-600 dark:text-slate-300">Êtes-vous sûr de vouloir supprimer toutes les notifications ? Cette action est irréversible.</p>
         </div>
-        <div class="p-6 border-t border-slate-800/50 flex justify-end gap-3 bg-white/[0.02]">
-          <button class="px-4 py-2 text-slate-400 hover:text-white font-bold text-xs uppercase tracking-wider transition-all" onclick="closeClearAllConfirmation()">Annuler</button>
+        <div class="p-6 border-t border-slate-200 dark:border-slate-800/50 flex justify-end gap-3 bg-slate-50 dark:bg-white/[0.02]">
+          <button class="px-4 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white font-bold text-xs uppercase tracking-wider transition-all" onclick="closeClearAllConfirmation()">Annuler</button>
           <button class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-lg shadow-red-500/20" onclick="clearAllNotifications()">Tout effacer</button>
         </div>
       </div>
@@ -169,18 +169,18 @@
   <!-- Mark All as Read Confirmation Modal -->
   <div class="modal fade" id="markAllAsReadConfirmationModal" tabindex="-1" aria-hidden="true" style="display: none;">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl">
-        <div class="p-6 border-b border-slate-800/50 flex items-center justify-between">
-          <h5 class="text-lg font-bold text-white tracking-tight">Confirmer le marquage global</h5>
-          <button type="button" class="text-slate-500 hover:text-white transition-colors" onclick="closeMarkAllAsReadConfirmation()">
+      <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl">
+        <div class="p-6 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between">
+          <h5 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Confirmer le marquage global</h5>
+          <button type="button" class="text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors" onclick="closeMarkAllAsReadConfirmation()">
             <span class="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
         <div class="p-6">
-          <p class="text-sm text-slate-300">Êtes-vous sûr de vouloir marquer toutes les notifications comme lues ?</p>
+          <p class="text-sm text-slate-600 dark:text-slate-300">Êtes-vous sûr de vouloir marquer toutes les notifications comme lues ?</p>
         </div>
-        <div class="p-6 border-t border-slate-800/50 flex justify-end gap-3 bg-white/[0.02]">
-          <button class="px-4 py-2 text-slate-400 hover:text-white font-bold text-xs uppercase tracking-wider transition-all" onclick="closeMarkAllAsReadConfirmation()">Annuler</button>
+        <div class="p-6 border-t border-slate-200 dark:border-slate-800/50 flex justify-end gap-3 bg-slate-50 dark:bg-white/[0.02]">
+          <button class="px-4 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white font-bold text-xs uppercase tracking-wider transition-all" onclick="closeMarkAllAsReadConfirmation()">Annuler</button>
           <button class="px-4 py-2 bg-primary hover:bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-lg shadow-primary/20" onclick="markAllAsRead()">Tout marquer comme lu</button>
         </div>
       </div>
@@ -205,7 +205,7 @@
         if (btnFilter === filter) {
              // Apply Active Styles
              if (filter === 'all') {
-                 button.classList.add('bg-white/10', 'border-white', 'text-white');
+                 button.classList.add('bg-slate-900', 'border-slate-900', 'text-white', 'dark:bg-white/10', 'dark:border-white', 'dark:text-white');
              } else if (filter === 'read') {
                  button.classList.add('bg-emerald-500/10', 'border-emerald-500', 'text-emerald-500');
              } else if (filter === 'unread') {
@@ -213,12 +213,12 @@
              }
         } else {
              // Apply Inactive Styles (Base + specific text color)
-             button.classList.add('bg-transparent', 'border-slate-800/60');
+             button.classList.add('bg-transparent', 'border-slate-200', 'dark:border-slate-800/60');
              
              if (btnFilter === 'all') {
-                 button.classList.add('text-white', 'hover:border-white/50');
+                 button.classList.add('text-slate-700', 'dark:text-white', 'hover:border-slate-300', 'dark:hover:border-white/50');
              } else if (btnFilter === 'read') {
-                 button.classList.add('text-emerald-500', 'hover:border-emerald-500/50');
+                 button.classList.add('text-emerald-600', 'dark:text-emerald-500', 'hover:border-emerald-500/50');
              } else if (btnFilter === 'unread') {
                  button.classList.add('text-orange-500', 'hover:border-orange-500/50');
              }

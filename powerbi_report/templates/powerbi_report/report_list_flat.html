@@ -18,19 +18,19 @@
         <div class="flex items-center gap-4 flex-1 min-w-[300px]">
             <div class="relative flex-1 max-w-sm">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
-                <input type="text" id="reportSearch" class="w-full pl-10 pr-4 py-2 bg-surface-dark border border-slate-800 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all text-slate-300" placeholder="Rechercher un rapport...">
+                <input type="text" id="reportSearch" class="w-full pl-10 pr-4 py-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all text-slate-900 dark:text-slate-300" placeholder="Rechercher un rapport...">
             </div>
             
             {% if request.GET.context == 'department' %}
-            <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-800 hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-400">
+            <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white">
                 <span class="material-symbols-outlined text-[18px]">account_tree</span> Vue Hiérarchique
             </a>
             {% elif request.GET.context == 'biblio' %}
-            <a href="{% url 'powerbi_report:custom_biblio' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-800 hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-400">
+            <a href="{% url 'powerbi_report:custom_biblio' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white">
                 <span class="material-symbols-outlined text-[18px]">account_tree</span> Vue Hiérarchique
             </a>
             {% else %}
-            <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-800 hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-400">
+            <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white">
                 <span class="material-symbols-outlined text-[18px]">account_tree</span> Vue Hiérarchique
             </a>
             {% endif %}
@@ -38,30 +38,30 @@
     </div>
 
     <!-- [ Reports Table ] start -->
-    <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
-            <h2 class="font-bold text-white tracking-tight">Tous les Rapports</h2>
+    <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+            <h2 class="font-bold text-slate-900 dark:text-white tracking-tight">Tous les Rapports</h2>
             <span class="text-[10px] font-bold px-2 py-1 bg-primary/20 text-primary rounded uppercase tracking-wider">Total: {{ reports.paginator.count }}</span>
         </div>
         
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse" id="reportsTable">
+            <table class="w-full text-left border-collapse min-w-[1000px]" id="reportsTable">
                 <thead>
-                    <tr class="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800/50">
+                    <tr class="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800/50 bg-slate-50 dark:bg-slate-900/20">
                         <th class="px-6 py-4">Nom du Rapport</th>
                         <th class="px-6 py-4">Chemin</th>
                         <th class="px-6 py-4 text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800/50">
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
                     {% for report in reports %}
-                    <tr class="hover:bg-white/5 transition-all group report-card" data-path="{{ report.Path }}">
+                    <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-all group report-card" data-path="{{ report.Path }}">
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
                                     <span class="material-symbols-outlined text-[18px]">bar_chart</span>
                                 </div>
-                                <span class="text-sm font-bold text-white group-hover:text-primary transition-colors">{{ report.Name }}</span>
+                                <span class="text-sm font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">{{ report.Name }}</span>
                             </div>
                         </td>
                         <td class="px-6 py-4 text-xs text-slate-500 font-mono">{{ report.Path }}</td>
@@ -86,33 +86,33 @@
         </div>
 
         <!-- Pagination -->
-        <div class="px-6 py-4 border-t border-slate-800/50 flex items-center justify-between bg-white/5">
+        <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-black/20">
             <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Affichage de {{ reports.start_index }} à {{ reports.end_index }} sur {{ reports.paginator.count }} rapports</p>
             <div class="flex items-center gap-2">
                 {% if reports.has_previous %}
-                <a href="?page={{ reports.previous_page_number }}{% if request.GET.context %}&context={{ request.GET.context }}{% endif %}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700">
+                <a href="?page={{ reports.previous_page_number }}{% if request.GET.context %}&context={{ request.GET.context }}{% endif %}" class="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700">
                     <span class="material-symbols-outlined text-[18px]">chevron_left</span>
                 </a>
                 {% else %}
-                <button class="size-8 rounded bg-slate-800/50 flex items-center justify-center text-slate-600 border border-slate-800 opacity-50 cursor-not-allowed" disabled>
+                <button class="size-8 rounded-lg bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-800 opacity-50 cursor-not-allowed" disabled>
                     <span class="material-symbols-outlined text-[18px]">chevron_left</span>
                 </button>
                 {% endif %}
 
                 {% for i in reports.paginator.page_range %}
                     {% if reports.number == i %}
-                    <span class="size-8 rounded bg-primary flex items-center justify-center text-white text-[11px] font-black border border-primary shadow-[0_0_15px_rgba(19,127,236,0.3)]">{{ i }}</span>
+                    <span class="size-8 rounded-lg bg-primary flex items-center justify-center text-white text-[11px] font-bold border border-primary shadow-lg shadow-primary/30">{{ i }}</span>
                     {% elif i > reports.number|add:'-3' and i < reports.number|add:'3' %}
-                    <a href="?page={{ i }}{% if request.GET.context %}&context={{ request.GET.context }}{% endif %}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white text-[11px] font-bold border border-slate-700 transition-all">{{ i }}</a>
+                    <a href="?page={{ i }}{% if request.GET.context %}&context={{ request.GET.context }}{% endif %}" class="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 text-[11px] font-bold border border-slate-200 dark:border-slate-700 transition-all">{{ i }}</a>
                     {% endif %}
                 {% endfor %}
 
                 {% if reports.has_next %}
-                <a href="?page={{ reports.next_page_number }}{% if request.GET.context %}&context={{ request.GET.context }}{% endif %}" class="size-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-slate-700">
+                <a href="?page={{ reports.next_page_number }}{% if request.GET.context %}&context={{ request.GET.context }}{% endif %}" class="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700">
                     <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                 </a>
                 {% else %}
-                <button class="size-8 rounded bg-slate-800/50 flex items-center justify-center text-slate-600 border border-slate-800 opacity-50 cursor-not-allowed" disabled>
+                <button class="size-8 rounded-lg bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-800 opacity-50 cursor-not-allowed" disabled>
                     <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                 </button>
                 {% endif %}

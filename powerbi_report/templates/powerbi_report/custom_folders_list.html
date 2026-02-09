@@ -80,13 +80,13 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {% for folder in subfolders %}
             <!-- Subfolder Card -->
-            <div class="group relative bg-surface-dark/40 border border-slate-800/50 rounded-2xl p-6 hover:bg-white/5 hover:border-primary/30 transition-all duration-300">
+            <div class="group relative card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-6 hover:border-primary/30 transition-all duration-300">
                 <a href="{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=folder.id %}"
                     class="block">
-                    <div class="size-14 rounded-xl bg-accent-gold/10 flex items-center justify-center text-accent-gold mb-4 group-hover:scale-110 transition-transform">
-                        <span class="material-symbols-outlined text-[32px]">folder</span>
+                    <div class="size-14 rounded-xl bg-yellow-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <span class="material-symbols-outlined text-[32px] text-yellow-500">folder</span>
                     </div>
-                    <h3 class="text-base font-bold text-white mb-1 truncate">{{ folder.name }}</h3>
+                    <h3 class="text-base font-bold text-theme text-slate-900 mb-1 truncate">{{ folder.name }}</h3>
                     <p class="text-xs text-slate-500">Dossier de rapports</p>
                 </a>
                 
@@ -96,16 +96,16 @@
                         <button class="text-slate-600 hover:text-white transition-colors" data-bs-toggle="dropdown">
                             <span class="material-symbols-outlined text-[20px]">more_vert</span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end p-2 bg-surface-dark border border-slate-800 shadow-2xl rounded-xl w-48">
+                        <ul class="dropdown-menu dropdown-menu-end p-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 shadow-2xl rounded-xl w-48">
                             <li>
-                                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-all" href="#" data-bs-toggle="modal"
+                                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all" href="#" data-bs-toggle="modal"
                                     data-bs-target="#editFolderModal"
                                     onclick="setEditFolderData({{ folder.id }}, '{{ folder.name|escapejs }}')">
                                     <span class="material-symbols-outlined text-[18px]">edit</span> Renommer
                                 </a>
                             </li>
                             <li>
-                                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-all" href="#" data-bs-toggle="modal"
+                                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all" href="#" data-bs-toggle="modal"
                                     data-bs-target="#moveFolderModal"
                                     onclick="setMoveFolderData({{ folder.id }}, '{{ folder.name|escapejs }}')">
                                     <span class="material-symbols-outlined text-[18px]">move_item</span> Déplacer
@@ -128,13 +128,13 @@
 
             {% for report in reports %}
             <!-- Report Card -->
-            <div class="group relative bg-surface-dark/40 border border-slate-800/50 rounded-2xl p-6 hover:bg-white/5 hover:border-primary/30 transition-all duration-300">
+            <div class="group relative card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-6 hover:border-primary/30 transition-all duration-300">
                 <a href="{% url 'powerbi_report:embed_custom_report' view_type=view_type folder_id=current_folder.id report_id=report.id %}"
                     class="block">
                     <div class="size-14 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
                         <span class="material-symbols-outlined text-[32px]">bar_chart</span>
                     </div>
-                    <h3 class="text-base font-bold text-white mb-1 truncate">{{ report.name }}</h3>
+                    <h3 class="text-base font-bold text-theme text-slate-900 mb-1 truncate">{{ report.name }}</h3>
                     <p class="text-xs text-slate-500 truncate">{{ report.path }}</p>
                 </a>
 
@@ -144,9 +144,9 @@
                         <button class="text-slate-600 hover:text-white transition-colors" data-bs-toggle="dropdown">
                             <span class="material-symbols-outlined text-[20px]">more_vert</span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end p-2 bg-surface-dark border border-slate-800 shadow-2xl rounded-xl w-56">
+                        <ul class="dropdown-menu dropdown-menu-end p-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 shadow-2xl rounded-xl w-56">
                             <li>
-                                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-all" href="#" data-bs-toggle="modal"
+                                <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all" href="#" data-bs-toggle="modal"
                                     data-bs-target="#editReportNameModal"
                                     onclick="setEditReportNameData('{{ report.pbirs_id }}', '{{ report.name|escapejs }}')">
                                     <span class="material-symbols-outlined text-[18px]">edit</span> Renommer
@@ -175,14 +175,14 @@
 
             {% if not subfolders and not reports %}
             <div class="col-span-full py-20 flex flex-col items-center text-center">
-                <div class="relative mb-8 text-slate-700">
+                <div class="relative mb-8 text-slate-400 dark:text-slate-700">
                     <div class="relative w-48 h-48 flex items-center justify-center">
                         <div class="absolute inset-0 bg-primary/5 rounded-full blur-3xl"></div>
                         <div class="absolute w-32 h-32 border-2 border-primary/20 rounded-2xl rotate-12"></div>
                         <span class="material-symbols-outlined !text-[64px] opacity-20 relative z-10">folder_open</span>
                     </div>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-2">{% if current_folder %}Dossier vide{% else %}Aucun dossier{% endif %}</h3>
+                <h3 class="text-xl font-bold text-theme text-slate-900 mb-2">{% if current_folder %}Dossier vide{% else %}Aucun dossier{% endif %}</h3>
                 <p class="text-slate-500 text-sm max-w-sm mb-8 leading-relaxed">
                     {% if current_folder %}
                     Aucun rapport n'est assigné à ce dossier pour le moment. Utilisez le bouton "Ajouter un rapport" pour commencer.
@@ -212,10 +212,10 @@
 <div class="modal fade" id="createFolderModal" tabindex="-1" aria-labelledby="createFolderModalLabel"
     aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createFolderModalLabel">Créer un nouveau dossier</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800">
+            <div class="modal-header border-b border-slate-200 dark:border-slate-800">
+                <h5 class="modal-title text-slate-900 dark:text-white" id="createFolderModalLabel">Créer un nouveau dossier</h5>
+                <button type="button" class="btn-close dark:invert" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="POST" action="{% url 'powerbi_report:create_custom_folder' view_type=view_type %}">
                 {% csrf_token %}
@@ -242,10 +242,10 @@
 <!-- Modal: Edit Folder -->
 <div class="modal fade" id="editFolderModal" tabindex="-1" aria-labelledby="editFolderModalLabel" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editFolderModalLabel">Renommer le dossier</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800">
+            <div class="modal-header border-b border-slate-200 dark:border-slate-800">
+                <h5 class="modal-title text-slate-900 dark:text-white" id="editFolderModalLabel">Renommer le dossier</h5>
+                <button type="button" class="btn-close dark:invert" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="editFolderForm" method="POST" action="">
                 {% csrf_token %}
@@ -268,10 +268,10 @@
 <div class="modal fade" id="deleteFolderModal" tabindex="-1" aria-labelledby="deleteFolderModalLabel"
     aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteFolderModalLabel">Supprimer le dossier</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800">
+            <div class="modal-header border-b border-slate-200 dark:border-slate-800">
+                <h5 class="modal-title text-slate-900 dark:text-white" id="deleteFolderModalLabel">Supprimer le dossier</h5>
+                <button type="button" class="btn-close dark:invert" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="deleteFolderForm" method="POST" action="">
                 {% csrf_token %}
@@ -295,11 +295,11 @@
 <div class="modal fade" id="assignReportModal" tabindex="-1" aria-labelledby="assignReportModalLabel"
     aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="assignReportModalLabel">Ajouter des rapports à "{{ current_folder.name }}"
+        <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800">
+            <div class="modal-header border-b border-slate-200 dark:border-slate-800">
+                <h5 class="modal-title text-slate-900 dark:text-white" id="assignReportModalLabel">Ajouter des rapports à "{{ current_folder.name }}"
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close dark:invert" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="POST" action="{% url 'powerbi_report:assign_report_to_folder' folder_id=current_folder.id %}">
                 {% csrf_token %}
@@ -342,10 +342,10 @@
 <!-- Modal: Move Folder -->
 <div class="modal fade" id="moveFolderModal" tabindex="-1" aria-labelledby="moveFolderModalLabel" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="moveFolderModalLabel">Déplacer le dossier</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800">
+            <div class="modal-header border-b border-slate-200 dark:border-slate-800">
+                <h5 class="modal-title text-slate-900 dark:text-white" id="moveFolderModalLabel">Déplacer le dossier</h5>
+                <button type="button" class="btn-close dark:invert" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="moveFolderForm" method="POST" action="">
                 {% csrf_token %}
@@ -381,10 +381,10 @@
 <div class="modal fade" id="editReportNameModal" tabindex="-1" aria-labelledby="editReportNameModalLabel"
     aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editReportNameModalLabel">Renommer le rapport</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800">
+            <div class="modal-header border-b border-slate-200 dark:border-slate-800">
+                <h5 class="modal-title text-slate-900 dark:text-white" id="editReportNameModalLabel">Renommer le rapport</h5>
+                <button type="button" class="btn-close dark:invert" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="editReportNameForm" method="POST" action="">
                 {% csrf_token %}
@@ -407,10 +407,10 @@
 <div class="modal fade" id="deleteReportModal" tabindex="-1" aria-labelledby="deleteReportModalLabel"
     aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content">
+        <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="deleteReportModalLabel">Supprimer le rapport du serveur</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title text-white" id="deleteReportModalLabel">Supprimer le rapport du serveur</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="deleteReportForm" method="POST" action="">
                 {% csrf_token %}

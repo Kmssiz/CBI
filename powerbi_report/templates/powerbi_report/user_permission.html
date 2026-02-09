@@ -32,45 +32,45 @@
     {% endif %}
 
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-      <a href="{% url 'users_view' %}" class="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-sm font-bold rounded-lg transition-all border border-white/5">
+      <a href="{% url 'users_view' %}" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 dark:bg-white/5 dark:border-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 text-sm font-bold rounded-lg transition-all shadow-sm">
         <span class="material-symbols-outlined text-[18px]">arrow_back</span> Retour
       </a>
     </div>
 
 
-    <div class="bg-surface-dark/40 border border-slate-800/50 rounded-2xl p-6 mb-8">
+    <div class="card-theme bg-white border border-slate-200 dark:border-slate-800/50 rounded-2xl p-6 mb-8 shadow-sm">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
         <div class="lg:col-span-3">
-          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Rechercher</label>
+          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Rechercher</label>
           <div class="relative">
-            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
-            <input type="text" id="reportSearch" placeholder="Nom du rapport..." class="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2.5 pl-10 pr-4 text-white placeholder:text-slate-600 focus:border-primary/50 transition-all outline-none">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+            <input type="text" id="reportSearch" placeholder="Nom du rapport..." class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 pl-10 pr-4 text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-primary/50 transition-all outline-none">
           </div>
         </div>
 
         <div class="lg:col-span-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Pôle</label>
-            <select id="poleFilter" class="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-white focus:border-primary/50 transition-all outline-none appearance-none">
+            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Pôle</label>
+            <select id="poleFilter" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-white focus:border-primary/50 transition-all outline-none appearance-none">
               <option value="">Tous les Pôles</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Société</label>
-            <select id="sousDirectionFilter" class="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-white focus:border-primary/50 transition-all outline-none appearance-none">
+            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Société</label>
+            <select id="sousDirectionFilter" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-white focus:border-primary/50 transition-all outline-none appearance-none">
               <option value="">Toutes les Sociétés</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Direction</label>
-            <select id="directionFilter" class="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-white focus:border-primary/50 transition-all outline-none appearance-none">
+            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Direction</label>
+            <select id="directionFilter" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-white focus:border-primary/50 transition-all outline-none appearance-none">
               <option value="">Toutes les Directions</option>
             </select>
           </div>
         </div>
 
         <div class="lg:col-span-4 flex gap-2">
-          <button type="button" id="clearFilters" class="flex-grow flex items-center justify-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold rounded-xl transition-all border border-white/5">
+          <button type="button" id="clearFilters" class="flex-grow flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 dark:bg-white/5 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 text-xs font-bold rounded-xl transition-all dark:border-white/5">
             <span class="material-symbols-outlined text-[18px]">filter_alt_off</span>
           </button>
           <a href="{% url 'powerbi_report:missing_permissions' selected_user %}" class="flex-[2] flex items-center justify-center gap-2 px-4 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold rounded-xl transition-all border border-primary/20">
@@ -87,9 +87,9 @@
     </div>
 
 
-    <div class="bg-surface-dark/40 border border-slate-800/50 rounded-3xl overflow-hidden shadow-2xl">
-      <div class="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-        <h3 class="text-sm font-bold text-white uppercase tracking-widest">Rapports Autorisés</h3>
+    <div class="card-theme bg-white border border-slate-200 dark:border-slate-800/50 rounded-3xl overflow-hidden shadow-2xl">
+      <div class="p-6 border-b border-slate-200 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/[0.02]">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-widest">Rapports Autorisés</h3>
         <button id="removeSelectedBtn" type="button" class="flex items-center gap-2 px-4 py-2 bg-red-400/10 hover:bg-red-400/20 text-red-400 text-sm font-bold rounded-lg transition-all border border-red-400/20" style="display: none;">
           <span class="material-symbols-outlined text-[20px]">delete_sweep</span> Retirer la sélection
         </button>
@@ -101,31 +101,31 @@
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse" id="reportTable">
             <thead>
-              <tr class="bg-white/[0.01]">
-                <th class="px-6 py-4 border-b border-white/5 w-12 text-center">
-                  <input type="checkbox" id="selectAll" class="rounded border-slate-700 bg-slate-900 cursor-pointer">
+              <tr class="bg-slate-50/50 dark:bg-white/[0.01]">
+                <th class="px-6 py-4 border-b border-slate-200 dark:border-white/5 w-12 text-center">
+                  <input type="checkbox" id="selectAll" class="rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 cursor-pointer">
                 </th>
-                <th class="px-6 py-4 border-b border-white/5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nom du Rapport</th>
-                <th class="px-6 py-4 border-b border-white/5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Chemin</th>
-                <th class="px-6 py-4 border-b border-white/5 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
+                <th class="px-6 py-4 border-b border-slate-200 dark:border-white/5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nom du Rapport</th>
+                <th class="px-6 py-4 border-b border-slate-200 dark:border-white/5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Chemin</th>
+                <th class="px-6 py-4 border-b border-slate-200 dark:border-white/5 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-white/5">
-              {% for report in reports %}
-              <tr class="hover:bg-white/[0.02] transition-colors group report-row">
-                <td class="px-6 py-4 text-center">
-                  <input type="checkbox" name="report_ids" value="{{ report.Id }}" class="reportCheckbox rounded border-slate-700 bg-slate-900 cursor-pointer">
-                </td>
+              <tbody class="divide-y divide-slate-200 dark:divide-white/5">
+                {% for report in reports %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group report-row">
+                  <td class="px-6 py-4 text-center">
+                    <input type="checkbox" name="report_ids" value="{{ report.Id }}" class="reportCheckbox rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 cursor-pointer">
+                  </td>
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-3">
                     <div class="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                       <span class="material-symbols-outlined text-[18px]">bar_chart</span>
                     </div>
-                    <span class="text-sm font-semibold text-white group-hover:text-primary transition-colors report-name">{{ report.Name }}</span>
+                    <span class="text-sm font-semibold text-slate-700 dark:text-white group-hover:text-primary transition-colors report-name">{{ report.Name }}</span>
                   </div>
                 </td>
                 <td class="px-6 py-4">
-                  <span class="text-xs text-slate-500 bg-slate-900/50 px-2.5 py-1 rounded-md border border-slate-800 report-path" title="{{ report.Path }}">{{ report.Path|truncatechars:60 }}</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/50 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-800 report-path" title="{{ report.Path }}">{{ report.Path|truncatechars:60 }}</span>
                 </td>
                 <td class="px-6 py-4 text-right">
                     <form method="post" action="{% url 'powerbi_report:remove_permission_from_server' report.Id selected_user %}" class="inline-block">
@@ -146,7 +146,7 @@
         <div class="size-20 bg-amber-400/10 rounded-2xl flex items-center justify-center text-amber-400 mb-4">
           <span class="material-symbols-outlined text-[40px]">warning</span>
         </div>
-        <h3 class="text-xl font-bold text-white mb-2">Aucun rapport autorisé</h3>
+        <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Aucun rapport autorisé</h3>
         <p class="text-slate-500 max-w-sm">Cet utilisateur n'a actuellement aucun accès configuré pour les rapports Power BI.</p>
       </div>
       {% endif %}

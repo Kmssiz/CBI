@@ -19,7 +19,7 @@
     <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=folder.id %}">{{ folder.name }}</a>
   {% endfor %}
   <span class="material-symbols-outlined text-[14px]">chevron_right</span>
-  <span class="text-slate-400">{{ report_name }}</span>
+  <span class="text-slate-500 dark:text-slate-400">{{ report_name }}</span>
 {% endblock %}
 
 {% block content %}
@@ -27,25 +27,25 @@
 
     <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
       <div>
-        <button id="backBtn" onclick="goBack()" class="flex items-center gap-2 px-4 py-2 bg-surface-dark border border-slate-800 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-sm font-bold shadow-sm">
+        <button id="backBtn" onclick="goBack()" class="flex items-center gap-2 px-4 py-2 card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-sm font-bold shadow-sm">
           <span class="material-symbols-outlined text-[18px]">arrow_back</span> Retour
         </button>
       </div>
       
       <div class="flex flex-wrap gap-2">
-        <button id="printBtn" onclick="printReport()" class="flex items-center gap-2 px-4 py-2 bg-surface-dark border border-slate-800 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 text-sm font-bold transition-all shadow-sm">
+        <button id="printBtn" onclick="printReport()" class="flex items-center gap-2 px-4 py-2 card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 text-sm font-bold transition-all shadow-sm">
           <span class="material-symbols-outlined text-[18px]">print</span> Imprimer
         </button>
-        <button id="shareBtn" onclick="toggleShareModal()" class="flex items-center gap-2 px-4 py-2 bg-surface-dark border border-slate-800 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 text-sm font-bold transition-all shadow-sm">
+        <button id="shareBtn" onclick="toggleShareModal()" class="flex items-center gap-2 px-4 py-2 card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 text-sm font-bold transition-all shadow-sm">
           <span class="material-symbols-outlined text-[18px]">share</span> Partager
         </button>
-        <button id="fullscreenBtn" onclick="toggleFullScreen()" class="flex items-center justify-center size-10 bg-surface-dark border border-slate-800 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all shadow-sm">
+        <button id="fullscreenBtn" onclick="toggleFullScreen()" class="flex items-center justify-center size-10 card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all shadow-sm">
           <span class="material-symbols-outlined text-[20px]">fullscreen</span>
         </button>
       </div>
     </div>
 
-    <div class="flex-grow bg-surface-dark border border-slate-800 rounded-2xl overflow-hidden relative min-h-[600px] shadow-2xl glass-panel">
+    <div class="flex-grow card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden relative min-h-[600px] shadow-2xl glass-panel">
       {% if embed_url %}
       <iframe id="reportIframe" src="{{ embed_url }}" class="w-full h-full border-none" allowfullscreen
         title="Power BI Report">
@@ -55,7 +55,7 @@
         <div class="size-20 bg-red-400/10 rounded-2xl flex items-center justify-center text-red-400 mb-4 border border-red-500/20">
           <span class="material-symbols-outlined text-[40px]">error</span>
         </div>
-        <h3 class="text-xl font-bold text-white mb-2">Erreur de chargement</h3>
+        <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Erreur de chargement</h3>
         <p class="text-slate-500 max-w-sm">Impossible de charger le rapport Power BI. Veuillez réessayer plus tard ou contacter l'administrateur.</p>
       </div>
       {% endif %}
@@ -64,10 +64,10 @@
 
 <!-- Share URL Modal -->
 <div id="shareModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-  <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel max-w-md w-full transform transition-all scale-95 opacity-0" id="shareModalContent">
-    <div class="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between bg-white/5">
-        <h5 class="text-lg font-bold text-white tracking-tight">Partager le lien du rapport</h5>
-        <button type="button" class="text-slate-500 hover:text-white transition-colors" onclick="toggleShareModal()">
+  <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel max-w-md w-full transform transition-all scale-95 opacity-0" id="shareModalContent">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
+        <h5 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Partager le lien du rapport</h5>
+        <button type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors" onclick="toggleShareModal()">
             <span class="material-symbols-outlined text-[24px]">close</span>
         </button>
     </div>
@@ -75,7 +75,7 @@
         <div class="space-y-2">
             <label for="shareUrlInput" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Lien de partage</label>
             <div class="flex gap-2">
-                <input type="text" class="flex-1 bg-background-dark border border-slate-800 rounded-xl px-4 py-2.5 text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-mono" id="shareUrlInput" readonly>
+                <input type="text" class="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-mono" id="shareUrlInput" readonly>
                 <button class="px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-xltransition-all flex items-center justify-center rounded-xl" type="button" onclick="copyToClipboard()">
                     <span class="material-symbols-outlined text-[20px]">content_copy</span>
                 </button>
@@ -86,8 +86,8 @@
              <span class="material-symbols-outlined text-[16px]">check_circle</span> Lien copié dans le presse-papier !
         </p>
     </div>
-    <div class="px-6 py-4 border-t border-slate-800/50 flex justify-end bg-white/5">
-        <button type="button" class="px-5 py-2 text-slate-400 hover:text-white font-bold text-sm transition-all" onclick="toggleShareModal()">Fermer</button>
+    <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800/50 flex justify-end bg-slate-50/50 dark:bg-white/5">
+        <button type="button" class="px-5 py-2 text-slate-500 hover:text-slate-700 dark:hover:text-white font-bold text-sm transition-all" onclick="toggleShareModal()">Fermer</button>
     </div>
   </div>
 </div>
