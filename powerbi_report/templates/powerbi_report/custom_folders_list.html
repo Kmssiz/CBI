@@ -40,7 +40,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             {% if current_folder %}
             <a href="{% if current_folder.parent %}{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=current_folder.parent.id %}{% else %}{% url 'powerbi_report:custom_'|add:view_type %}{% endif %}"
-                class="btn btn-outline-secondary">
+                class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 dark:!bg-slate-800 dark:!border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-bold rounded-lg transition-all shadow-sm">
                 <i class="feather icon-arrow-left"></i> Retour
             </a>
             {% else %}
@@ -50,25 +50,25 @@
                 <!-- View Toggle -->
                 <!-- View Toggle -->
                 {% if not current_folder %}
-                <a href="{% url 'powerbi_report:report_list_flat' %}?context={{ view_type }}" class="btn btn-outline-secondary">
+                <a href="{% url 'powerbi_report:report_list_flat' %}?context={{ view_type }}" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 dark:!bg-slate-800 dark:!border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-bold rounded-lg transition-all shadow-sm">
                     <i class="feather icon-list"></i> Tous les rapports
                 </a>
                 {% endif %}
 
                 {% if user.is_superuser %}
-                <a href="{% url 'powerbi_report:sync_reports' %}" class="btn btn-outline-warning"
+                <a href="{% url 'powerbi_report:sync_reports' %}" id="syncPbirsBtn" class="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-500 border border-yellow-500/20 rounded-lg text-sm font-bold transition-all"
                     title="Sync reports from PBIRS">
                     <i class="feather icon-refresh-cw"></i> Synchroniser PBIRS
                 </a>
-                <a href="{% url 'powerbi_report:sync_permissions' %}" class="btn btn-outline-info"
+                <a href="{% url 'powerbi_report:sync_permissions' %}" id="syncPermissionsBtn" class="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 rounded-lg text-sm font-bold transition-all"
                     title="Sync user permissions from PBIRS">
-                    <i class="feather icon-users"></i> Synchroniser Permissions
+                    <i class="feather icon-users"></i> Synchroniser Permission
                 </a>
-                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#createFolderModal">
+                <button class="flex items-center gap-2 px-4 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/20 rounded-lg text-sm font-bold transition-all" data-bs-toggle="modal" data-bs-target="#createFolderModal">
                     <i class="feather icon-folder-plus"></i> Nouveau dossier
                 </button>
                 {% if current_folder %}
-                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#assignReportModal">
+                <button class="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-sm font-bold transition-all" data-bs-toggle="modal" data-bs-target="#assignReportModal">
                     <i class="feather icon-plus"></i> Ajouter un rapport
                 </button>
                 {% endif %}
@@ -230,9 +230,9 @@
                         current_folder.name }}"</p>
                     {% endif %}
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-success">Créer le dossier</button>
+                <div class="modal-footer border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors font-medium text-sm" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors font-bold text-sm shadow-md shadow-green-500/20">Créer le dossier</button>
                 </div>
             </form>
         </div>
@@ -255,9 +255,9 @@
                         <input type="text" class="form-control" id="edit_folder_name" name="folder_name" required>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+                <div class="modal-footer border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors font-medium text-sm" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors font-bold text-sm shadow-md shadow-primary/20">Enregistrer les modifications</button>
                 </div>
             </form>
         </div>
@@ -281,9 +281,9 @@
                         tous les
                         sous-dossiers. Les rapports ne seront PAS supprimés de PBIRS.</p>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-danger">Supprimer le dossier</button>
+                <div class="modal-footer border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors font-medium text-sm" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors font-bold text-sm shadow-md shadow-red-500/20">Supprimer le dossier</button>
                 </div>
             </form>
         </div>
@@ -327,11 +327,9 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-primary" {% if not all_reports %}disabled{% endif %}>Ajouter
-                        les
-                        rapports sélectionnés</button>
+                <div class="modal-footer border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors font-medium text-sm" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors font-bold text-sm shadow-md shadow-primary/20" {% if not all_reports %}disabled{% endif %}>Ajouter les rapports sélectionnés</button>
                 </div>
             </form>
         </div>
@@ -368,9 +366,9 @@
                             l'arborescence complète)</small>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-primary">Déplacer</button>
+                <div class="modal-footer border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors font-medium text-sm" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors font-bold text-sm shadow-md shadow-primary/20">Déplacer</button>
                 </div>
             </form>
         </div>
@@ -394,9 +392,9 @@
                         <input type="text" class="form-control" id="report_new_name" name="name" required>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+                <div class="modal-footer border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors font-medium text-sm" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors font-bold text-sm shadow-md shadow-primary/20">Enregistrer les modifications</button>
                 </div>
             </form>
         </div>
@@ -419,9 +417,9 @@
                     <p class="text-danger fw-bold"><i class="feather icon-alert-triangle"></i> ATTENTION : Cela
                         supprimera définitivement le rapport du serveur PBIRS. Cette action est irréversible.</p>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-danger">Supprimer définitivement</button>
+                <div class="modal-footer border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors font-medium text-sm" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors font-bold text-sm shadow-md shadow-red-500/20">Supprimer définitivement</button>
                 </div>
             </form>
         </div>
@@ -432,6 +430,16 @@
 <form id="removeReportForm" method="POST" action="" style="display: none;">
     {% csrf_token %}
 </form>
+
+<!-- Loading Prompt -->
+<div id="loadingPrompt" class="loading-overlay" style="display: none;">
+  <div class="loading-content">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p>Processing request... Please wait.</p>
+  </div>
+</div>
 
 <script>
     // Set data for edit folder modal
@@ -495,6 +503,40 @@
 </script>
 
 <style>
+    // Loading Overlay Logic
+    const loadingPrompt = document.getElementById('loadingPrompt');
+    const syncPbirsBtn = document.getElementById('syncPbirsBtn');
+    const syncPermissionsBtn = document.getElementById('syncPermissionsBtn');
+
+    if (syncPbirsBtn) {
+        syncPbirsBtn.addEventListener('click', function() {
+            if(loadingPrompt) loadingPrompt.style.display = 'flex';
+        });
+    }
+
+    if (syncPermissionsBtn) {
+        syncPermissionsBtn.addEventListener('click', function() {
+            if(loadingPrompt) loadingPrompt.style.display = 'flex';
+        });
+    }
+
+    // Also show loading for other forms if needed
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function() {
+             // Optional to show loading on form submits too, but keeping it targeted to buttons for now implies user request
+             if (this.id === 'deleteReportForm' || this.id === 'removeReportForm' || this.id === 'createFolderForm' || this.id === 'uploadReportForm') {
+                 if(loadingPrompt) loadingPrompt.style.display = 'flex';
+             }
+        });
+    });
+
+    // Hide loading overlay when page loads (in case of back button)
+    window.addEventListener('load', function() {
+      if (loadingPrompt) {
+        loadingPrompt.style.display = 'none';
+      }
+    });
+
     .folder-card:hover {
         box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
         transform: translateY(-2px);
@@ -518,5 +560,53 @@
     .gap-2 {
         gap: 0.5rem;
     }
-</style>
+
+    .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+
+    .loading-content {
+        text-align: center;
+        background: rgba(255, 255, 255, 0.9);
+        color: #007bff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+        margin-bottom: 10px;
+        color: #007bff !important;
+        border: 4px solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: spinner-border 0.75s linear infinite;
+    }
+
+    @keyframes spinner-border {
+        to { transform: rotate(360deg); }
+    }
+
+    .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+    }
 {% endblock %}

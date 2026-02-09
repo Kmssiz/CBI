@@ -32,7 +32,7 @@
     {% endif %}
 
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-      <a href="{% url 'users_view' %}" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 dark:bg-white/5 dark:border-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 text-sm font-bold rounded-lg transition-all shadow-sm">
+      <a href="{% url 'users_view' %}" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 dark:!bg-slate-800 dark:!border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-bold rounded-lg transition-all shadow-sm">
         <span class="material-symbols-outlined text-[18px]">arrow_back</span> Retour
       </a>
     </div>
@@ -69,17 +69,20 @@
           </div>
         </div>
 
-        <div class="lg:col-span-4 flex gap-2">
-          <button type="button" id="clearFilters" class="flex-grow flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 dark:bg-white/5 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 text-xs font-bold rounded-xl transition-all dark:border-white/5">
+        <div class="lg:col-span-4 grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <button type="button" id="clearFilters" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white border border-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold rounded-xl transition-all dark:border-slate-700" title="Effacer les filtres">
             <span class="material-symbols-outlined text-[18px]">filter_alt_off</span>
           </button>
-          <a href="{% url 'powerbi_report:missing_permissions' selected_user %}" class="flex-[2] flex items-center justify-center gap-2 px-4 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold rounded-xl transition-all border border-primary/20">
-            <span class="material-symbols-outlined text-[18px]">add</span> Ajouter
+          <a href="?force_sync=true" id="syncButton" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-bold rounded-xl transition-all border border-cyan-500/20" title="Synchroniser">
+            <span class="material-symbols-outlined text-[18px]">sync</span> <span class="hidden xl:inline">Sync</span>
           </a>
-          <form method="post" action="{% url 'powerbi_report:remove_all_permissions' selected_user %}" class="flex-[2]">
+          <a href="{% url 'powerbi_report:missing_permissions' selected_user %}" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold rounded-xl transition-all border border-primary/20" title="Ajouter des permissions">
+             <span class="material-symbols-outlined text-[18px]">add</span> <span class="hidden xl:inline">Ajouter</span>
+          </a>
+          <form method="post" action="{% url 'powerbi_report:remove_all_permissions' selected_user %}" class="w-full">
             {% csrf_token %}
-            <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-400/10 hover:bg-red-400/20 text-red-400 text-xs font-bold rounded-xl transition-all border border-red-400/20">
-              <span class="material-symbols-outlined text-[18px]">delete_sweep</span> Tout Retirer
+            <button type="submit" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-red-400/10 hover:bg-red-400/20 text-red-400 text-xs font-bold rounded-xl transition-all border border-red-400/20" title="Tout retirer">
+              <span class="material-symbols-outlined text-[18px]">delete_sweep</span> <span class="hidden xl:inline">Vider</span>
             </button>
           </form>
         </div>
@@ -103,7 +106,10 @@
             <thead>
               <tr class="bg-slate-50/50 dark:bg-white/[0.01]">
                 <th class="px-6 py-4 border-b border-slate-200 dark:border-white/5 w-12 text-center">
-                  <input type="checkbox" id="selectAll" class="rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 cursor-pointer">
+                  <div class="flex items-center justify-center relative">
+                    <input type="checkbox" id="selectAll" class="peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-primary checked:border-primary dark:checked:!bg-blue-600 dark:checked:!border-blue-600 cursor-pointer transition-all">
+                    <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+                  </div>
                 </th>
                 <th class="px-6 py-4 border-b border-slate-200 dark:border-white/5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nom du Rapport</th>
                 <th class="px-6 py-4 border-b border-slate-200 dark:border-white/5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Chemin</th>
@@ -114,7 +120,10 @@
                 {% for report in reports %}
                 <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group report-row">
                   <td class="px-6 py-4 text-center">
-                    <input type="checkbox" name="report_ids" value="{{ report.Id }}" class="reportCheckbox rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 cursor-pointer">
+                    <div class="flex items-center justify-center relative">
+                      <input type="checkbox" name="report_ids" value="{{ report.Id }}" class="reportCheckbox peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-primary checked:border-primary dark:checked:!bg-blue-600 dark:checked:!border-blue-600 cursor-pointer transition-all">
+                      <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+                    </div>
                   </td>
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-3">
@@ -130,7 +139,7 @@
                 <td class="px-6 py-4 text-right">
                     <form method="post" action="{% url 'powerbi_report:remove_permission_from_server' report.Id selected_user %}" class="inline-block">
                       {% csrf_token %}
-                      <button type="submit" class="inline-flex items-center gap-2 px-3 py-1.5 bg-red-400/10 hover:bg-red-400/20 text-red-400 text-xs font-bold rounded-lg transition-all border border-red-400/20">
+                      <button type="submit" class="inline-flex items-center gap-2 px-3 py-1.5 bg-red-400/10 hover:bg-red-400/20 text-red-400 text-xs font-bold rounded-lg transition-all border border-red-400/20" title="Retirer la permission">
                         <span class="material-symbols-outlined text-[16px]">delete</span>
                       </button>
                     </form>
@@ -141,6 +150,44 @@
           </table>
         </div>
       </form>
+      
+      {% if reports.paginator.num_pages > 1 %}
+      <!-- Pagination -->
+      <div class="px-6 py-4 border-t border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-white/[0.02]">
+          <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+              Affichage de {{ reports.start_index }} à {{ reports.end_index }} sur {{ reports.paginator.count }} rapports
+          </p>
+          <div class="flex items-center gap-2">
+              {% if reports.has_previous %}
+              <a href="?page={{ reports.previous_page_number }}{% if request.GET.force_sync %}&force_sync={{ request.GET.force_sync }}{% endif %}" class="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700">
+                  <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+              </a>
+              {% else %}
+              <button class="size-8 rounded-lg bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-800 opacity-50 cursor-not-allowed" disabled>
+                  <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+              </button>
+              {% endif %}
+
+              {% for i in reports.paginator.page_range %}
+                  {% if reports.number == i %}
+                  <span class="size-8 rounded-lg bg-primary flex items-center justify-center text-white text-[11px] font-bold border border-primary shadow-lg shadow-primary/30">{{ i }}</span>
+                  {% elif i > reports.number|add:'-3' and i < reports.number|add:'3' %}
+                  <a href="?page={{ i }}{% if request.GET.force_sync %}&force_sync={{ request.GET.force_sync }}{% endif %}" class="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 text-[11px] font-bold border border-slate-200 dark:border-slate-700 transition-all">{{ i }}</a>
+                  {% endif %}
+              {% endfor %}
+
+              {% if reports.has_next %}
+              <a href="?page={{ reports.next_page_number }}{% if request.GET.force_sync %}&force_sync={{ request.GET.force_sync }}{% endif %}" class="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700">
+                  <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+              </a>
+              {% else %}
+              <button class="size-8 rounded-lg bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-800 opacity-50 cursor-not-allowed" disabled>
+                  <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+              </button>
+              {% endif %}
+          </div>
+      </div>
+      {% endif %}
       {% else %}
       <div class="py-20 flex flex-col items-center text-center">
         <div class="size-20 bg-amber-400/10 rounded-2xl flex items-center justify-center text-amber-400 mb-4">
@@ -175,8 +222,10 @@
     const reportSearch = document.getElementById('reportSearch');
     const selectAllCheckbox = document.getElementById('selectAll');
     const removeSelectedBtn = document.getElementById('removeSelectedBtn');
+    const removeSelectedBtn = document.getElementById('removeSelectedBtn');
     const clearFiltersBtn = document.getElementById('clearFilters');
     const loadingPrompt = document.getElementById('loadingPrompt');
+    const syncButton = document.getElementById('syncButton');
 
     // Data structure to hold relationships
     const pathData = {};
@@ -481,6 +530,13 @@
         });
       }
     });
+
+    // Show loading overlay for sync button
+    if (syncButton) {
+      syncButton.addEventListener('click', function() {
+        loadingPrompt.style.display = 'flex';
+      });
+    }
 
     // Hide loading overlay when page loads
     window.addEventListener('load', function() {

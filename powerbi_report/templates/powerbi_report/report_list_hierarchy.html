@@ -37,7 +37,7 @@
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
       {% if current_path %}
       <a href="javascript:window.history.length > 1 ? history.back() : '{% url 'powerbi_report:report_list_hierarchy' %}'"
-        class="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-sm font-bold rounded-lg transition-all border border-white/5">
+        class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 dark:!bg-slate-800 dark:!border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-bold rounded-lg transition-all shadow-sm">
         <span class="material-symbols-outlined text-[18px]">arrow_back</span> Retour
       </a>
       {% else %}

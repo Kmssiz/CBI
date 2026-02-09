@@ -97,28 +97,29 @@ def get_ad_users(username: str, password: str) -> list[dict]:
     try:
         conn = Connection(server, user=user_dn, password=password, authentication=NTLM, auto_bind=True)
 
-        # Use paged search to retrieve all users (AD limits results to 1000 per page by default)
+        # Use paged search to retrieve all users
         entry_generator = conn.extend.standard.paged_search(
             search_base=LDAP_SEARCH_BASE,
             search_filter='(objectclass=person)',
             attributes=[
                 'mail', 'sAMAccountName', 'company', 'department', 'name',
-                'title', 'ipPhone', 'telephoneNumber', 'extensionAttribute1'
+                'title', 'ipPhone', 'telephoneNumber', 'extensionAttribute1',
+                'memberOf'
             ],
-            paged_size=500,  # Fetch 500 results per page
-            generator=True   # Use generator to iterate through pages
+            paged_size=500,  
+            generator=True   
         )
 
         for entry in entry_generator:
-            # paged_search returns dict with 'attributes' key, not Entry objects
             if entry['type'] != 'searchResEntry':
                 continue
             
             attrs = entry['attributes']
             try:
-                # Get attribute value - handle both single value and list
-                def get_attr(attr_name):
+                def get_attr(attr_name, is_list=False):
                     val = attrs.get(attr_name, "")
+                    if is_list:
+                        return val if isinstance(val, list) else [val] if val else []
                     if isinstance(val, list):
                         return str(val[0]) if val else ""
                     return str(val) if val else ""
@@ -126,8 +127,20 @@ def get_ad_users(username: str, password: str) -> list[dict]:
                 sam_account_name = get_attr('sAMAccountName')
                 department = get_attr('department')
 
-                # Filter out service accounts
                 if 'user_' not in sam_account_name or len(department) > 0:
+                    member_of = get_attr('memberOf', is_list=True)
+                    # Helper to extract CN from DN
+                    ad_groups = []
+                    for group_dn in member_of:
+                        # group_dn looks like: CN=Marketing,OU=Groups,DC=example,DC=com
+                        parts = group_dn.split(',')
+                        if parts:
+                            cn_part = parts[0] # CN=Marketing
+                            if cn_part.upper().startswith("CN="):
+                                ad_groups.append(cn_part[3:]) # Marketing
+                            else:
+                                ad_groups.append(cn_part)
+
                     user_list.append({
                         'mail': get_attr('mail'),
                         'sAMAccountName': sam_account_name,
@@ -136,9 +149,9 @@ def get_ad_users(username: str, password: str) -> list[dict]:
                         'name': get_attr('name'),
                         'title': get_attr('title'),
                         'ad2000': get_attr('extensionAttribute1'),
+                        'ad_groups': ad_groups,
                     })
             except (KeyError, IndexError, TypeError):
-                # Skip entries with missing or malformed attributes
                 continue
 
         logger.info(f"LDAP sync completed. Retrieved {len(user_list)} users.")

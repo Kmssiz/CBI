@@ -149,6 +149,8 @@ class UserReportPermission(models.Model):
         related_name='user_permissions'
     )
     synced_at = models.DateTimeField(auto_now=True)
+    is_direct = models.BooleanField(default=True, help_text="True if permission is assigned directly to user, False if via Group")
+
 
     class Meta:
         verbose_name = "User Report Permission"

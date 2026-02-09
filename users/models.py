@@ -26,6 +26,7 @@ class CustomUser(AbstractUser):
         default='business',
         help_text="Default view for this user (set by admin)"
     ) 
+    ad_groups = models.JSONField(default=list, blank=True, help_text="Cached list of AD groups") 
 
     def __str__(self):
         return self.username

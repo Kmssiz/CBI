@@ -338,22 +338,7 @@
   }, 5000);
 </script>
 
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(function () {
-      console.log("Waiting");
 
-      fetch("{% url 'powerbi_report:load_cache' %}")
-        .then(response => response.json())
-        .then(data => {
-          console.log('Cache loaded:', data);
-        })
-        .catch(error => {
-          console.error('Error loading cache:', error);
-        });
-    }, 100);
-  });
-</script>
 
 <style>
   /* Loading styles */

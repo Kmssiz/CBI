@@ -139,6 +139,7 @@ def login_view(request):
                 user.last_name = user_info.get("last_name", "")
                 user.email = email
                 user.ad2000 = ad2000
+                user.ad_groups = user_info.get("ad_groups", [])
                 user.status = "Active"
                 print(f"[DEBUG LOGIN] Updated existing user {user.id} with ldap_username='{ldap_username}'")
             else:
@@ -151,6 +152,7 @@ def login_view(request):
                     last_name=user_info.get("last_name", ""),
                     email=email,
                     ad2000=ad2000,
+                    ad_groups=user_info.get("ad_groups", []),
                     role=role,
                     status="Active"
                 )
@@ -640,6 +642,7 @@ def sync_users(request):
                     first_name=ldap_user.get("name", "").split(' ')[0],
                     last_name=" ".join(ldap_user.get("name", "").split(' ')[1:]),
                     email=ldap_user.get("mail", "").strip(),
+                    ad_groups=ldap_user.get("ad_groups", []),
                     role=user_role,
                     status="Not Active"
                 )
@@ -653,6 +656,12 @@ def sync_users(request):
             if not user.societe and ldap_user.get("company"):
                 user.societe = ldap_user.get("company", "").strip()
                 user.save(update_fields=['societe'])
+            
+            # Update AD groups for existing users
+            if ldap_user.get("ad_groups"):
+                user.ad_groups = ldap_user.get("ad_groups", [])
+                user.save(update_fields=['ad_groups'])
+            
             already_exist += 1
 
     print(f"[SYNC DEBUG] Total LDAP users: {len(ldap_users)}, Created: {count}, Already exist: {already_exist}, Skipped (no ID): {skipped}")

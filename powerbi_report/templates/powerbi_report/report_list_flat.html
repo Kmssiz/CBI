@@ -16,10 +16,13 @@
     <!-- [ Search and Controls ] start -->
     <div class="flex flex-wrap items-center justify-between gap-6 mb-8">
         <div class="flex items-center gap-4 flex-1 min-w-[300px]">
-            <div class="relative flex-1 max-w-sm">
+            <form method="GET" class="relative flex-1 max-w-sm">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
-                <input type="text" id="reportSearch" class="w-full pl-10 pr-4 py-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all text-slate-900 dark:text-slate-300" placeholder="Rechercher un rapport...">
-            </div>
+                <input type="text" name="q" value="{{ query|default:'' }}" class="w-full pl-10 pr-4 py-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all text-slate-900 dark:text-slate-300" placeholder="Rechercher un rapport..." onchange="this.form.submit()">
+                {% if request.GET.context %}
+                <input type="hidden" name="context" value="{{ request.GET.context }}">
+                {% endif %}
+            </form>
             
             {% if request.GET.context == 'department' %}
             <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white">
@@ -90,7 +93,7 @@
             <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Affichage de {{ reports.start_index }} à {{ reports.end_index }} sur {{ reports.paginator.count }} rapports</p>
             <div class="flex items-center gap-2">
                 {% if reports.has_previous %}
-                <a href="?page={{ reports.previous_page_number }}{% if request.GET.context %}&context={{ request.GET.context }}{% endif %}" class="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700">
+                <a href="?page={{ reports.previous_page_number }}{% if request.GET.context %}&context={{ request.GET.context }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700">
                     <span class="material-symbols-outlined text-[18px]">chevron_left</span>
                 </a>
                 {% else %}
@@ -103,12 +106,12 @@
                     {% if reports.number == i %}
                     <span class="size-8 rounded-lg bg-primary flex items-center justify-center text-white text-[11px] font-bold border border-primary shadow-lg shadow-primary/30">{{ i }}</span>
                     {% elif i > reports.number|add:'-3' and i < reports.number|add:'3' %}
-                    <a href="?page={{ i }}{% if request.GET.context %}&context={{ request.GET.context }}{% endif %}" class="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 text-[11px] font-bold border border-slate-200 dark:border-slate-700 transition-all">{{ i }}</a>
+                    <a href="?page={{ i }}{% if request.GET.context %}&context={{ request.GET.context }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 text-[11px] font-bold border border-slate-200 dark:border-slate-700 transition-all">{{ i }}</a>
                     {% endif %}
                 {% endfor %}
 
                 {% if reports.has_next %}
-                <a href="?page={{ reports.next_page_number }}{% if request.GET.context %}&context={{ request.GET.context }}{% endif %}" class="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700">
+                <a href="?page={{ reports.next_page_number }}{% if request.GET.context %}&context={{ request.GET.context }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700">
                     <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                 </a>
                 {% else %}
@@ -121,24 +124,6 @@
     </div>
 </div>
 
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const reportSearch = document.getElementById('reportSearch');
-    const rows = document.querySelectorAll('#reportsTable tbody tr.report-card');
 
-    function filterReports() {
-      const searchValue = reportSearch.value.toLowerCase();
-
-      rows.forEach(row => {
-        const titleElement = row.querySelector('span.text-sm');
-        const titleText = titleElement ? titleElement.textContent.toLowerCase() : '';
-        const matchesSearch = titleText.includes(searchValue);
-        row.style.display = matchesSearch ? '' : 'none';
-      });
-    }
-
-    reportSearch.addEventListener('input', filterReports);
-  });
-</script>
 
 {% endblock %}

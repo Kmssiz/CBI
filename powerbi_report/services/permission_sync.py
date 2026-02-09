@@ -43,12 +43,13 @@ class PermissionSyncService:
     
     def _get_service_auth(self):
         """Get NTLM auth using service account credentials."""
-        username = settings.LDAP_USERNAME
-        password = settings.LDAP_PASSWORD
+        username = settings.LDAP_SERVICE_USERNAME
+        password = settings.LDAP_SERVICE_PASSWORD
         domain = settings.LDAP_DOMAIN
         
+        logger.info(f"Using service account: {domain}\\{username}")
         if not all([username, password, domain]):
-            logger.error("LDAP service account credentials not configured")
+            logger.error(f"LDAP service account credentials not configured. username={username}, domain={domain}")
             return None
         
         ntlm_username = f"{domain}\\{username}"
@@ -72,19 +73,23 @@ class PermissionSyncService:
         """
         url = f"{self.base_url}/Reports/api/v2.0/CatalogItems"
         
+        """Fetch all reports using provided auth."""
         try:
-            session = requests.Session()
-            session.auth = auth
-            response = session.get(url, timeout=self.DEFAULT_TIMEOUT)
+            url = f"{self.base_url}/Reports/api/v2.0/CatalogItems"
+            logger.info(f"Fetching reports from: {url}")
+            response = requests.get(url, auth=auth, timeout=30)
+            logger.info(f"Response status: {response.status_code}")
             response.raise_for_status()
             
             items = response.json().get('value', [])
+            return [item for item in items if item.get('Type') == 'PowerBIReport']
             # Filter for PowerBIReport type only
             reports = [item for item in items if item.get('Type') == 'PowerBIReport']
             return reports
-            
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to fetch reports: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                 logger.error(f"Response content: {e.response.text}")
             return []
     
     def _fetch_all_reports_as_admin(self):
@@ -156,33 +161,82 @@ class PermissionSyncService:
         
         permissions_created = 0
         for report in accessible_reports:
-            UserReportPermission.objects.create(user=user, report=report)
+            # We need to know if it's direct or not. 
+            # Since we only have the report list from the API here (which doesn't include policies), 
+            # we can't determine is_direct without an extra call per report.
+            # However, for performance, we might assume False (Group) in this bulk sync scenario if we can't check.
+            # BUT, sync_permissions_for_user_with_password uses the user's OWN credentials.
+            # If the user can see the report, they have access. 
+            # It's safer to default to False (Group/Unknown) if we're not sure, 
+            # OR fetch policies if we want accuracy (slower).
+            
+            # Let's try to fetch policies for each accessible report to be accurate.
+            # This will slow down login significantly if there are many reports.
+            # Alternative: Assume False (Group) for now, and let the UI view update it on demand?
+            # Or, better: default to True (Direct) only if we can prove it?
+            
+            # Since this function is used on login, performance is key. 
+            # Maybe we skip is_direct here and let the view handle it?
+            # No, the view trusts the DB.
+            
+            # Let's check policies for just the reports they can see.
+            is_direct = False
+            try:
+                # Fetch policies for this specific report to check for direct assignment
+                # We use the user's auth for this check
+                policy_url = f"{self.base_url}/Reports/api/v2.0/PowerBIReports({report.pbirs_id})/Policies"
+                policy_response = requests.get(policy_url, auth=auth, timeout=5)
+                if policy_response.status_code == 200:
+                    policies = policy_response.json().get('Policies', [])
+                    current_username = user.username.lower()
+                    for policy in policies:
+                        policy_user = (policy.get("UserName") or "").split("\\")[-1].lower()
+                        if policy_user == current_username:
+                            is_direct = True
+                            break
+            except Exception as e:
+                logger.warning(f"Failed to fetch policies for report {report.pbirs_id} during sync: {e}")
+
+            UserReportPermission.objects.create(user=user, report=report, is_direct=is_direct)
             permissions_created += 1
         
         logger.info(f"Synced {permissions_created} permissions for user {user.username}")
         return permissions_created
     
-    def sync_all_permissions_with_service_account(self):
+    def sync_all_permissions_with_service_account(self, user_for_auth=None, password_for_auth=None):
         """
-        Sync permissions for all users using service account.
+        Sync permissions for ALL users using the service account to fetch the report list.
+        Iterates through all reports and all users to rebuild local permissions.
         
-        This method:
-        1. Fetches all reports using service account
-        2. For each active user with stored password, fetches their accessible reports
-        3. Updates UserReportPermission table
-        
-        Returns:
-            Tuple of (users_synced, permissions_created)
+        Args:
+            user_for_auth: Optional user object to use for fetching the initial report list 
+                           instead of the service account.
+            password_for_auth: Password for user_for_auth, if provided.
         """
-        # Start sync log
+        self.started_at = timezone.now()
         self.sync_log = PermissionSyncLog.objects.create(
             triggered_by=self.triggered_by,
+            users_synced=0,
+            permissions_created=0,
             status='started'
         )
         
         try:
-            # First, sync all reports to local ReportRef
-            all_reports = self._fetch_all_reports_as_admin()
+            # 1. Determine authentication to use for fetching all reports
+            auth_to_use = None
+            if user_for_auth and password_for_auth:
+                logger.info(f"Fetching report list using credentials of {user_for_auth.username}")
+                auth_to_use = self._get_user_auth(user_for_auth, password_for_auth)
+            
+            if not auth_to_use:
+                logger.info("Fetching report list using service account credentials.")
+                auth_to_use = self._get_service_auth()
+            
+            if not auth_to_use:
+                raise Exception("No valid authentication method available to fetch reports.")
+
+            # 2. Fetch all reports from PBIRS using the determined auth
+            all_reports = self._fetch_reports_for_auth(auth_to_use)
             if not all_reports:
                 raise Exception("Failed to fetch reports from PBIRS")
             
@@ -271,7 +325,7 @@ class PermissionSyncService:
             return 0
 
 
-def sync_all_user_permissions(triggered_by=None):
+def sync_all_user_permissions(triggered_by=None, user_for_auth=None, password_for_auth=None):
     """
     Convenience function to sync all user permissions.
     
@@ -282,7 +336,13 @@ def sync_all_user_permissions(triggered_by=None):
         Tuple of (users_synced, permissions_created)
     """
     service = PermissionSyncService(triggered_by=triggered_by)
-    return service.sync_all_permissions_with_service_account()
+    # Run the full sync
+    users_synced, permissions_count = service.sync_all_permissions_with_service_account(
+        user_for_auth=user_for_auth, 
+        password_for_auth=password_for_auth
+    )
+    
+    return users_synced, permissions_count
 
 
 def sync_user_permissions_on_login(user, password):

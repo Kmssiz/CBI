@@ -726,10 +726,10 @@ def report_list_flat(request):
             path = path[1:]
         encoded_path = urllib.parse.quote(path, safe="/")
         report["embed_url"] = f"{base_embed_url}{encoded_path}?rs:embed=true"
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread = Notification.objects.filter(user=request.user, is_read=False).count()
-    # log_history(request.user, "Viewed Power BI report list (flat)")
-    permissions = get_user_permissions(request.user)
+    # Filter by search query
+    query = request.GET.get('q', '').strip()
+    if query:
+        reports = [r for r in reports if query.lower() in r.get("Name", "").lower()]
 
     # Sort reports by name
     reports.sort(key=lambda x: x.get("Name", "").lower())
@@ -739,11 +739,17 @@ def report_list_flat(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+    unread = Notification.objects.filter(user=request.user, is_read=False).count()
+    # log_history(request.user, "Viewed Power BI report list (flat)")
+    permissions = get_user_permissions(request.user)
+
     return render(request, 'powerbi_report/report_list_flat.html', {
         'reports': page_obj,
         'notifications': notifications,
         'unread': unread,
         'permissions': permissions,
+        'query': query,
     })
 
 
@@ -2172,54 +2178,129 @@ def user_permission(request, username):
         selected_user = CustomUser.objects.get(ad2000__iexact=username)
         full_name = f"{selected_user.first_name} {selected_user.last_name}".strip()
     except CustomUser.DoesNotExist:
-        selected_user = None
-        full_name = username
+        messages.error(request, f"Utilisateur '{username}' introuvable dans la base de données locale.")
+        return redirect('users_view')
     
-    current_username = username.lower()
-    user_id = request.user.id if request.user.is_authenticated else "anonymous"
-    cache_key = "powerbi_reports_cache_all_users"  
-    all_reports = cache.get(cache_key)
-    
-    if all_reports is None:
-        all_reports = get_powerbi_reports(request)
-        cache.set(cache_key, all_reports, timeout=300) 
+    # Check for force sync
+    if request.GET.get('force_sync') == 'true':
+        try:
+            # Re-run the full sync logic (the code we previously had)
+            # Fetch all reports
+            all_reports = get_powerbi_reports(request)
+            allowed_reports_data = []
+            current_username = username.lower()
+            
+            # Calculate permissions based on API
+            user_ad_groups = set(selected_user.ad_groups) if selected_user and selected_user.ad_groups else set()
+            
+            for report in all_reports:
+                policies = get_report_permissions(request, report['Id']) # Don't cache here, we want fresh data
+                
+                if not policies:
+                    parent_folder_id = report.get("ParentFolderId")
+                    if parent_folder_id:
+                         policies = get_folder_permissions(request, parent_folder_id)
+                
+                is_allowed = False
+                for policy in policies:
+                    # Check for direct user assignment
+                    policy_username = (policy.get("UserName") or "").split("\\")[-1].lower()
+                    if policy_username == current_username:
+                        is_allowed = True
+                        break
+                    
+                    # Check for group assignment
+                    group_username = (policy.get("GroupUserName") or "").split("\\")[-1]
+                    if group_username and group_username in user_ad_groups:
+                        is_allowed = True
+                        break
+                
+                if is_allowed:
+                    # Determine if direct or group (prioritize direct if both exist)
+                    is_direct = False
+                    for policy in policies:
+                         # Check for direct user assignment
+                        policy_username = (policy.get("UserName") or "").split("\\")[-1].lower()
+                        if policy_username == current_username:
+                            is_direct = True
+                            break
+                    
+                    allowed_reports_data.append({
+                        'report': report,
+                        'is_direct': is_direct
+                    })
+            
+            # Sync to DB
+            if allowed_reports_data:
+                # Upsert ReportRefs
+                # Upsert ReportRefs
+                for item in allowed_reports_data:
+                    report = item['report']
+                    ReportRef.objects.update_or_create(
+                        pbirs_id=report.get('Id'),
+                        defaults={
+                            'name': report.get('Name'),
+                            'path': report.get('Path'),
+                        }
+                    )
+                
+                # Update Permissions
+                pbirs_ids = [item['report'].get('Id') for item in allowed_reports_data]
+                report_refs = ReportRef.objects.filter(pbirs_id__in=pbirs_ids)
+                report_ref_map = {ref.pbirs_id: ref for ref in report_refs}
+
+                UserReportPermission.objects.filter(user=selected_user).delete()
+                new_permissions = []
+                for item in allowed_reports_data:
+                    ref = report_ref_map.get(item['report'].get('Id'))
+                    if ref:
+                        new_permissions.append(UserReportPermission(
+                            user=selected_user, 
+                            report=ref,
+                            is_direct=item['is_direct']
+                        ))
+                
+                UserReportPermission.objects.bulk_create(new_permissions)
+                messages.success(request, f"Permissions synchronisées avec succès : {len(new_permissions)} rapports trouvés.")
+            else:
+                 # If no reports allowed, clear existing permissions
+                UserReportPermission.objects.filter(user=selected_user).delete()
+                messages.warning(request, "Aucune permission trouvée sur le serveur pour cet utilisateur.")
+
+        except Exception as e:
+            logger.error(f"Error force syncing permissions: {e}")
+            messages.error(request, f"Erreur lors de la synchronisation : {e}")
+        
+        return redirect(reverse('powerbi_report:user_permission', args=[username]))
+
+    # Default: Read from DB
+    user_permissions = UserReportPermission.objects.filter(user=selected_user).select_related('report')
     allowed_reports = []
+    for perm in user_permissions:
+        # Construct dict to match template expectations
+        allowed_reports.append({
+            'Id': perm.report.pbirs_id,
+            'Name': perm.report.name,
+            'Path': perm.report.path,
+            'is_direct': perm.is_direct
+        })
     
-    for report in all_reports:
-        policies = cache.get_or_set(
-            f"report_permissions_{report['Id']}", 
-            lambda: get_report_permissions(request, report['Id']), 
-            timeout=300
-        )
-        
-        if not policies:
-            parent_folder_id = report.get("ParentFolderId")
-            if parent_folder_id:
-                policies = cache.get_or_set(
-                    f"folder_permissions_{parent_folder_id}",
-                    lambda: get_folder_permissions(request, parent_folder_id),
-                    timeout=300
-                )
-        
-        is_allowed = any(
-            (policy.get("GroupUserName") or policy.get("UserName", "")).split("\\")[-1].lower() == current_username
-            for policy in policies
-        )
-        
-        if is_allowed:
-            allowed_reports.append(report)
-    
-    
+    # Sort allowed reports by name
+    allowed_reports.sort(key=lambda x: x.get('Name', '').lower())
+
+    # Pagination
+    paginator = Paginator(allowed_reports, 10) # Show 10 reports per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
-    current_username_1 = username
 
     return render(request, 'powerbi_report/user_permission.html', {
-        'selected_user': current_username_1,
+        'selected_user': username,
         'full_name': full_name,
-        'reports': allowed_reports,
+        'reports': page_obj, # Pass page object instead of full list
         'notifications': notifications,
         'unread': unread,
         'permissions': permissions,
@@ -2310,6 +2391,13 @@ def missing_permissions(request, username):
     
     missing_reports = []
     
+    # Calculate permissions based on API
+    user_ad_groups = set(selected_user.ad_groups) if selected_user and selected_user.ad_groups else set()
+    # Normalize groups to ensure case-insensitive matching if needed, 
+    # but strictly speaking AD groups are case-insensitive. 
+    # Let's assume the stored groups are just the CN part (e.g. "Marketing").
+    # The policy.GroupUserName usually comes as "DOMAIN\Marketing".
+    
     for report in all_reports:
         policies = cache.get_or_set(
             f"report_permissions_{report['Id']}",
@@ -2326,12 +2414,21 @@ def missing_permissions(request, username):
                     timeout=300
                 )
         
-        user_has_permission = any(
-            (policy.get("GroupUserName") or policy.get("UserName", "")).split("\\")[-1].lower() == username.lower()
-            for policy in policies
-        )
+        is_allowed = False
+        for policy in policies:
+            # Check for direct user assignment
+            policy_username = (policy.get("UserName") or "").split("\\")[-1].lower()
+            if policy_username == username.lower():
+                is_allowed = True
+                break
+            
+            # Check for group assignment
+            group_username = (policy.get("GroupUserName") or "").split("\\")[-1]
+            if group_username and group_username in user_ad_groups:
+                is_allowed = True
+                break
         
-        if not user_has_permission:
+        if not is_allowed:
             missing_reports.append(report)
 
     # log_history(request.user, f"Viewed no access report permissions for user :{username})")
@@ -3272,7 +3369,13 @@ def sync_reports_from_pbirs(request):
     
     # Trigger permission sync to ensure new reports have correct permissions
     try:
-        users, perms = sync_all_user_permissions(triggered_by=request.user)
+        # Use session password if available for better access scope
+        ldap_password = request.session.get('ldap_password')
+        users, perms = sync_all_user_permissions(
+            triggered_by=request.user,
+            user_for_auth=request.user,
+            password_for_auth=ldap_password
+        )
         messages.info(request, f"Permissions auto-refreshed: {users} users updated.")
     except Exception as e:
         logger.error(f"Auto-sync permissions failed: {e}")
@@ -3283,22 +3386,26 @@ def sync_reports_from_pbirs(request):
 @login_required
 def sync_permissions(request):
     """
-    Sync report permissions from PBIRS to local database.
-    Admin only operation that refreshes UserReportPermission table.
+    Manually trigger permission sync using the current user's credentials if available.
     """
-    if not request.user.is_superuser:
-        messages.error(request, "Seuls les administrateurs peuvent synchroniser les permissions.")
-        return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_business'))
+    if not request.user.role or request.user.role.name != "admin":
+        messages.error(request, "Permission denied. Admin access required.")
+        return redirect('home')
     
     try:
-        users_synced, permissions_created = sync_all_user_permissions(triggered_by=request.user)
-        messages.success(
-            request, 
-            f"Permissions synchronisées avec succès. {users_synced} utilisateurs, {permissions_created} permissions."
+        # Use session password if available for better access scope
+        ldap_password = request.session.get('ldap_password')
+        
+        users_synced, permissions_count = sync_all_user_permissions(
+            triggered_by=request.user,
+            user_for_auth=request.user,
+            password_for_auth=ldap_password
         )
-        log_history(request.user, f"Synced permissions: {users_synced} users, {permissions_created} permissions")
+        messages.success(request, f"Permissions synced successfully. {users_synced} users updated, {permissions_count} permissions created.")
+        log_history(request.user, f"Synced permissions: {users_synced} users, {permissions_count} permissions")
     except Exception as e:
-        messages.error(request, f"Échec de la synchronisation des permissions: {str(e)}")
+        logger.error(f"Manual permission sync failed: {e}")
+        messages.error(request, f"Sync failed: {str(e)}")
         log_history(request.user, f"Permission sync failed: {str(e)}")
     
     return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_business'))
