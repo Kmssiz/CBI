@@ -33,3 +33,9 @@ services:
 
 volumes:
   postgres_data:
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.80.0/24
