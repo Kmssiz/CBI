@@ -6,6 +6,21 @@
 
 {% block content %}
 <div class="p-4 lg:p-8 max-w-5xl mx-auto">
+  {% if messages %}
+  <div class="mb-6 space-y-3">
+    {% for message in messages %}
+    <div class="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border {% if message.tags == 'error' %}bg-red-500/10 border-red-500/30 text-red-400{% elif message.tags == 'warning' %}bg-amber-500/10 border-amber-500/30 text-amber-400{% else %}bg-emerald-500/10 border-emerald-500/30 text-emerald-400{% endif %}">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-[20px]">{% if message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}check_circle{% endif %}</span>
+        <span class="text-sm font-medium">{{ message }}</span>
+      </div>
+      <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
   <div class="mb-8">
     <a href="{% url 'tickets:ticket_list' %}" class="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors mb-4 text-sm font-bold uppercase tracking-wider">
       <span class="material-symbols-outlined text-[18px]">arrow_back</span>
@@ -148,3 +163,5 @@
   </div>
 </div>
 {% endblock %}
+
+{% block footer %}{% endblock %}

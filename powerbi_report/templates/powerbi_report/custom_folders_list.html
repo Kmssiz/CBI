@@ -502,7 +502,7 @@
     }, 5000);
 </script>
 
-<style>
+<script>
     // Loading Overlay Logic
     const loadingPrompt = document.getElementById('loadingPrompt');
     const syncPbirsBtn = document.getElementById('syncPbirsBtn');
@@ -536,7 +536,9 @@
         loadingPrompt.style.display = 'none';
       }
     });
+</script>
 
+<style>
     .folder-card:hover {
         box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
         transform: translateY(-2px);
@@ -609,4 +611,5 @@
         white-space: nowrap;
         border-width: 0;
     }
+</style>
 {% endblock %}

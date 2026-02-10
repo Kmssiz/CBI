@@ -118,6 +118,80 @@ def get_powerbi_reports(request, endpoint="CatalogItems"):
         return []
 
 #################################################################################################################
+#                    Local DB report listing (uses UserReportPermission instead of PBIRS API)                   #
+#################################################################################################################
+
+def get_local_reports_for_user(user):
+    """
+    Get accessible reports from the local DB instead of calling PBIRS API.
+    Uses UserReportPermission + ReportRef tables populated at login.
+    Returns list of dicts matching the PBIRS API format for template compatibility.
+    """
+    from powerbi_report.models import ReportRef, UserReportPermission
+
+    if user.is_superuser:
+        report_refs = ReportRef.objects.all()
+    else:
+        permitted_report_ids = UserReportPermission.objects.filter(
+            user=user
+        ).values_list('report_id', flat=True)
+        report_refs = ReportRef.objects.filter(id__in=permitted_report_ids)
+
+    base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
+    reports = []
+    for ref in report_refs:
+        path = ref.path or ""
+        clean_path = path.lstrip("/")
+        encoded_path = urllib.parse.quote(clean_path, safe="/")
+        embed_url = ref.embed_url or f"{base_embed_url}{encoded_path}?rs:embed=true"
+
+        # Derive ParentFolderId-like info from path for hierarchy views
+        path_parts = path.strip("/").split("/") if path else []
+        parent_folder_path = "/" + "/".join(path_parts[:-1]) if len(path_parts) > 1 else "/"
+
+        reports.append({
+            'Id': ref.pbirs_id,
+            'Name': ref.name,
+            'Path': ref.path,
+            'Type': 'PowerBIReport',
+            'embed_url': embed_url,
+            'ParentFolderPath': parent_folder_path,
+            'modified_at': ref.modified_at,
+            'modified_by': ref.modified_by,
+        })
+
+    return reports
+
+
+def get_local_folders_from_reports(reports):
+    """
+    Derive folder structure from report paths.
+    Returns list of folder dicts with Id, Name, Path, Type keys.
+    """
+    folder_paths = set()
+    for report in reports:
+        path = report.get('Path', '')
+        parts = path.strip('/').split('/')
+        # Build all parent folder paths
+        for i in range(1, len(parts)):  # Skip the last part (report name)
+            folder_path = '/' + '/'.join(parts[:i])
+            folder_paths.add(folder_path)
+
+    folders = []
+    for fp in sorted(folder_paths):
+        folder_name = fp.split('/')[-1]
+        parent_path = '/' + '/'.join(fp.strip('/').split('/')[:-1]) if '/' in fp.strip('/') else '/'
+        folders.append({
+            'Id': f'folder_{fp}',  # Synthetic ID
+            'Name': folder_name,
+            'Path': fp,
+            'Type': 'Folder',
+            'ParentFolderPath': parent_path,
+        })
+
+    return folders
+
+#################################################################################################################
 #                    Retrieves permissions for a specific Power BI report                                       #
 #################################################################################################################
 
@@ -259,17 +333,8 @@ def get_folder_list(request):
 @login_required
 def report_list(request):
     query = request.GET.get('q', '').strip()
-    reports = get_powerbi_reports(request)
-    # Filter out folders, keep only reports
-    reports = [r for r in reports if r.get("Type") == 'PowerBIReport']
-    base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
-
-    for report in reports:
-        path = report.get("Path", "")
-        if path.startswith("/"):
-            path = path[1:]  
-        encoded_path = urllib.parse.quote(path, safe="/")
-        report["embed_url"] = f"{base_embed_url}{encoded_path}?rs:embed=true"
+    # Use local DB instead of PBIRS API for listing
+    reports = get_local_reports_for_user(request.user)
     
     # Filter by search query
     if query:
@@ -278,25 +343,11 @@ def report_list(request):
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = Notification.objects.filter(user=request.user, is_read=False).count()
     permissions = get_user_permissions(request.user)
-    # log_history(request.user, f"Viewed Power BI report management {f'(Search: {query})' if query else ''}")
 
     # Sort reports by name
     reports.sort(key=lambda x: x.get("Name", "").lower())
 
     # Pagination
-    # Attach modification metadata from ReportRef
-    from powerbi_report.models import ReportRef
-    report_refs = {ref.pbirs_id: ref for ref in ReportRef.objects.filter(pbirs_id__in=[r.get('Id') for r in reports])}
-    
-    for report in reports:
-        ref = report_refs.get(report.get('Id'))
-        if ref:
-            report['modified_at'] = ref.modified_at
-            report['modified_by'] = ref.modified_by
-        else:
-            report['modified_at'] = None
-            report['modified_by'] = None
-
     paginator = Paginator(reports, 10)  # Show 10 reports per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -604,12 +655,13 @@ def embed_report(request, report_path):
     encoded_path = urllib.parse.quote(report_path, safe="/")
     embed_url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/powerbi/{encoded_path}?rs:embed=true"
 
-    reports = get_powerbi_reports(request)
-
-    # Find the report in the reports list
-    report = next((r for r in reports if r["Path"].strip('/') == report_path), None)
-    report_id = report["Id"] if report else None
-    report_name = report_path.split('/')[-1] if report else report_path  
+    # Use local DB to find the report instead of PBIRS API
+    from powerbi_report.models import ReportRef
+    report_ref = ReportRef.objects.filter(path='/' + report_path).first()
+    if not report_ref:
+        report_ref = ReportRef.objects.filter(path=report_path).first()
+    report_id = report_ref.pbirs_id if report_ref else None
+    report_name = report_ref.name if report_ref else report_path.split('/')[-1]  
 
     breadcrumbs = []
     path_parts = report_path.split('/')
@@ -716,16 +768,8 @@ def download_report(request, report_id):
 
 @login_required
 def report_list_flat(request):
-    # Use PowerBIReports endpoint to get all reports recursively (flat list)
-    reports = get_powerbi_reports(request, endpoint="PowerBIReports")
-    
-    base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
-    for report in reports:
-        path = report.get("Path", "")
-        if path.startswith("/"):
-            path = path[1:]
-        encoded_path = urllib.parse.quote(path, safe="/")
-        report["embed_url"] = f"{base_embed_url}{encoded_path}?rs:embed=true"
+    # Use local DB instead of PBIRS API for listing
+    reports = get_local_reports_for_user(request.user)
     # Filter by search query
     query = request.GET.get('q', '').strip()
     if query:
@@ -760,7 +804,10 @@ def report_list_flat(request):
 @login_required
 def report_list_hierarchy(request, folder_path=""):
     force_refresh = request.GET.get('force_refresh', 'false').lower() == 'true'
-    items = get_powerbi_reports(request)
+    # Use local DB instead of PBIRS API for listing
+    items = get_local_reports_for_user(request.user)
+    # Also include derived folders so the hierarchy builds correctly
+    items += get_local_folders_from_reports(items)
     base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
     
     folder_dict = {}
@@ -776,21 +823,31 @@ def report_list_hierarchy(request, folder_path=""):
         
         # Traverse to the parent container
         current_level = folder_dict
-        for part in parts[:-1]:  
-            # Ensure parent exists and is a folder
-            if part not in current_level:
+        for part in parts[:-1]:
+            # Ensure parent exists and is always a folder node with children.
+            existing = current_level.get(part)
+            if not isinstance(existing, dict) or existing.get('type') != 'Folder':
                 current_level[part] = {'type': 'Folder', 'children': {}}
+            elif 'children' not in existing or not isinstance(existing['children'], dict):
+                existing['children'] = {}
             current_level = current_level[part]['children']
 
         if item_type == 'Folder':
-            # Ensure the folder entry exists
-            if item_name not in current_level:
+            # Ensure the folder entry exists and has children.
+            existing = current_level.get(item_name)
+            if not isinstance(existing, dict) or existing.get('type') != 'Folder':
                 current_level[item_name] = {'type': 'Folder', 'children': {}}
-            # If it already created (by a child), ensure type is set (though it should be)
-            current_level[item_name].update({'type': 'Folder'})
+            elif 'children' not in existing or not isinstance(existing['children'], dict):
+                existing['children'] = {}
             
         elif item_type == 'PowerBIReport':
-             # For reports, assign the embed URL
+            # For reports, assign the embed URL if a folder with the same name does not already exist.
+            if (
+                item_name in current_level
+                and isinstance(current_level[item_name], dict)
+                and current_level[item_name].get('type') == 'Folder'
+            ):
+                continue
             encoded_path = urllib.parse.quote(item.get("Path", ""), safe="/")
             current_level[item_name] = {
                 "type": "PowerBIReport",
@@ -916,20 +973,12 @@ def upload_powerbi_report(request):
 #################################################################################################################
 @login_required
 def report_folders_list(request, folder_path=""):
-    reports = get_powerbi_reports(request)
+    # Use local DB instead of PBIRS API for listing
+    reports = get_local_reports_for_user(request.user)
+    folders = get_local_folders_from_reports(reports)
     base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
     folder_dict = {}
     report_dict = {}  # Separate dictionary for reports
-
-    # Build a set of folder paths that contain visible reports
-    visible_folder_paths = set()
-    for report in reports:
-        path = report.get("Path", "").strip("/")
-        # Add all parent folders of this report to visible paths
-        parts = path.split("/")
-        for i in range(len(parts) - 1):  # Exclude the report name itself
-            parent_path = "/".join(parts[:i+1])
-            visible_folder_paths.add(parent_path)
 
     # Process reports
     for report in reports:
@@ -938,57 +987,34 @@ def report_folders_list(request, folder_path=""):
             # Only include reports directly in the specified folder
             if path.startswith(folder_path + "/") and path.count("/") == folder_path.count("/") + 1:
                 report_name = path.split("/")[-1]
-                encoded_path = urllib.parse.quote(path, safe="/")
                 report_dict[report_name] = {
-                    "url": f"{base_embed_url}{encoded_path}?rs:embed=true",
+                    "url": report.get("embed_url"),
                     "type": "report"
                 }
         else:
             # For root level, include reports without any folder prefix
             if "/" not in path:
                 report_name = path
-                encoded_path = urllib.parse.quote(path, safe="/")
                 report_dict[report_name] = {
-                    "url": f"{base_embed_url}{encoded_path}?rs:embed=true",
+                    "url": report.get("embed_url"),
                     "type": "report"
                 }
 
-    # Fetch folders from the report server
-    url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/Folders"
-    auth = get_current_user_auth(request)
-    try:
-        response = requests.get(url, auth=auth)
-        response.raise_for_status()
-        all_folders = response.json().get('value', [])
-    except requests.RequestException as err:
-        print(f"Error fetching folders: {err}")
-        all_folders = []
-
-    # Process folders - only include folders that contain visible reports
-    for folder in all_folders:
+    # Process folders from derived folder structure
+    for folder in folders:
         path = folder.get("Path", "").strip("/")
-        
-        # Skip folders that don't contain any visible reports (unless admin)
-        if not request.user.is_superuser:
-            # Check if this folder or any subfolder contains visible reports
-            has_visible_reports = any(
-                vp == path or vp.startswith(path + "/") 
-                for vp in visible_folder_paths
-            )
-            if not has_visible_reports:
-                continue
         
         if folder_path:
             # Only include folders directly under the specified folder_path
             if path.startswith(folder_path + "/") and path.count("/") == folder_path.count("/") + 1:
                 folder_name = path.split("/")[-1]
-                folder_id = folder.get("Id") or folder.get("id")
+                folder_id = folder.get("Id", f"folder_{path}")
                 folder_dict[folder_name] = {'id': folder_id, 'type': 'folder'}
         else:
             # For root level, include folders without any parent
             if "/" not in path:
                 folder_name = path
-                folder_id = folder.get("Id") or folder.get("id")
+                folder_id = folder.get("Id", f"folder_{path}")
                 folder_dict[folder_name] = {'id': folder_id, 'type': 'folder'}
 
     # Combine folders and reports into a single structure
@@ -1152,12 +1178,20 @@ from django.contrib import messages
 
 @login_required
 def report_detail(request, report_id):
-    reports = get_powerbi_reports(request)
-    report = next((r for r in reports if r['Id'] == report_id), None)
-
-    if not report:
+    # Use local DB instead of PBIRS API for lookup
+    from powerbi_report.models import ReportRef
+    report_ref = ReportRef.objects.filter(pbirs_id=report_id).first()
+    
+    if not report_ref:
         log_history(request.user, f"Attempted to view non-existent report ID: {report_id}")
         raise Http404("Report not found")
+    
+    # Build report dict to match expected format
+    report = {
+        'Id': report_ref.pbirs_id,
+        'Name': report_ref.name,
+        'Path': report_ref.path,
+    }
     # log_history(request.user, f"Viewed Power BI report details: {report.get('Name', 'Unknown')} (ID: {report_id})")
     # log_history(request.user, f"Viewed Power BI report details: {report.get('Name', 'Unknown')} (ID: {report_id})")
     refresh_plans = get_refresh_plans(report_id, request)
@@ -2984,7 +3018,9 @@ def dashboard(request):
         last_login__month=current_month
     ).count()
 
-    powerbi_reports = get_powerbi_reports(request)
+    # Use local DB count instead of PBIRS API call
+    from powerbi_report.models import ReportRef
+    total_reports_count = ReportRef.objects.count()
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
@@ -3135,7 +3171,7 @@ def dashboard(request):
         'total_users': total_users,
         'active_users': active_users,
         'users_this_month': users_this_month,
-        'total_reports': len(powerbi_reports),
+        'total_reports': total_reports_count,
         'notifications': notifications,
         'unread': unread,
         'permissions': permissions,
@@ -3266,21 +3302,20 @@ def get_report_refresh_list(request):
 def get_visible_report_ids(request):
     """
     Get PBIRS report IDs the current user has access to.
-    Reads from local UserReportPermission table (synced from PBIRS).
-    Falls back to PBIRS API if no local permissions exist.
+    Reads from local UserReportPermission table (synced at login).
     """
     user = request.user
+    from powerbi_report.models import UserReportPermission
+    import logging
+    logger = logging.getLogger(__name__)
     
-    # Try to get from local database first
+    # Get from local database
     local_permissions = UserReportPermission.objects.filter(user=user)
-    if local_permissions.exists():
-        return set(local_permissions.values_list('report__pbirs_id', flat=True))
+    if not local_permissions.exists():
+        logger.warning(f"No local permissions found for {user.username}. User may need to log out and log back in.")
+        return set()
     
-    # Fallback: If no local permissions, check PBIRS directly
-    # This handles the case before first sync or for new users
-    logger.debug(f"No local permissions for {user.username}, falling back to PBIRS API")
-    pbirs_reports = get_powerbi_reports(request)
-    return {r.get('Id') for r in pbirs_reports if r.get('Id')}
+    return set(local_permissions.values_list('report__pbirs_id', flat=True))
 
 
 def get_visible_folders(request, view_type):

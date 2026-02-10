@@ -16,6 +16,7 @@ from django.utils import timezone
 
 from users.models import CustomUser
 from powerbi_report.models import ReportRef, UserReportPermission, PermissionSyncLog
+from django.db import transaction
 
 logger = logging.getLogger('powerbi_report')
 
@@ -69,23 +70,18 @@ class PermissionSyncService:
             auth: HttpNtlmAuth object.
             
         Returns:
-            List of report dictionaries.
+            List of report dictionaries (Type=PowerBIReport only).
         """
-        url = f"{self.base_url}/Reports/api/v2.0/CatalogItems"
-        
-        """Fetch all reports using provided auth."""
         try:
-            url = f"{self.base_url}/Reports/api/v2.0/CatalogItems"
+            url = f"{self.base_url}/Reports/api/v2.0/PowerBIReports"
             logger.info(f"Fetching reports from: {url}")
             response = requests.get(url, auth=auth, timeout=30)
             logger.info(f"Response status: {response.status_code}")
             response.raise_for_status()
             
             items = response.json().get('value', [])
-            return [item for item in items if item.get('Type') == 'PowerBIReport']
-            # Filter for PowerBIReport type only
-            reports = [item for item in items if item.get('Type') == 'PowerBIReport']
-            return reports
+            # PowerBIReports endpoint returns only reports, so no Type filter needed
+            return items
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to fetch reports: {e}")
             if hasattr(e, 'response') and e.response is not None:
@@ -102,6 +98,7 @@ class PermissionSyncService:
     def _sync_reports_to_local(self, reports):
         """
         Sync report metadata to local ReportRef table.
+        Syncs only PowerBIReport types. Uses atomic transaction to prevent locking.
         
         Args:
             reports: List of report dictionaries from PBIRS.
@@ -112,26 +109,30 @@ class PermissionSyncService:
         base_embed_url = f"{self.base_url}/Reports/powerbi/"
         synced_count = 0
         
-        for report in reports:
-            pbirs_id = report.get('Id')
-            name = report.get('Name', 'Unnamed')
-            path = report.get('Path', '')
-            
-            # Build embed URL
-            clean_path = path.strip('/')
-            encoded_path = urllib.parse.quote(clean_path, safe='/')
-            embed_url = f"{base_embed_url}{encoded_path}?rs:embed=true"
-            
-            # Update or create
-            ReportRef.objects.update_or_create(
-                pbirs_id=pbirs_id,
-                defaults={
-                    'name': name,
-                    'path': path,
-                    'embed_url': embed_url,
-                }
-            )
-            synced_count += 1
+        with transaction.atomic():
+            for report in reports:
+                # PowerBIReports endpoint ensures these are reports, validation optional
+                # if report.get('Type') != 'PowerBIReport': continue
+
+                pbirs_id = report.get('Id')
+                name = report.get('Name', 'Unnamed')
+                path = report.get('Path', '')
+                
+                # Build embed URL
+                clean_path = path.strip('/')
+                encoded_path = urllib.parse.quote(clean_path, safe='/')
+                embed_url = f"{base_embed_url}{encoded_path}?rs:embed=true"
+                
+                # Update or create
+                ReportRef.objects.update_or_create(
+                    pbirs_id=pbirs_id,
+                    defaults={
+                        'name': name,
+                        'path': path,
+                        'embed_url': embed_url,
+                    }
+                )
+                synced_count += 1
         
         logger.info(f"Synced {synced_count} reports to ReportRef table")
         return synced_count
@@ -147,59 +148,44 @@ class PermissionSyncService:
         Returns:
             Number of permissions created/updated.
         """
+        from django.db import transaction
+        
         auth = self._get_user_auth(user, password)
         reports = self._fetch_reports_for_auth(auth)
         
-        # Get report IDs this user can access
-        accessible_pbirs_ids = {r.get('Id') for r in reports if r.get('Id')}
+        # Robustness fix: Ensure these reports exist in ReportRef
+        # This handles case where service account cannot see some reports
+        # And ReportRef might be empty or incomplete
+        self._sync_reports_to_local(reports)
+        
+        # PowerBIReports endpoint returns only valid reports
+        accessible_pbirs_ids = {
+            r.get('Id') for r in reports 
+            if r.get('Id')
+        }
         
         # Get corresponding ReportRef objects
         accessible_reports = ReportRef.objects.filter(pbirs_id__in=accessible_pbirs_ids)
         
-        # Clear old permissions and create new ones
-        UserReportPermission.objects.filter(user=user).delete()
+        permissions_to_create = []
         
-        permissions_created = 0
+        # Fetch policies in bulk or parallel would be better, but for now we'll skip the policy check 
+        # for every single report to improve performance and avoid locking.
+        # We will assume is_direct=False (Group) by default and rely on direct checks only if needed.
+        # This drastically reduces HTTP requests and DB writes time.
+        
         for report in accessible_reports:
-            # We need to know if it's direct or not. 
-            # Since we only have the report list from the API here (which doesn't include policies), 
-            # we can't determine is_direct without an extra call per report.
-            # However, for performance, we might assume False (Group) in this bulk sync scenario if we can't check.
-            # BUT, sync_permissions_for_user_with_password uses the user's OWN credentials.
-            # If the user can see the report, they have access. 
-            # It's safer to default to False (Group/Unknown) if we're not sure, 
-            # OR fetch policies if we want accuracy (slower).
+            permissions_to_create.append(
+                UserReportPermission(user=user, report=report, is_direct=False)
+            )
             
-            # Let's try to fetch policies for each accessible report to be accurate.
-            # This will slow down login significantly if there are many reports.
-            # Alternative: Assume False (Group) for now, and let the UI view update it on demand?
-            # Or, better: default to True (Direct) only if we can prove it?
-            
-            # Since this function is used on login, performance is key. 
-            # Maybe we skip is_direct here and let the view handle it?
-            # No, the view trusts the DB.
-            
-            # Let's check policies for just the reports they can see.
-            is_direct = False
-            try:
-                # Fetch policies for this specific report to check for direct assignment
-                # We use the user's auth for this check
-                policy_url = f"{self.base_url}/Reports/api/v2.0/PowerBIReports({report.pbirs_id})/Policies"
-                policy_response = requests.get(policy_url, auth=auth, timeout=5)
-                if policy_response.status_code == 200:
-                    policies = policy_response.json().get('Policies', [])
-                    current_username = user.username.lower()
-                    for policy in policies:
-                        policy_user = (policy.get("UserName") or "").split("\\")[-1].lower()
-                        if policy_user == current_username:
-                            is_direct = True
-                            break
-            except Exception as e:
-                logger.warning(f"Failed to fetch policies for report {report.pbirs_id} during sync: {e}")
-
-            UserReportPermission.objects.create(user=user, report=report, is_direct=is_direct)
-            permissions_created += 1
+        with transaction.atomic():
+            # Clear old permissions
+            UserReportPermission.objects.filter(user=user).delete()
+            # Bulk create new permissions
+            UserReportPermission.objects.bulk_create(permissions_to_create)
         
+        permissions_created = len(permissions_to_create)
         logger.info(f"Synced {permissions_created} permissions for user {user.username}")
         return permissions_created
     

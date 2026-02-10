@@ -162,7 +162,10 @@ class UserReportPermission(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user.username} -> {self.report.name}"
+        try:
+            return f"{self.user.username} -> {self.report.name}"
+        except Exception:
+            return f"{self.user.username} -> (Deleted Report)"
 
 
 class PermissionSyncLog(models.Model):
