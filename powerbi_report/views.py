@@ -71,12 +71,100 @@ def get_current_user_auth(request):
 #                    Fetches all Power BI reports from the report server using API                              #
 ################################################################################################################# 
 
-def get_powerbi_reports(request, endpoint="CatalogItems"):
+def _normalize_pbirs_item_type(item: dict) -> str:
+    """
+    Normalize PBIRS item type values to canonical names.
+
+    Handles values from either `Type` or `TypeName` fields, including
+    string and numeric representations used by CatalogItems.
+    """
+    raw_type = item.get("TypeName", item.get("Type"))
+
+    if isinstance(raw_type, str):
+        normalized = raw_type.strip().lower()
+        if normalized == "folder":
+            return "Folder"
+        if normalized in {"powerbireport", "report"}:
+            return "PowerBIReport"
+        if normalized.isdigit():
+            raw_type = int(normalized)
+        else:
+            return raw_type
+
+    if isinstance(raw_type, int):
+        # PBIRS catalog item type IDs (commonly observed):
+        # 1 = Folder, 13 = Power BI Report, 2 = Report
+        if raw_type == 1:
+            return "Folder"
+        if raw_type in (2, 13):
+            return "PowerBIReport"
+
+    return ""
+
+
+def _normalize_pbirs_path(path: str) -> str:
+    """Normalize PBIRS paths for reliable folder/report comparisons."""
+    if not path:
+        return ""
+    normalized = path.strip()
+    if not normalized:
+        return ""
+    if normalized != "/":
+        normalized = normalized.rstrip("/")
+    return normalized.casefold()
+
+
+def _get_pbirs_folder_paths(request) -> set[str]:
+    """
+    Fetch folder paths from PBIRS for the current user.
+    Used as source-of-truth to prevent folders being treated as reports.
+    """
+    user_id = request.user.id if request.user.is_authenticated else "anonymous"
+    cache_key = f"pbirs_folder_paths_{user_id}"
+    cached_paths = cache.get(cache_key)
+    if cached_paths is not None:
+        return set(cached_paths)
+
+    url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/Folders"
+
+    auth_candidates = []
+    user_auth = get_current_user_auth(request)
+    if user_auth:
+        auth_candidates.append(user_auth)
+
+    # Fallback to service account to keep classification stable even when
+    # the current user session does not have ldap_password.
+    service_username = getattr(settings, "LDAP_SERVICE_USERNAME", "")
+    service_password = getattr(settings, "LDAP_SERVICE_PASSWORD", "")
+    service_domain = getattr(settings, "LDAP_DOMAIN", "")
+    if service_username and service_password and service_domain:
+        auth_candidates.append(
+            HttpNtlmAuth(f"{service_domain}\\{service_username}", service_password)
+        )
+
+    for auth in auth_candidates:
+        try:
+            response = requests.get(url, auth=auth, timeout=10)
+            response.raise_for_status()
+            items = response.json().get("value", [])
+            paths = {
+                _normalize_pbirs_path(item.get("Path", ""))
+                for item in items if item.get("Path")
+            }
+            cache.set(cache_key, list(paths), timeout=200)
+            return paths
+        except requests.exceptions.RequestException as err:
+            logger.warning(f"Failed to fetch PBIRS folder paths with one auth method: {err}")
+
+    return set()
+
+
+def get_powerbi_reports(request, endpoint="PowerBIReports"):
     user_id = request.user.id if request.user.is_authenticated else "anonymous"
     cache_key = f"powerbi_reports_cache_{user_id}_{endpoint}"  
     cached_reports = cache.get(cache_key)
 
-    if cached_reports:
+    if cached_reports is not None:
         print(f"Returning cached Power BI reports for user {user_id} (Endpoint: {endpoint}).")
         return cached_reports
 
@@ -99,14 +187,24 @@ def get_powerbi_reports(request, endpoint="CatalogItems"):
         
         filtered_items = []
         if endpoint == "CatalogItems":
-            # Filter for only Folders and PowerBIReports
-            filtered_items = [
-                item for item in items 
-                if item.get('Type') in ['PowerBIReport', 'Folder']
-            ]
+            for item in items:
+                item_type = _normalize_pbirs_item_type(item)
+                if item_type == "PowerBIReport":
+                    filtered_items.append({**item, "Type": "PowerBIReport"})
         else:
-             # Assume PowerBIReports or similar specific endpoint returns desired items directly
-             filtered_items = items
+            folder_paths = _get_pbirs_folder_paths(request)
+            for item in items:
+                item_path = item.get("Path", "")
+                if not item_path:
+                    continue
+
+                item_type = _normalize_pbirs_item_type(item)
+                if item_type == "Folder":
+                    continue
+                if _normalize_pbirs_path(item_path) in folder_paths:
+                    continue
+
+                filtered_items.append({**item, "Type": "PowerBIReport"})
 
         cache.set(cache_key, filtered_items, timeout=200) 
         return filtered_items
@@ -121,7 +219,7 @@ def get_powerbi_reports(request, endpoint="CatalogItems"):
 #                    Local DB report listing (uses UserReportPermission instead of PBIRS API)                   #
 #################################################################################################################
 
-def get_local_reports_for_user(user):
+def get_local_reports_for_user(user, request=None):
     """
     Get accessible reports from the local DB instead of calling PBIRS API.
     Uses UserReportPermission + ReportRef tables populated at login.
@@ -136,6 +234,18 @@ def get_local_reports_for_user(user):
             user=user
         ).values_list('report_id', flat=True)
         report_refs = ReportRef.objects.filter(id__in=permitted_report_ids)
+
+    folder_paths = _get_pbirs_folder_paths(request) if request is not None else set()
+
+    # Exclude known PBIRS folders first (source of truth).
+    if folder_paths:
+        report_refs = [
+            ref for ref in report_refs
+            if _normalize_pbirs_path(ref.path) not in folder_paths
+        ]
+
+    # Defensive fallback for historical cache pollution.
+    report_refs = _filter_reportref_to_leaf_items(report_refs)
 
     base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
     reports = []
@@ -190,6 +300,73 @@ def get_local_folders_from_reports(reports):
         })
 
     return folders
+
+
+def _filter_reportref_to_leaf_items(report_refs):
+    """
+    Defensive filter for assignment lists.
+
+    Keeps only leaf paths so folder-like cached rows do not appear as reports.
+    """
+    refs = list(report_refs)
+    normalized_paths = {}
+    for ref in refs:
+        path = (ref.path or "").strip()
+        normalized_paths[ref.id] = path.rstrip("/") if path != "/" else "/"
+
+    leaf_refs = []
+    for ref in refs:
+        path = normalized_paths.get(ref.id, "")
+        if not path or path == "/":
+            continue
+
+        path_prefix = f"{path}/"
+        has_children = any(
+            other_path.startswith(path_prefix)
+            for other_id, other_path in normalized_paths.items()
+            if other_id != ref.id and other_path
+        )
+
+        if not has_children:
+            leaf_refs.append(ref)
+
+    return leaf_refs
+
+
+def _get_assignable_reports_from_pbirs(request):
+    """
+    Fetch assignable reports from PBIRS with strict type filtering.
+
+    Returns local ReportRef rows linked to the live PBIRS report IDs only.
+    """
+    pbirs_reports = get_powerbi_reports(request, endpoint="CatalogItems")
+    if not pbirs_reports:
+        return []
+
+    base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
+    valid_pbirs_ids = []
+    for report in pbirs_reports:
+        pbirs_id = report.get('Id')
+        if not pbirs_id:
+            continue
+
+        valid_pbirs_ids.append(pbirs_id)
+        name = report.get('Name', 'Unnamed')
+        path = report.get('Path', '')
+        clean_path = path.strip('/')
+        encoded_path = urllib.parse.quote(clean_path, safe='/')
+        embed_url = f"{base_embed_url}{encoded_path}?rs:embed=true"
+
+        ReportRef.objects.update_or_create(
+            pbirs_id=pbirs_id,
+            defaults={
+                'name': name,
+                'path': path,
+                'embed_url': embed_url,
+            }
+        )
+
+    return list(ReportRef.objects.filter(pbirs_id__in=valid_pbirs_ids).order_by('name'))
 
 #################################################################################################################
 #                    Retrieves permissions for a specific Power BI report                                       #
@@ -334,7 +511,7 @@ def get_folder_list(request):
 def report_list(request):
     query = request.GET.get('q', '').strip()
     # Use local DB instead of PBIRS API for listing
-    reports = get_local_reports_for_user(request.user)
+    reports = get_local_reports_for_user(request.user, request=request)
     
     # Filter by search query
     if query:
@@ -768,8 +945,23 @@ def download_report(request, report_id):
 
 @login_required
 def report_list_flat(request):
-    # Use local DB instead of PBIRS API for listing
-    reports = get_local_reports_for_user(request.user)
+    # Use live PBIRS data with strict report-only filtering to avoid stale folder rows.
+    pbirs_reports = get_powerbi_reports(request, endpoint="CatalogItems")
+    base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
+    reports = []
+    for report in pbirs_reports:
+        path = report.get("Path", "")
+        clean_path = path.strip("/")
+        encoded_path = urllib.parse.quote(clean_path, safe="/")
+        embed_url = f"{base_embed_url}{encoded_path}?rs:embed=true"
+        reports.append({
+            "Id": report.get("Id"),
+            "Name": report.get("Name", "Unnamed"),
+            "Path": path,
+            "Type": "PowerBIReport",
+            "embed_url": embed_url,
+        })
+
     # Filter by search query
     query = request.GET.get('q', '').strip()
     if query:
@@ -805,7 +997,7 @@ def report_list_flat(request):
 def report_list_hierarchy(request, folder_path=""):
     force_refresh = request.GET.get('force_refresh', 'false').lower() == 'true'
     # Use local DB instead of PBIRS API for listing
-    items = get_local_reports_for_user(request.user)
+    items = get_local_reports_for_user(request.user, request=request)
     # Also include derived folders so the hierarchy builds correctly
     items += get_local_folders_from_reports(items)
     base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
@@ -974,7 +1166,7 @@ def upload_powerbi_report(request):
 @login_required
 def report_folders_list(request, folder_path=""):
     # Use local DB instead of PBIRS API for listing
-    reports = get_local_reports_for_user(request.user)
+    reports = get_local_reports_for_user(request.user, request=request)
     folders = get_local_folders_from_reports(reports)
     base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
     folder_dict = {}
@@ -3310,12 +3502,25 @@ def get_visible_report_ids(request):
     logger = logging.getLogger(__name__)
     
     # Get from local database
-    local_permissions = UserReportPermission.objects.filter(user=user)
+    local_permissions = UserReportPermission.objects.filter(user=user).select_related('report')
     if not local_permissions.exists():
         logger.warning(f"No local permissions found for {user.username}. User may need to log out and log back in.")
         return set()
-    
-    return set(local_permissions.values_list('report__pbirs_id', flat=True))
+
+    folder_paths = _get_pbirs_folder_paths(request)
+    if folder_paths:
+        filtered_permissions = []
+        for perm in local_permissions:
+            report_path = _normalize_pbirs_path(perm.report.path if perm.report else "")
+            if report_path and report_path in folder_paths:
+                continue
+            filtered_permissions.append(perm)
+        local_permissions = filtered_permissions
+
+    # Defensive fallback for historical cache pollution.
+    permission_reports = [perm.report for perm in local_permissions if getattr(perm, "report_id", None)]
+    leaf_reports = _filter_reportref_to_leaf_items(permission_reports)
+    return {report.pbirs_id for report in leaf_reports if report.pbirs_id}
 
 
 def get_visible_folders(request, view_type):
@@ -3345,13 +3550,19 @@ def get_visible_reports_in_folder(request, folder):
     Get reports in a specific folder that the user has access to via PBIRS.
     """
     visible_ids = get_visible_report_ids(request)
+    folder_paths = _get_pbirs_folder_paths(request)
     
     # Get reports assigned to this folder
-    folder_items = FolderReportItem.objects.filter(folder=folder).select_related('report')
+    folder_items = list(FolderReportItem.objects.filter(folder=folder).select_related('report'))
+    leaf_report_ids = {
+        report.id for report in _filter_reportref_to_leaf_items([item.report for item in folder_items if item.report_id])
+    }
     
     visible_reports = []
     for item in folder_items:
-        if item.report.pbirs_id in visible_ids:
+        if folder_paths and _normalize_pbirs_path(item.report.path) in folder_paths:
+            continue
+        if item.report.id in leaf_report_ids and item.report.pbirs_id in visible_ids:
             visible_reports.append({
                 'id': item.report.id,
                 'pbirs_id': item.report.pbirs_id,
@@ -3374,12 +3585,19 @@ def sync_reports_from_pbirs(request):
         messages.error(request, "Only administrators can sync reports.")
         return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_business'))
     
-    pbirs_reports = get_powerbi_reports(request)
+    # Use PowerBIReports + folder path exclusion to avoid folder pollution.
+    pbirs_reports = get_powerbi_reports(request, endpoint="PowerBIReports")
+    folder_paths = _get_pbirs_folder_paths(request)
     base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
     
     synced_count = 0
+    valid_pbirs_ids = set()
     for report in pbirs_reports:
         pbirs_id = report.get('Id')
+        if not pbirs_id:
+            continue
+
+        valid_pbirs_ids.add(pbirs_id)
         name = report.get('Name', 'Unnamed')
         path = report.get('Path', '')
         
@@ -3398,22 +3616,36 @@ def sync_reports_from_pbirs(request):
             }
         )
         synced_count += 1
+
+    # Remove known folder rows from ReportRef (bad historical cache pollution).
+    removed_folder_count = 0
+    if folder_paths:
+        folder_ref_ids = [
+            ref.id
+            for ref in ReportRef.objects.only('id', 'path')
+            if _normalize_pbirs_path(ref.path) in folder_paths
+        ]
+        if folder_ref_ids:
+            removed_folder_count, _ = ReportRef.objects.filter(id__in=folder_ref_ids).delete()
+
+    # Remove stale cached entries not present in latest PBIRS report list.
+    removed_count = 0
+    if valid_pbirs_ids:
+        removed_count, _ = ReportRef.objects.exclude(pbirs_id__in=valid_pbirs_ids).delete()
     
     messages.success(request, f"Successfully synced {synced_count} reports from PBIRS.")
+    if removed_folder_count:
+        messages.info(request, f"Removed {removed_folder_count} folder rows from report cache.")
+    if removed_count:
+        messages.info(request, f"Cleaned {removed_count} stale cached items.")
     log_history(request.user, f"Synced {synced_count} reports from PBIRS to local cache")
     
-    # Trigger permission sync to ensure new reports have correct permissions
-    try:
-        # Use session password if available for better access scope
-        ldap_password = request.session.get('ldap_password')
-        users, perms = sync_all_user_permissions(
-            triggered_by=request.user,
-            user_for_auth=request.user,
-            password_for_auth=ldap_password
-        )
-        messages.info(request, f"Permissions auto-refreshed: {users} users updated.")
-    except Exception as e:
-        logger.error(f"Auto-sync permissions failed: {e}")
+    # Do not run full permission sync inline here; it can be long-running.
+    # Use the dedicated "sync permissions" action instead.
+    messages.info(
+        request,
+        "Reports synced. Use 'Synchroniser Permission' to refresh permissions."
+    )
     
     return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_business'))
 
@@ -3486,7 +3718,7 @@ def custom_folders_list(request, view_type='business', folder_id=None):
     # Get all reports for assignment modal (admin only)
     all_reports = []
     if request.user.is_superuser:
-        all_reports = ReportRef.objects.all().order_by('name')
+        all_reports = _get_assignable_reports_from_pbirs(request)
     
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
@@ -3744,7 +3976,7 @@ def get_available_reports_json(request):
     if not request.user.is_superuser:
         return JsonResponse({'error': 'Unauthorized'}, status=403)
     
-    reports = ReportRef.objects.all().order_by('name')
+    reports = _get_assignable_reports_from_pbirs(request)
     report_list = [
         {
             'id': r.id,

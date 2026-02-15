@@ -37,6 +37,16 @@ POWERBI_REPORT_SERVER_URL = config('POWERBI_REPORT_SERVER_URL')
 LDAP_SERVER_NAME = config('LDAP_SERVER_NAME')
 LDAP_DOMAIN = config('LDAP_DOMAIN')
 LDAP_SEARCH_BASE = config('LDAP_SEARCH_BASE')
+LDAP_PORT = config('LDAP_PORT', default=389, cast=int)
+LDAP_USE_SSL = config('LDAP_USE_SSL', default=False, cast=bool)
+LDAP_CONNECT_TIMEOUT = config('LDAP_CONNECT_TIMEOUT', default=8, cast=int)
+LDAP_RECEIVE_TIMEOUT = config('LDAP_RECEIVE_TIMEOUT', default=20, cast=int)
+LDAP_ENABLE_PORT_FALLBACK = config('LDAP_ENABLE_PORT_FALLBACK', default=True, cast=bool)
+LDAP_SERVER_ALTERNATES = [
+    host.strip()
+    for host in config('LDAP_SERVER_ALTERNATES', default='').split(',')
+    if host.strip()
+]
 
 # LDAP Service Account (for user sync operations)
 LDAP_SERVICE_USERNAME = config('LDAP_SERVICE_USERNAME', default='')

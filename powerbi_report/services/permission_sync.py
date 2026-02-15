@@ -16,7 +16,7 @@ from django.utils import timezone
 
 from users.models import CustomUser
 from powerbi_report.models import ReportRef, UserReportPermission, PermissionSyncLog
-from django.db import transaction
+from django.db import transaction, connection
 
 logger = logging.getLogger('powerbi_report')
 
@@ -30,6 +30,7 @@ class PermissionSyncService:
     """
     
     DEFAULT_TIMEOUT = 15
+    BULK_BATCH_SIZE = 5000
     
     def __init__(self, triggered_by=None):
         """
@@ -80,13 +81,64 @@ class PermissionSyncService:
             response.raise_for_status()
             
             items = response.json().get('value', [])
-            # PowerBIReports endpoint returns only reports, so no Type filter needed
-            return items
+            folder_paths = self._fetch_folder_paths_for_auth(auth)
+
+            filtered_reports = []
+            for item in items:
+                item_path = item.get("Path", "")
+                if not item_path:
+                    continue
+
+                item_type = self._normalize_pbirs_item_type(item)
+                if item_type == "Folder":
+                    continue
+                if item_path in folder_paths:
+                    continue
+
+                filtered_reports.append(item)
+
+            return filtered_reports
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to fetch reports: {e}")
             if hasattr(e, 'response') and e.response is not None:
                  logger.error(f"Response content: {e.response.text}")
             return []
+
+    @staticmethod
+    def _normalize_pbirs_item_type(item: dict) -> str:
+        """Normalize PBIRS type fields to canonical values."""
+        raw_type = item.get("TypeName", item.get("Type"))
+
+        if isinstance(raw_type, str):
+            normalized = raw_type.strip().lower()
+            if normalized == "folder":
+                return "Folder"
+            if normalized in {"powerbireport", "report"}:
+                return "PowerBIReport"
+            if normalized.isdigit():
+                raw_type = int(normalized)
+            else:
+                return raw_type
+
+        if isinstance(raw_type, int):
+            if raw_type == 1:
+                return "Folder"
+            if raw_type in (2, 13):
+                return "PowerBIReport"
+
+        return ""
+
+    def _fetch_folder_paths_for_auth(self, auth) -> set[str]:
+        """Fetch folder paths from PBIRS using provided auth."""
+        try:
+            url = f"{self.base_url}/Reports/api/v2.0/Folders"
+            response = requests.get(url, auth=auth, timeout=30)
+            response.raise_for_status()
+            items = response.json().get("value", [])
+            return {item.get("Path", "") for item in items if item.get("Path")}
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Failed to fetch folder paths: {e}")
+            return set()
     
     def _fetch_all_reports_as_admin(self):
         """Fetch all reports using service account."""
@@ -228,44 +280,42 @@ class PermissionSyncService:
             
             self._sync_reports_to_local(all_reports)
             
-            # Get all active users
-            users = CustomUser.objects.filter(is_active=True)
-            users_synced = 0
-            total_permissions = 0
-            
-            # For users who have logged in recently (password in session won't work here)
-            # We'll use the service account approach: grant access to all reports
-            # that the service account can see
-            
-            # Alternative: Use PBIRS policies to determine access
-            # For now, we'll sync all users to see all reports the service account can see
-            # This effectively means: if service account can see it, all users can see it
-            
-            # Get all ReportRef objects
-            all_report_refs = ReportRef.objects.all()
-            
-            for user in users:
-                # Clear old permissions
-                UserReportPermission.objects.filter(user=user).delete()
-                
-                # For each user, we need to determine their accessible reports
-                # Since we can't impersonate users without their passwords,
-                # we'll grant all users access to all reports the service account can see
-                # 
-                # In a production system, you would:
-                # 1. Read PBIRS folder/report policies (which contain AD groups)
-                # 2. Check which AD groups the user belongs to
-                # 3. Grant permissions accordingly
-                
-                # For now, grant all users access to all synced reports
-                permissions_created = 0
-                for report in all_report_refs:
-                    UserReportPermission.objects.create(user=user, report=report)
-                    permissions_created += 1
-                
-                users_synced += 1
-                total_permissions += permissions_created
-                logger.debug(f"Synced {permissions_created} permissions for {user.username}")
+            # Get all active users and synced report IDs.
+            users = list(
+                CustomUser.objects.filter(is_active=True).only('id', 'username')
+            )
+            report_ids = list(ReportRef.objects.values_list('id', flat=True))
+            users_synced = len(users)
+            total_permissions = users_synced * len(report_ids)
+
+            # Rebuild the permission table in bulk to avoid per-row CRUD signal overhead.
+            with transaction.atomic():
+                self._clear_user_report_permissions_fast()
+
+                if users and report_ids:
+                    permissions_buffer = []
+                    for user in users:
+                        for report_id in report_ids:
+                            permissions_buffer.append(
+                                UserReportPermission(
+                                    user_id=user.id,
+                                    report_id=report_id,
+                                    is_direct=False
+                                )
+                            )
+
+                            if len(permissions_buffer) >= self.BULK_BATCH_SIZE:
+                                UserReportPermission.objects.bulk_create(
+                                    permissions_buffer,
+                                    batch_size=self.BULK_BATCH_SIZE
+                                )
+                                permissions_buffer.clear()
+
+                    if permissions_buffer:
+                        UserReportPermission.objects.bulk_create(
+                            permissions_buffer,
+                            batch_size=self.BULK_BATCH_SIZE
+                        )
             
             # Update sync log
             self.sync_log.status = 'completed'
@@ -285,6 +335,19 @@ class PermissionSyncService:
                 self.sync_log.completed_at = timezone.now()
                 self.sync_log.save()
             raise
+
+    def _clear_user_report_permissions_fast(self):
+        """
+        Clear UserReportPermission rows using SQL to avoid per-row delete signals.
+
+        This is significantly faster than ORM `delete()` for full-table rebuilds.
+        """
+        table_name = connection.ops.quote_name(UserReportPermission._meta.db_table)
+        with connection.cursor() as cursor:
+            if connection.vendor == 'postgresql':
+                cursor.execute(f"TRUNCATE TABLE {table_name} RESTART IDENTITY")
+            else:
+                cursor.execute(f"DELETE FROM {table_name}")
     
     def sync_permissions_on_login(self, user, password):
         """

@@ -21,6 +21,15 @@ from .ldap_utils import connexion_ad2000, get_ad_users
 from .utils import log_history, get_user_permissions
 from powerbi_report.services import sync_user_permissions_on_login
 
+
+def _normalize_ad_groups(raw_groups):
+    """Normalize LDAP group payload into a clean list of strings."""
+    if not raw_groups:
+        return []
+    if not isinstance(raw_groups, list):
+        raw_groups = [raw_groups]
+    return [str(group).strip() for group in raw_groups if str(group).strip()]
+
 #################################################################################################################
 #                    Handles user login with LDAP authentication                                                #
 #################################################################################################################
@@ -578,9 +587,9 @@ def permissions_list(request, role_id):
 #################################################################################################################
 @login_required
 def sync_users(request):
-    if not request.user.role or request.user.role.name.lower() != "admin":
+    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
         messages.error(request, "You do not have permission to perform this action.")
-        return redirect('report_list')  
+        return redirect('powerbi_report:report_list')  
 
     # Use default LDAP service account for user synchronization
     ldap_username = settings.LDAP_SERVICE_USERNAME
@@ -608,6 +617,7 @@ def sync_users(request):
     for ldap_user in ldap_users:
         ad2000 = ldap_user.get("ad2000", "").strip()
         sam_account = ldap_user.get("sAMAccountName", "").strip()
+        ldap_groups = _normalize_ad_groups(ldap_user.get("ad_groups", []))
         
         # Fallback to sAMAccountName if ad2000 (extensionAttribute1) is empty or just "[]"
         if not ad2000 or ad2000 == "[]":
@@ -642,7 +652,7 @@ def sync_users(request):
                     first_name=ldap_user.get("name", "").split(' ')[0],
                     last_name=" ".join(ldap_user.get("name", "").split(' ')[1:]),
                     email=ldap_user.get("mail", "").strip(),
-                    ad_groups=ldap_user.get("ad_groups", []),
+                    ad_groups=ldap_groups,
                     role=user_role,
                     status="Not Active"
                 )
@@ -652,15 +662,20 @@ def sync_users(request):
             except Exception as e:
                 print(f"[SYNC DEBUG] Failed to save user {sam_account}: {e}")
         else:
-            # Update société for existing users if not set
-            if not user.societe and ldap_user.get("company"):
-                user.societe = ldap_user.get("company", "").strip()
-                user.save(update_fields=['societe'])
-            
-            # Update AD groups for existing users
-            if ldap_user.get("ad_groups"):
-                user.ad_groups = ldap_user.get("ad_groups", [])
-                user.save(update_fields=['ad_groups'])
+            # Minimize expensive model.save() calls (signals/audit) to avoid sync timeouts.
+            update_fields = {}
+
+            company = ldap_user.get("company", "").strip()
+            if not user.societe and company:
+                update_fields["societe"] = company
+
+            if ldap_groups:
+                existing_groups = _normalize_ad_groups(user.ad_groups)
+                if set(existing_groups) != set(ldap_groups):
+                    update_fields["ad_groups"] = ldap_groups
+
+            if update_fields:
+                CustomUser.objects.filter(pk=user.pk).update(**update_fields)
             
             already_exist += 1
 
