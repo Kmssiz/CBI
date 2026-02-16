@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='ticket',
             name='category',
-            field=models.CharField(choices=[('bibliotheque', 'Bibliothèque'), ('cbi', 'CBI')], default='cbi', max_length=20),
+            field=models.CharField(choices=[('cbi', 'CBI'), ('bibliotheque', 'Bibliothèque')], default='cbi', max_length=20),
         ),
         migrations.AlterField(
             model_name='ticket',

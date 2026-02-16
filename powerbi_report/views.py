@@ -333,6 +333,20 @@ def _filter_reportref_to_leaf_items(report_refs):
     return leaf_refs
 
 
+def _format_granted_reports_message(report_names: list[str]) -> str:
+    """
+    Build a concise user-facing granted-access message.
+    Example: "You have been granted access to 1 report(s): Sales Report"
+    """
+    cleaned_names = [
+        (name or "").strip()
+        for name in report_names
+        if (name or "").strip()
+    ]
+    details = ", ".join(cleaned_names) if cleaned_names else "N/A"
+    return f"You have been granted access to {len(cleaned_names)} report(s): {details}"
+
+
 def _get_assignable_reports_from_pbirs(request):
     """
     Fetch assignable reports from PBIRS with strict type filtering.
@@ -1858,15 +1872,32 @@ def get_group_members(group_name, visited_groups=None, depth=0, max_depth=10):
 
 def report_permissions(request, report_id):
     reports = get_powerbi_reports(request)
-    report = next((r for r in reports if r['Id'] == report_id), None)
+    lookup_id = str(report_id).casefold()
+    report = next(
+        (r for r in reports if str(r.get('Id', '')).casefold() == lookup_id),
+        None
+    )
+
+    # Fallback to local cache source used by report_list to avoid false 404s
+    # when PBIRS listing is temporarily unavailable or ID casing differs.
     if not report:
-        log_history(request.user, f"Attempted to view permissions for non-existent report ID: {report_id}")
-        raise Http404("Report not found")
-    
-    report_name = report.get('Name', 'Unknown Report') 
+        report_ref = ReportRef.objects.filter(pbirs_id__iexact=report_id).first()
+        if report_ref:
+            report = {
+                "Id": report_ref.pbirs_id,
+                "Name": report_ref.name,
+                "Path": report_ref.path,
+                "Type": "PowerBIReport",
+            }
+        else:
+            log_history(request.user, f"Attempted to view permissions for non-existent report ID: {report_id}")
+            raise Http404("Report not found")
+
+    canonical_report_id = report.get("Id", report_id)
+    report_name = report.get('Name', 'Unknown Report')
     # log_history(request.user, f"Viewed permissions for Power BI report: {report_name} (ID: {report_id})") 
 
-    policies = get_report_permissions(request, report_id)
+    policies = get_report_permissions(request, canonical_report_id)
     if not policies:
         parent_folder_id = report.get("ParentFolderId")
         if parent_folder_id:
@@ -1936,7 +1967,7 @@ def report_permissions(request, report_id):
     permissions = get_user_permissions(request.user)
 
     return render(request, 'powerbi_report/report_permissions.html', {
-        'report_id': report_id,
+        'report_id': canonical_report_id,
         'report_name': report_name,  
         'policies': processed_policies,
         'notifications': notifications,
@@ -1962,6 +1993,11 @@ def add_users_to_report(request, report_id, username):
         url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
         
         allowed_account = username  
+        try:
+            user = CustomUser.objects.get(ad2000=username)
+        except ObjectDoesNotExist:
+            messages.error(request, f"User with username '{username}' does not exist.")
+            return redirect('powerbi_report:missing_users', report_id=report_id)
         
         current_policies = get_report_permissions(request, report_id)
         if not isinstance(current_policies, list):
@@ -1971,25 +2007,17 @@ def add_users_to_report(request, report_id, username):
             policy.get("GroupUserName", "").lower() == allowed_account.lower()
             for policy in current_policies
         )
+
+        roles = [{"Name": "Explorateur"}]
+        if user.role and user.role.name.lower() == "admin":
+            roles.extend([
+                {"Name": "Gestionnaire de contenu"},
+                {"Name": "Mes rapports"},
+                {"Name": "Report Builder"},
+                {"Name": "Serveur de publication"}
+            ])
         
         if not permission_exists:
-            try:
-                user = CustomUser.objects.get(ad2000=username)  
-            except ObjectDoesNotExist:
-                messages.error(request, f"User with username '{username}' does not exist.")
-                return redirect('powerbi_report:missing_users', report_id=report_id)
-            
-            if user.role and user.role.name.lower() == "admin": 
-                roles = [
-                    {"Name": "Explorateur"},
-                    {"Name": "Gestionnaire de contenu"},
-                    {"Name": "Mes rapports"},
-                    {"Name": "Report Builder"},
-                    {"Name": "Serveur de publication"}
-                ]
-            else:
-                roles = [{"Name": "Explorateur"}]
-            
             new_policy = {
                 "GroupUserName": allowed_account,
                 "Roles": roles
@@ -2010,15 +2038,21 @@ def add_users_to_report(request, report_id, username):
             response.raise_for_status()
             messages.success(request, f"Successfully added permissions for user {username} to report.")
             log_history(request.user, f"Added permission for user {username} to report (ID: {report_id}) with roles {', '.join(role['Name'] for role in roles)}")
+
+            info = get_powerbi_report_info(request, report_id)
+            report_name = (info or {}).get("name") or report_id
+
             # Notify the affected user
             Notification.objects.create(
                 user=user,
-                message=f"You have been granted access to the report (ID:{report_id}) by {request.user.username}."
+                message=_format_granted_reports_message([report_name])
             )
 
             # Notify admin users
             admin_users = CustomUser.objects.filter(is_superuser=True)
             for admin in admin_users:
+                if admin.id == user.id:
+                    continue
                 Notification.objects.create(
                     user=admin,
                     message=f"User {username} has been granted access to report (ID: {report_id}) by {request.user.username}."
@@ -2086,20 +2120,26 @@ def add_selected_users_to_report(request, report_id):
             response.raise_for_status()
             messages.success(request, f"Successfully added {len(new_users_added)} user(s) to report permissions.")
             log_history(request.user, f"Added users {', '.join(new_users_added)} to report (ID: {report_id})")
+
+            selected_users_lower = {u.lower() for u in new_users_added}
             admin_users = CustomUser.objects.filter(is_superuser=True)
             for admin in admin_users:
+                admin_identifier = (admin.ad2000 or admin.username or "").lower()
+                if admin_identifier in selected_users_lower:
+                    continue
                 Notification.objects.create(
                     user=admin,
                     message=f"Users {', '.join(new_users_added)} have been granted access to report {info['name']} (ID: {report_id}) from {info['path']} by {request.user.username}."
                 )
-            for username in new_users_added:
-                user_obj = CustomUser.objects.filter(ad2000__iexact=username).first()
+            for added_username in new_users_added:
+                user_obj = CustomUser.objects.filter(ad2000__iexact=added_username).first()
                 if user_obj:
                     Notification.objects.create(
                         user=user_obj,
-                        message=f"You have been granted access to the report {info['name']} (ID: {report_id}) from {info['path']} by {request.user.username}."
+                        message=_format_granted_reports_message([info['name']])
                     )
-                    print(f"User with ad2000={username} not found for notification.")
+                else:
+                    print(f"User with ad2000={added_username} not found for notification.")
 
             _update_report_metadata(report_id, request.user)
             return redirect('powerbi_report:missing_users', report_id=report_id)
@@ -2732,6 +2772,12 @@ def add_permission_to_server(request, report_id, username):
         url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
         
         allowed_account = username  
+        try:
+            user = CustomUser.objects.get(ad2000=username)
+        except ObjectDoesNotExist:
+            messages.error(request, f"User with username '{username}' does not exist.")
+            return redirect('powerbi_report:missing_permissions', username=username)
+
         current_policies = cache.get_or_set(
             f"report_permissions_{report_id}",
             lambda: get_report_permissions(request, report_id),
@@ -2745,23 +2791,17 @@ def add_permission_to_server(request, report_id, username):
             policy.get("GroupUserName", "").lower() == allowed_account.lower()
             for policy in current_policies
         )
+
+        roles = [{"Name": "Explorateur"}]
+        if user.role and user.role.name.lower() == "admin":
+            roles.extend([
+                {"Name": "Gestionnaire de contenu"},
+                {"Name": "Mes rapports"},
+                {"Name": "Report Builder"},
+                {"Name": "Serveur de publication"}
+            ])
         
         if not permission_exists:
-            try:
-                user = CustomUser.objects.get(ad2000=username)  
-            except ObjectDoesNotExist:
-                messages.error(request, f"User with username '{username}' does not exist.")
-                return redirect('powerbi_report:missing_permissions', username=username)
-            
-            roles = [{"Name": "Explorateur"}]
-            if user.role and user.role.name.lower() == "admin": 
-                roles.extend([
-                    {"Name": "Gestionnaire de contenu"},
-                    {"Name": "Mes rapports"},
-                    {"Name": "Report Builder"},
-                    {"Name": "Serveur de publication"}
-                ])
-            
             new_policy = {
                 "GroupUserName": allowed_account,
                 "Roles": roles
@@ -2788,10 +2828,12 @@ def add_permission_to_server(request, report_id, username):
 
             Notification.objects.create(
                 user=user,
-                message=f"You have been granted access to the report {info['name']} (ID: {report_id}) in {info['path']} by {request.user.username}."
+                message=_format_granted_reports_message([info['name']])
             )
             admin_users = CustomUser.objects.filter(is_superuser=True)
             for admin in admin_users:
+                if admin.id == user.id:
+                    continue
                 Notification.objects.create(
                     user=admin,
                     message=f"User {username} has been granted access to report {info['name']} (ID: {report_id}) in {info['path']} by {request.user.username}."
@@ -2824,7 +2866,7 @@ def add_all_permissions(request, username):
         auth = get_current_user_auth(request)
         headers = {"Content-Type": "application/json"}
          
-        granted_reports = []
+        granted_report_names = []
 
         for report in all_reports:
             policies = get_report_permissions(request, report['Id'])
@@ -2858,16 +2900,14 @@ def add_all_permissions(request, username):
                 try:
                     response = requests.put(url, json=payload, auth=auth, headers=headers)
                     response.raise_for_status()
-                    granted_reports.append(report['Id'])
+                    granted_report_names.append(report.get('Name') or report.get('Id', 'Unknown Report'))
 
                 except Exception as e:
                     print(f"Error adding permission for report {report['Id']}: {e}")
-        if granted_reports:
-            user_obj=CustomUser.objects.get(ad2000__iexact=username)
-
+        if granted_report_names:
             Notification.objects.create(
                 user=user_obj,
-                message=f"You have been granted access to {len(granted_reports)} reports."
+                message=_format_granted_reports_message(granted_report_names)
             )
         return redirect('powerbi_report:missing_permissions', username=username)
     return HttpResponse("Method not allowed", status=405)
@@ -2939,14 +2979,17 @@ def add_selected_permissions(request, username):
         
         if granted_reports:
             # Notify the affected user
+            report_names = [name for _, name, _ in granted_reports]
             report_details = ", ".join([f"{name} (ID: {rid}) in {path}" for rid, name, path in granted_reports])
             Notification.objects.create(
                 user=user_obj,
-                message=f"You have been granted access to {len(granted_reports)} report(s): {report_details} by {request.user.username}."
+                message=_format_granted_reports_message(report_names)
             )
             # Notify admin users
             admin_users = CustomUser.objects.filter(is_superuser=True)
             for admin in admin_users:
+                if admin.id == user_obj.id:
+                    continue
                 Notification.objects.create(
                     user=admin,
                     message=f"User {username} has been granted access to {len(granted_reports)} report(s): {report_details} by {request.user.username}."

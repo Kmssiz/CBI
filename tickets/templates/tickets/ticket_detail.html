@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block header_title %}Détails du Ticket{% endblock %}
+{% block header_title %}Details du ticket{% endblock %}
 {% block header_subtitle %}#{{ ticket.id }} - {{ ticket.title }}{% endblock %}
 
 {% block content %}
@@ -21,20 +21,20 @@
     {% endfor %}
   </div>
   {% endif %}
+
   <div class="mb-8">
     <a href="{% url 'tickets:ticket_list' %}" class="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors mb-4 text-sm font-bold uppercase tracking-wider">
       <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-      Retour à la liste
+      Retour a la liste
     </a>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    <!-- Main Content -->
     <div class="lg:col-span-2 space-y-6">
       <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-xl p-6 lg:p-8 shadow-xl shadow-black/5 dark:shadow-black/20">
         <div class="flex items-start justify-between gap-4 mb-6">
           <h1 class="text-2xl font-bold text-slate-900 dark:text-white">{{ ticket.title }}</h1>
-          <span class="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold 
+          <span class="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold
             {% if ticket.ticket_type == 'bug' %}bg-red-500/10 text-red-500 border border-red-500/20
             {% elif ticket.ticket_type == 'dashboard' %}bg-purple-500/10 text-purple-500 border border-purple-500/20
             {% elif ticket.ticket_type == 'refresh' %}bg-blue-500/10 text-blue-500 border border-blue-500/20
@@ -45,117 +45,173 @@
             {{ ticket.get_ticket_type_display }}
           </span>
         </div>
-        
+
         <div class="prose prose-slate dark:prose-invert max-w-none">
           <p class="text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{{ ticket.description }}</p>
         </div>
 
-        <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800/50 flex items-center justify-between text-sm text-slate-500">
-            <div class="flex items-center gap-2">
-                <div class="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
-                    {{ ticket.created_by.username|slice:":1"|upper }}
-                </div>
-                <span>Créé par <span class="text-slate-900 dark:text-white font-medium">{{ ticket.created_by.get_full_name|default:ticket.created_by.username }}</span></span>
-            </div>
-            <span>{{ ticket.created_at|date:"d F Y à H:i" }}</span>
+        {% if ticket.attachment %}
+        <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800/50">
+          <div class="flex items-center justify-between gap-3 mb-3">
+            <h2 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Piece jointe</h2>
+            <a href="{{ ticket.attachment.url }}" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-primary hover:text-blue-600 transition-colors">Ouvrir l'image</a>
+          </div>
+          <a href="{{ ticket.attachment.url }}" target="_blank" rel="noopener noreferrer" class="block rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700/50">
+            <img src="{{ ticket.attachment.url }}" alt="Piece jointe du ticket {{ ticket.id }}" class="w-full max-h-[420px] object-contain bg-slate-50 dark:bg-surface-dark">
+          </a>
         </div>
+        {% endif %}
+
+        <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800/50 flex items-center justify-between text-sm text-slate-500">
+          <div class="flex items-center gap-2">
+            <div class="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
+              {{ ticket.created_by.username|slice:":1"|upper }}
+            </div>
+            <span>Cree par <span class="text-slate-900 dark:text-white font-medium">{{ ticket.created_by.get_full_name|default:ticket.created_by.username }}</span></span>
+          </div>
+          <span>{{ ticket.created_at|date:"d/m/Y H:i" }}</span>
+        </div>
+      </div>
+
+      <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xl shadow-black/5 dark:shadow-black/20">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <h2 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Messages</h2>
+          <span class="text-xs text-slate-500">{{ ticket_messages|length }} total</span>
+        </div>
+
+        <div class="space-y-4 mb-6">
+          {% for ticket_message in ticket_messages %}
+          <article class="p-4 rounded-lg border {% if ticket_message.sender_id == user.id %}bg-primary/5 border-primary/20{% else %}bg-slate-50 dark:bg-surface-dark border-slate-200 dark:border-slate-700/50{% endif %}">
+            <div class="flex items-center justify-between gap-3 mb-2">
+              <div class="flex items-center gap-2">
+                <div class="size-7 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-[11px]">
+                  {{ ticket_message.sender.username|slice:":1"|upper }}
+                </div>
+                <span class="text-sm font-semibold text-slate-900 dark:text-white">{{ ticket_message.sender.get_full_name|default:ticket_message.sender.username }}</span>
+              </div>
+              <span class="text-xs text-slate-500">{{ ticket_message.created_at|date:"d/m/Y H:i" }}</span>
+            </div>
+            <p class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{{ ticket_message.content }}</p>
+          </article>
+          {% empty %}
+          <div class="p-4 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 text-sm text-slate-500">
+            Aucun message pour le moment.
+          </div>
+          {% endfor %}
+        </div>
+
+        <form action="{% url 'tickets:add_message' ticket.id %}" method="post" class="space-y-3">
+          {% csrf_token %}
+          <label for="{{ message_form.content.id_for_label }}" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nouveau message</label>
+          {{ message_form.content }}
+          {% if message_form.content.errors %}
+          <p class="text-xs text-red-500">{{ message_form.content.errors|join:", " }}</p>
+          {% endif %}
+          <div class="flex justify-end">
+            <button type="submit" class="px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-bold text-sm transition-all flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">send</span>
+              Envoyer
+            </button>
+          </div>
+        </form>
       </div>
     </div>
 
-    <!-- Sidebar Info -->
     <div class="space-y-6">
       <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xl shadow-black/5 dark:shadow-black/20">
         <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4 border-b border-slate-200 dark:border-slate-800 pb-2">Informations</h3>
-        
+
         <div class="space-y-4">
           <div>
-            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Catégorie</span>
+            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Categorie</span>
             <div class="px-3 py-2 bg-slate-50 dark:bg-surface-dark rounded-lg border border-slate-200 dark:border-slate-800 text-sm font-bold text-slate-900 dark:text-white">
-                {{ ticket.get_category_display }}
+              {{ ticket.get_category_display }}
             </div>
           </div>
 
+          {% if is_admin %}
+          <form action="{% url 'tickets:update_ticket_info' ticket.id %}" method="post" class="space-y-4">
+            {% csrf_token %}
+          {% endif %}
+
           <div>
             <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Statut</span>
-            {% if user.is_superuser or 'admin' in user.groups.all.0.name %}
-            <form action="{% url 'tickets:change_status' ticket.id %}" method="post">
-                {% csrf_token %}
-                <div class="relative">
-                    <select name="status" class="w-full bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all appearance-none" onchange="this.form.submit()">
-                        <option value="open" {% if ticket.status == 'open' %}selected{% endif %}>Open</option>
-                        <option value="in_progress" {% if ticket.status == 'in_progress' %}selected{% endif %}>In Progress</option>
-                        <option value="closed" {% if ticket.status == 'closed' %}selected{% endif %}>Closed</option>
-                        <option value="rejected" {% if ticket.status == 'rejected' %}selected{% endif %}>Rejected</option>
-                    </select>
-                    <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-500">
-                        <span class="material-symbols-outlined text-[16px]">expand_more</span>
-                    </div>
-                </div>
-            </form>
+            {% if is_admin %}
+            <div class="relative">
+              <select name="status" class="w-full bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all appearance-none">
+                {% for value, label in ticket.STATUS_CHOICES %}
+                <option value="{{ value }}" {% if ticket.status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+              <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-500">
+                <span class="material-symbols-outlined text-[16px]">expand_more</span>
+              </div>
+            </div>
             {% else %}
             <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-bold w-full justify-center
-                {% if ticket.status == 'open' %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
-                {% elif ticket.status == 'in_progress' %}bg-blue-500/10 text-blue-400 border border-blue-500/20
-                {% elif ticket.status == 'closed' %}bg-slate-700/50 text-slate-400 border border-slate-600/50
-                {% elif ticket.status == 'rejected' %}bg-red-900/20 text-red-400 border border-red-900/40{% endif %}">
-                {{ ticket.get_status_display }}
+              {% if ticket.status == 'open' %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
+              {% elif ticket.status == 'in_progress' %}bg-blue-500/10 text-blue-400 border border-blue-500/20
+              {% elif ticket.status == 'closed' %}bg-slate-700/50 text-slate-400 border border-slate-600/50
+              {% elif ticket.status == 'rejected' %}bg-red-900/20 text-red-400 border border-red-900/40{% endif %}">
+              {{ ticket.get_status_display }}
             </span>
             {% endif %}
           </div>
 
           <div>
-            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Priorité</span>
+            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Priorite</span>
             <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-surface-dark rounded-lg border border-slate-200 dark:border-slate-800">
-                {% if ticket.priority == 'high' %}
-                  <span class="size-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></span> <span class="text-red-400 font-medium text-sm">Haute</span>
-                {% elif ticket.priority == 'medium' %}
-                  <span class="size-2.5 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]"></span> <span class="text-yellow-400 font-medium text-sm">Moyenne</span>
-                {% else %}
-                  <span class="size-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></span> <span class="text-green-400 font-medium text-sm">Basse</span>
-                {% endif %}
+              {% if ticket.priority == 'high' %}
+              <span class="size-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></span> <span class="text-red-400 font-medium text-sm">Haute</span>
+              {% elif ticket.priority == 'medium' %}
+              <span class="size-2.5 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]"></span> <span class="text-yellow-400 font-medium text-sm">Moyenne</span>
+              {% else %}
+              <span class="size-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></span> <span class="text-green-400 font-medium text-sm">Basse</span>
+              {% endif %}
             </div>
           </div>
 
           <div>
-            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Dernière mise à jour</span>
+            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Derniere mise a jour</span>
             <div class="px-3 py-2 bg-slate-50 dark:bg-surface-dark rounded-lg border border-slate-200 dark:border-slate-800 text-sm text-slate-500 dark:text-slate-400">
-                {{ ticket.updated_at|timesince }} ago
+              {{ ticket.updated_at|date:"d/m/Y H:i" }}
             </div>
           </div>
 
-          <!-- Assignment Section (Admins Only) -->
-          {% if user.is_superuser or 'admin' in user.groups.all.0.name %}
+          {% if is_admin %}
           <div>
-            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Assigné à</span>
-            <form action="{% url 'tickets:assign_ticket' ticket.id %}" method="post" class="flex flex-col gap-2">
-                {% csrf_token %}
-                <div class="relative">
-                    <select name="assigned_to" class="w-full bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all appearance-none" onchange="this.form.submit()">
-                        <option value="">-- Non assigné --</option>
-                        {% for admin in admins %}
-                        <option value="{{ admin.id }}" {% if ticket.assigned_to == admin %}selected{% endif %}>
-                            {{ admin.get_full_name|default:admin.username }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-500">
-                        <span class="material-symbols-outlined text-[16px]">expand_more</span>
-                    </div>
-                </div>
-            </form>
-          </div>
-          {% else %}
-            {% if ticket.assigned_to %}
-            <div>
-                <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Assigné à</span>
-                <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-surface-dark rounded-lg border border-slate-200 dark:border-slate-800">
-                    <div class="size-6 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-[10px]">
-                        {{ ticket.assigned_to.username|slice:":1"|upper }}
-                    </div>
-                    <span class="text-sm font-medium text-slate-900 dark:text-white">{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}</span>
-                </div>
+            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Assigne a</span>
+            <div class="relative">
+              <select name="assigned_to" class="w-full bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all appearance-none">
+                <option value="">-- Non assigne --</option>
+                {% for admin in admins %}
+                <option value="{{ admin.id }}" {% if ticket.assigned_to_id == admin.id %}selected{% endif %}>
+                  {{ admin.get_full_name|default:admin.username }}
+                </option>
+                {% endfor %}
+              </select>
+              <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-500">
+                <span class="material-symbols-outlined text-[16px]">expand_more</span>
+              </div>
             </div>
-            {% endif %}
+          </div>
+          <div>
+            <button type="submit" class="w-full px-3 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold uppercase tracking-wider transition-colors">Mettre a jour</button>
+          </div>
+          {% elif ticket.assigned_to %}
+          <div>
+            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Assigne a</span>
+            <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-surface-dark rounded-lg border border-slate-200 dark:border-slate-800">
+              <div class="size-6 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-[10px]">
+                {{ ticket.assigned_to.username|slice:":1"|upper }}
+              </div>
+              <span class="text-sm font-medium text-slate-900 dark:text-white">{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}</span>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if is_admin %}
+          </form>
           {% endif %}
         </div>
       </div>

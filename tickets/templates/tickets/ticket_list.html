@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block header_title %}Système de Tickets{% endblock %}
-{% block header_subtitle %}Gérez vos demandes et signalez des bugs{% endblock %}
+{% block header_title %}Systeme de tickets{% endblock %}
+{% block header_subtitle %}Gerez vos demandes et signalez des bugs{% endblock %}
 
 {% block content %}
 <div class="p-4 lg:p-8 max-w-7xl mx-auto">
@@ -21,14 +21,15 @@
     {% endfor %}
   </div>
   {% endif %}
+
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
     <div>
-      <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Vos Tickets</h2>
-      <p class="text-slate-500 dark:text-slate-400 text-sm">Consultez l'état de vos demandes et rapports.</p>
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Vos tickets</h2>
+      <p class="text-slate-500 dark:text-slate-400 text-sm">Consultez l'etat de vos demandes et signalements.</p>
     </div>
     <a href="{% url 'tickets:create_ticket' %}" class="px-4 py-2 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2">
       <span class="material-symbols-outlined text-[20px]">add</span>
-      Nouveau Ticket
+      Nouveau ticket
     </a>
   </div>
 
@@ -39,11 +40,11 @@
           <tr class="bg-slate-50 dark:bg-surface-dark border-b border-slate-200 dark:border-slate-800 text-xs uppercase tracking-wider text-slate-500 font-bold">
             <th class="p-4">Titre</th>
             <th class="p-4">Type</th>
-            <th class="p-4">Catégorie</th>
-            <th class="p-4">Priorité</th>
+            <th class="p-4">Categorie</th>
+            <th class="p-4">Priorite</th>
             <th class="p-4">Statut</th>
-            <th class="p-4">Assigné à</th>
-            <th class="p-4">Date de Création</th>
+            <th class="p-4">Assigne a</th>
+            <th class="p-4">Date de creation</th>
             <th class="p-4 text-right">Actions</th>
           </tr>
         </thead>
@@ -54,7 +55,7 @@
               <a href="{% url 'tickets:ticket_detail' ticket.id %}" class="font-bold text-slate-900 dark:text-white hover:text-primary transition-colors block">{{ ticket.title }}</a>
             </td>
             <td class="p-4">
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold 
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold
                 {% if ticket.ticket_type == 'bug' %}bg-red-500/10 text-red-500 border border-red-500/20
                 {% elif ticket.ticket_type == 'dashboard' %}bg-purple-500/10 text-purple-500 border border-purple-500/20
                 {% elif ticket.ticket_type == 'refresh' %}bg-blue-500/10 text-blue-500 border border-blue-500/20
@@ -71,11 +72,11 @@
             <td class="p-4">
               <div class="flex items-center gap-2">
                 {% if ticket.priority == 'high' %}
-                  <span class="size-2 rounded-full bg-red-500"></span> <span class="text-red-400 font-medium">Haute</span>
+                <span class="size-2 rounded-full bg-red-500"></span> <span class="text-red-400 font-medium">Haute</span>
                 {% elif ticket.priority == 'medium' %}
-                  <span class="size-2 rounded-full bg-yellow-500"></span> <span class="text-yellow-400 font-medium">Moyenne</span>
+                <span class="size-2 rounded-full bg-yellow-500"></span> <span class="text-yellow-400 font-medium">Moyenne</span>
                 {% else %}
-                  <span class="size-2 rounded-full bg-green-500"></span> <span class="text-green-400 font-medium">Basse</span>
+                <span class="size-2 rounded-full bg-green-500"></span> <span class="text-green-400 font-medium">Basse</span>
                 {% endif %}
               </div>
             </td>
@@ -99,7 +100,7 @@
               {% endif %}
             </td>
             <td class="p-4 text-slate-400 text-sm">
-              {{ ticket.created_at|date:"d M Y" }}
+              {{ ticket.created_at|date:"d/m/Y" }}
             </td>
             <td class="p-4 text-right">
               <a href="{% url 'tickets:ticket_detail' ticket.id %}" class="text-slate-500 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-lg inline-flex">
@@ -112,10 +113,10 @@
             <td colspan="8" class="p-8 text-center text-slate-500">
               <div class="flex flex-col items-center justify-center">
                 <div class="size-16 rounded-full bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center mb-4">
-                    <span class="material-symbols-outlined text-3xl opacity-50">confirmation_number</span>
+                  <span class="material-symbols-outlined text-3xl opacity-50">confirmation_number</span>
                 </div>
-                <p class="font-medium">Aucun ticket trouvé</p>
-                <p class="text-xs mt-1 opacity-70">Créez votre premier ticket pour commencer.</p>
+                <p class="font-medium">Aucun ticket trouve</p>
+                <p class="text-xs mt-1 opacity-70">Creez votre premier ticket pour commencer.</p>
               </div>
             </td>
           </tr>
