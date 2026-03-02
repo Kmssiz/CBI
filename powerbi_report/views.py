@@ -29,7 +29,7 @@ from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import Count
-from django.db.models.functions import TruncMonth, TruncDay, TruncDate, TruncHour
+from django.db.models.functions import TruncMonth, TruncDay, TruncDate, TruncHour, TruncQuarter, TruncYear
 from django.http import Http404, HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -335,8 +335,8 @@ def _filter_reportref_to_leaf_items(report_refs):
 
 def _format_granted_reports_message(report_names: list[str]) -> str:
     """
-    Build a concise user-facing granted-access message.
-    Example: "You have been granted access to 1 report(s): Sales Report"
+    Build a concise user-facing granted-access message in French.
+    Example: "Vous avez obtenu l'accès à 1 rapport(s) : Sales Report"
     """
     cleaned_names = [
         (name or "").strip()
@@ -344,7 +344,7 @@ def _format_granted_reports_message(report_names: list[str]) -> str:
         if (name or "").strip()
     ]
     details = ", ".join(cleaned_names) if cleaned_names else "N/A"
-    return f"You have been granted access to {len(cleaned_names)} report(s): {details}"
+    return f"Vous avez obtenu l'accès à {len(cleaned_names)} rapport(s) : {details}"
 
 
 def _get_assignable_reports_from_pbirs(request):
@@ -619,14 +619,14 @@ def edit_powerbi_report_name(request, report_id):
             response.raise_for_status()
             messages.success(request, "Report name updated successfully!")
             # Record log
-            log_history(request.user, f"Updated report name to '{new_name}' for report ID '{report_id}'")
+            log_history(request.user, f"Nom du rapport mis à jour à '{new_name}' pour l'ID '{report_id}'")
 
             # Notify all admin users
             admin_users = CustomUser.objects.filter(is_superuser=True)
             for admin in admin_users:
                 Notification.objects.create(
                     user=admin,
-                    message=f"Report with ID '{report_id}' has been renamed to '{new_name}' by {request.user.username}."
+                    message=f"Le rapport (ID : '{report_id}') a été renommé en '{new_name}' par {request.user.username}."
                 )
             print(f"Sent notifications to {len(admin_users)} admin users about renaming report ID '{report_id}' to '{new_name}'.")
             # Clear the cache for the current user
@@ -748,7 +748,7 @@ def replace_powerbi_report(request, report_id):
             
             report_name = report_path.split('/')[-1]
             messages.success(request, f"Le rapport '{report_name}' a été remplacé avec succès.")
-            log_history(request.user, f"Replaced Power BI report: {report_path}")
+            log_history(request.user, f"Rapport Power BI remplacé : {report_path}")
             
             # Clear the cache for the current user
             user_id = request.user.id
@@ -816,14 +816,14 @@ def edit_powerbi_report_description(request, report_id):
             
             messages.success(request, "Report description updated successfully!")
             _update_report_metadata(report_id, request.user)
-            log_history(request.user, f"Updated description for report {info['name']} ID: {report_id}  path {info['path']} to '{new_description}'")
+            log_history(request.user, f"Description mise à jour pour le rapport {info['name']} ID: {report_id} chemin {info['path']} à '{new_description}'")
             
             # Notify admin users
             admin_users = CustomUser.objects.filter(is_superuser=True)
             for admin in admin_users:
                 Notification.objects.create(
                     user=admin,
-                    message=f"Updated description for report: (ID: {report_id}) with description '{new_description}' by {request.user.username}."
+                    message=f"Description mise à jour pour le rapport (ID : {report_id}) avec la description '{new_description}' par {request.user.username}."
                 )
         except requests.exceptions.RequestException as e:
             messages.error(request, f"Failed to update report description: {e}")
@@ -871,7 +871,7 @@ def embed_report(request, report_path):
 
         notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
         unread = Notification.objects.filter(user=request.user, is_read=False).count()
-        # log_history(request.user, f"Viewed Power BI report: {report_path} (ID: {report_id})")
+        # log_history(request.user, f"Rapport Power BI consulté : {report_path} (ID : {report_id})")
         permissions = get_user_permissions(request.user)
 
         return render(request, "powerbi_report/embed_report.html", {
@@ -934,7 +934,7 @@ def download_report(request, report_id):
                 content_type='application/octet-stream'
             )
             file_response['Content-Disposition'] = f'attachment; filename="report_{info["name"]}.pbix"'
-            # log_history(request.user, f"Successfully download report {info['name']} from {info['path']}.")
+            # log_history(request.user, f"Rapport {info['name']} téléchargé avec succès depuis {info['path']}.")
             return file_response
         elif response.status_code == 403:
             logger.error(f"Download forbidden for report {report_id} by user {request.user.username}: {response.text}")
@@ -957,6 +957,14 @@ def download_report(request, report_id):
 #                    Displays a flat list of Power BI reports for authenticated users                           #
 #################################################################################################################
 
+# Mapping of context values to their PBIRS root folder paths.
+CONTEXT_ROOT_FOLDERS = {
+    'business': '/CBI',
+    'department': '/CBI',
+    'biblio': '/BI',
+    'anomalie': '/Anomalie',
+}
+
 @login_required
 def report_list_flat(request):
     # Use live PBIRS data with strict report-only filtering to avoid stale folder rows.
@@ -976,6 +984,12 @@ def report_list_flat(request):
             "embed_url": embed_url,
         })
 
+    # Filter to PBIRS root folder based on context parameter
+    context_param = request.GET.get('context', '').strip()
+    root_folder = CONTEXT_ROOT_FOLDERS.get(context_param)
+    if root_folder:
+        reports = [r for r in reports if r.get('Path', '').startswith(root_folder + '/')]
+
     # Filter by search query
     query = request.GET.get('q', '').strip()
     if query:
@@ -991,7 +1005,7 @@ def report_list_flat(request):
 
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = Notification.objects.filter(user=request.user, is_read=False).count()
-    # log_history(request.user, "Viewed Power BI report list (flat)")
+    # log_history(request.user, "Liste des rapports Power BI consultée (plate)")
     permissions = get_user_permissions(request.user)
 
     return render(request, 'powerbi_report/report_list_flat.html', {
@@ -1008,8 +1022,12 @@ def report_list_flat(request):
 #################################################################################################################
 
 @login_required
-def report_list_hierarchy(request, folder_path=""):
+def report_list_hierarchy(request, folder_path="", root_scope=None, view_type=None):
     force_refresh = request.GET.get('force_refresh', 'false').lower() == 'true'
+    # If root_scope is set and no folder_path given, start inside that root folder
+    if root_scope and not folder_path:
+        folder_path = root_scope.strip('/')
+
     # Use local DB instead of PBIRS API for listing
     items = get_local_reports_for_user(request.user, request=request)
     # Also include derived folders so the hierarchy builds correctly
@@ -1083,7 +1101,7 @@ def report_list_hierarchy(request, folder_path=""):
     unread = notifications.filter(is_read=False).count()
      # Log only when folder_path is root (empty or "/")
     # if not folder_path or folder_path == "/":
-        # log_history(request.user, "Viewed Power BI report list (hierarchy)")
+        # log_history(request.user, "Liste des rapports Power BI consultée (hiérarchie)")
 
     permissions = get_user_permissions(request.user)
 
@@ -1091,6 +1109,8 @@ def report_list_hierarchy(request, folder_path=""):
         'folder_structure': current_folder,
         'breadcrumbs': breadcrumbs,
         'current_path': folder_path,
+        'root_scope': root_scope or '',
+        'view_type': view_type or '',
         'notifications': notifications,
         'unread': unread,
         'permissions': permissions,
@@ -1147,7 +1167,7 @@ def upload_powerbi_report(request):
             response = session.post(api_url, headers=headers, files=files)
             response.raise_for_status()
             messages.success(request, f"Report '{report_name}' uploaded successfully.")
-            log_history(request.user, f"Uploaded Power BI report: {report_path}")
+            log_history(request.user, f"Rapport Power BI téléversé : {report_path}")
             # Clear the cache for the current user
             user_id = request.user.id
             cache_key = f"powerbi_reports_cache_{user_id}"
@@ -1159,7 +1179,7 @@ def upload_powerbi_report(request):
             for admin in admin_users:
                 Notification.objects.create(
                     user=admin,
-                    message=f"A new report '{report_name}' has been uploaded to {report_path} by {request.user.username}."
+                    message=f"Un nouveau rapport '{report_name}' a été téléversé dans {report_path} par {request.user.username}."
                 )
             print(f"Sent notifications to {len(admin_users)} admin users about new report '{report_name}'.")
 
@@ -1239,7 +1259,7 @@ def report_folders_list(request, folder_path=""):
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
 
-    # log_history(request.user, "Viewed Power BI report folders list")
+    # log_history(request.user, "Liste des dossiers de rapports Power BI consultée")
     permissions = get_user_permissions(request.user)
 
     return render(request, 'powerbi_report/report_folders_list.html', {
@@ -1279,7 +1299,7 @@ def add_powerbi_folder(request):
             response = session.post(url, json=payload)
             response.raise_for_status()
             # Record log
-            log_history(request.user, f"Created folder '{folder_name}'")
+            log_history(request.user, f"Dossier '{folder_name}' créé")
 
             # Notify all admin users
             admin_users = CustomUser.objects.filter(is_superuser=True)
@@ -1287,7 +1307,7 @@ def add_powerbi_folder(request):
             for admin in admin_users:
                 Notification.objects.create(
                     user=admin,
-                    message=f"A new folder '{folder_name}' has been created in '{folder_path}' by {request.user.username}."
+                    message=f"Un nouveau dossier '{folder_name}' a été créé dans '{folder_path}' par {request.user.username}."
                 )
             
             return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
@@ -1316,14 +1336,14 @@ def delete_powerbi_folder(request, folder_id):
             response = session.delete(url)
             response.raise_for_status()
             # Record log
-            log_history(request.user, f"Deleted folder with ID '{folder_id}'")
+            log_history(request.user, f"Dossier avec ID '{folder_id}' supprimé")
 
             # Notify all admin users
             admin_users = CustomUser.objects.filter(is_superuser=True)
             for admin in admin_users:
                 Notification.objects.create(
                     user=admin,
-                    message=f"Folder with ID '{folder_id}' has been deleted by {request.user.username}."
+                    message=f"Le dossier (ID : '{folder_id}') a été supprimé par {request.user.username}."
                 )
             
             return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
@@ -1389,7 +1409,7 @@ def report_detail(request, report_id):
     report_ref = ReportRef.objects.filter(pbirs_id=report_id).first()
     
     if not report_ref:
-        log_history(request.user, f"Attempted to view non-existent report ID: {report_id}")
+        log_history(request.user, f"Tentative d'accès à un rapport inexistant ID : {report_id}")
         raise Http404("Report not found")
     
     # Build report dict to match expected format
@@ -1398,8 +1418,7 @@ def report_detail(request, report_id):
         'Name': report_ref.name,
         'Path': report_ref.path,
     }
-    # log_history(request.user, f"Viewed Power BI report details: {report.get('Name', 'Unknown')} (ID: {report_id})")
-    # log_history(request.user, f"Viewed Power BI report details: {report.get('Name', 'Unknown')} (ID: {report_id})")
+    # log_history(request.user, f"Détails du rapport Power BI consultés : {report.get('Name', 'Inconnu')} (ID : {report_id})")
     refresh_plans = get_refresh_plans(report_id, request)
     shared_schedules = get_shared_schedules(request)
 
@@ -1417,7 +1436,7 @@ def report_detail(request, report_id):
 
         if not auth:
             messages.error(request, "Authentication failed.")
-            log_history(request.user, f"Authentication failed for {action} action on refresh plan ID: {refresh_plan_id} for report ID: {report_id}")
+            log_history(request.user, f"Échec d'authentification pour l'action {action} sur le plan d'actualisation ID : {refresh_plan_id} pour le rapport ID : {report_id}")
         else:
             if action == "refresh":
                 refresh_url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/CacheRefreshPlans({refresh_plan_id})/Model.Execute"
@@ -1425,21 +1444,21 @@ def report_detail(request, report_id):
                     response = requests.post(refresh_url, auth=auth, headers={"Content-Type": "application/json"})
                     response.raise_for_status()
                     messages.success(request, "Refresh started successfully!")
-                    log_history(request.user, f"Initiated refresh for plan ID: {refresh_plan_id} on report ID: {report_id}")
+                    log_history(request.user, f"Actualisation initiée pour le plan ID : {refresh_plan_id} sur le rapport ID : {report_id}")
                     
                     # Notify admin users
                     admin_users = CustomUser.objects.filter(is_superuser=True)
                     for admin in admin_users:
                         Notification.objects.create(
                             user=admin,
-                            message=f"Initiated refresh for plan ID: {refresh_plan_id} on report ID: {report_id} by {request.user.username}."
+                            message=f"Actualisation lancée pour le plan (ID : {refresh_plan_id}) sur le rapport (ID : {report_id}) par {request.user.username}."
                         )
                     return redirect('powerbi_report:report_detail', report_id=report_id)
 
                 except requests.exceptions.RequestException as err:
                     print(f"Refresh Error: {err}")
                     messages.error(request, "Failed to refresh report.")
-                    log_history(request.user, f"Failed to refresh plan ID: {refresh_plan_id} for report ID: {report_id}. Error: {str(err)}")
+                    log_history(request.user, f"Échec de l'actualisation du plan ID : {refresh_plan_id} pour le rapport ID : {report_id}. Erreur : {str(err)}")
                     return redirect('powerbi_report:report_detail', report_id=report_id)
 
             elif action == "delete":
@@ -1448,20 +1467,20 @@ def report_detail(request, report_id):
                     response = requests.delete(delete_url, auth=auth)
                     response.raise_for_status()
                     messages.success(request, "Refresh plan deleted successfully!")
-                    log_history(request.user, f"Deleted refresh plan ID: {refresh_plan_id} for report ID: {report_id}")
+                    log_history(request.user, f"Plan d'actualisation ID : {refresh_plan_id} supprimé pour le rapport ID : {report_id}")
                      # Notify admin users
                     admin_users = CustomUser.objects.filter(is_superuser=True)
                     for admin in admin_users:
                         Notification.objects.create(
                             user=admin,
-                            message=f"Deleted refresh plan ID: {refresh_plan_id} for report ID: {report_id} by {request.user.username}."
+                            message=f"Plan d'actualisation (ID : {refresh_plan_id}) supprimé pour le rapport (ID : {report_id}) par {request.user.username}."
                         )
                     return redirect('powerbi_report:report_detail', report_id=report_id)
 
                 except requests.exceptions.RequestException as err:
                     print(f"Delete Error: {err}")
                     messages.error(request, "Failed to delete refresh plan.")
-                    log_history(request.user, f"Failed to delete refresh plan ID: {refresh_plan_id} for report ID: {report_id}. Error: {str(err)}")
+                    log_history(request.user, f"Échec de la suppression du plan ID : {refresh_plan_id} pour le rapport ID : {report_id}. Erreur : {str(err)}")
                     return redirect('powerbi_report:report_detail', report_id=report_id)
 
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
@@ -1637,12 +1656,12 @@ def add_refresh_plan(request, report_id):
 
             if response.status_code == 201:
                 messages.success(request, "Refresh plan added successfully.")
-                log_history(request.user, f"Added refresh plan for (ID: {report_id}) with description '{description}'")
+                log_history(request.user, f"Plan d'actualisation ajouté pour (ID : {report_id}) avec la description '{description}'")
                 admin_users = CustomUser.objects.filter(is_superuser=True)
                 for admin in admin_users:
                     Notification.objects.create(
                         user=admin,
-                        message=f"A new refresh plan for report '{description}' was added by {request.user.username}."
+                        message=f"Un nouveau plan d'actualisation pour le rapport '{description}' a été ajouté par {request.user.username}."
                     )
             else:
                 messages.error(request, f"Failed to add refresh plan: {response.text}")
@@ -1890,12 +1909,12 @@ def report_permissions(request, report_id):
                 "Type": "PowerBIReport",
             }
         else:
-            log_history(request.user, f"Attempted to view permissions for non-existent report ID: {report_id}")
+            log_history(request.user, f"Tentative d'accès aux permissions d'un rapport inexistant ID : {report_id}")
             raise Http404("Report not found")
 
     canonical_report_id = report.get("Id", report_id)
     report_name = report.get('Name', 'Unknown Report')
-    # log_history(request.user, f"Viewed permissions for Power BI report: {report_name} (ID: {report_id})") 
+    # log_history(request.user, f"Permissions du rapport Power BI consultées : {report_name} (ID : {report_id})")
 
     policies = get_report_permissions(request, canonical_report_id)
     if not policies:
@@ -2037,7 +2056,7 @@ def add_users_to_report(request, report_id, username):
             response = requests.put(url, json=payload, auth=auth, headers=headers)
             response.raise_for_status()
             messages.success(request, f"Successfully added permissions for user {username} to report.")
-            log_history(request.user, f"Added permission for user {username} to report (ID: {report_id}) with roles {', '.join(role['Name'] for role in roles)}")
+            log_history(request.user, f"Permission ajoutée pour l'utilisateur {username} au rapport (ID : {report_id}) avec les rôles {', '.join(role['Name'] for role in roles)}")
 
             info = get_powerbi_report_info(request, report_id)
             report_name = (info or {}).get("name") or report_id
@@ -2055,7 +2074,7 @@ def add_users_to_report(request, report_id, username):
                     continue
                 Notification.objects.create(
                     user=admin,
-                    message=f"User {username} has been granted access to report (ID: {report_id}) by {request.user.username}."
+                    message=f"L'utilisateur {username} a obtenu l'accès au rapport (ID : {report_id}) par {request.user.username}."
                 )
             
             _update_report_metadata(report_id, request.user)
@@ -2103,7 +2122,7 @@ def add_selected_users_to_report(request, report_id):
                 new_users_added.append(username)
 
         if not new_users_added:
-            log_history(request.user, f"No new users added to report (ID: {report_id}) as all selected users already have access")
+            log_history(request.user, f"Aucun nouvel utilisateur ajouté au rapport (ID : {report_id}) car tous les utilisateurs sélectionnés y ont déjà accès")
             messages.warning(request, "All selected users already have access to the report.")
             return redirect('powerbi_report:missing_users', report_id=report_id)
         
@@ -2119,7 +2138,7 @@ def add_selected_users_to_report(request, report_id):
             response = requests.put(url, json=payload, auth=auth, headers=headers)
             response.raise_for_status()
             messages.success(request, f"Successfully added {len(new_users_added)} user(s) to report permissions.")
-            log_history(request.user, f"Added users {', '.join(new_users_added)} to report (ID: {report_id})")
+            log_history(request.user, f"Utilisateurs ajoutés : {', '.join(new_users_added)} au rapport (ID : {report_id})")
 
             selected_users_lower = {u.lower() for u in new_users_added}
             admin_users = CustomUser.objects.filter(is_superuser=True)
@@ -2129,7 +2148,7 @@ def add_selected_users_to_report(request, report_id):
                     continue
                 Notification.objects.create(
                     user=admin,
-                    message=f"Users {', '.join(new_users_added)} have been granted access to report {info['name']} (ID: {report_id}) from {info['path']} by {request.user.username}."
+                    message=f"Les utilisateurs {', '.join(new_users_added)} ont obtenu l'accès au rapport {info['name']} (ID : {report_id}) dans {info['path']} par {request.user.username}."
                 )
             for added_username in new_users_added:
                 user_obj = CustomUser.objects.filter(ad2000__iexact=added_username).first()
@@ -2152,7 +2171,7 @@ def add_selected_users_to_report(request, report_id):
             messages.error(request, f"Failed to add permissions due to request error: {str(err)}")
             return redirect('powerbi_report:missing_users', report_id=report_id)
     
-    log_history(request.user, f"Invalid request method (not POST) for adding users to report ID: {report_id}")
+    log_history(request.user, f"Méthode de requête invalide (non POST) pour l'ajout d'utilisateurs au rapport ID : {report_id}")
     messages.error(request, "Invalid request method. Please use POST to add user permissions.")
     return redirect('powerbi_report:missing_users', report_id=report_id)
 #################################################################################################################
@@ -2259,18 +2278,18 @@ def remove_users_from_report(request, report_id, username):
             response = requests.put(url, json=payload, auth=auth, headers=headers)
             response.raise_for_status()
             messages.success(request, f"Successfully removed permissions for user {username} from report.")
-            log_history(request.user, f"Removed user {username} from report:(ID: {report_id})")
+            log_history(request.user, f"Utilisateur {username} retiré du rapport (ID : {report_id})")
             admin_users = CustomUser.objects.filter(is_superuser=True)
             for admin in admin_users:
                 Notification.objects.create(
                     user=admin,
-                    message=f"User {username} has had their access revoked from report {info['name']} (ID: {report_id}) from {info['path']} by {request.user.username}."
+                    message=f"L'accès de l'utilisateur {username} au rapport {info['name']} (ID : {report_id}) dans {info['path']} a été retiré par {request.user.username}."
                 )
             user_obj = CustomUser.objects.filter(ad2000__iexact=username).first()
             if user_obj:
                 Notification.objects.create(
                     user=user_obj,
-                    message=f"Your access to the report {info['name']} (ID: {report_id}) from {info['path']} has been revoked by {request.user.username}."
+                    message=f"Votre accès au rapport {info['name']} (ID : {report_id}) dans {info['path']} a été retiré par {request.user.username}."
                 )
             
             _update_report_metadata(report_id, request.user)
@@ -2329,14 +2348,14 @@ def remove_selected_users_from_report(request, report_id):
                 return redirect('powerbi_report:report_permissions', report_id=report_id)
 
             messages.success(request, f"Successfully removed {len(users_removed)} user(s) from report permissions.")
-            log_history(request.user, f"Removed users {', '.join(users_removed)} from report {info['name']} (ID: {report_id})")
+            log_history(request.user, f"Utilisateurs {', '.join(users_removed)} retirés du rapport {info['name']} (ID : {report_id})")
 
             # Notify admin users
             admin_users = CustomUser.objects.filter(is_superuser=True)
             for admin in admin_users:
                 Notification.objects.create(
                     user=admin,
-                    message=f"Users {', '.join(users_removed)} have had their access revoked from report {info['name']} (ID: {report_id}) from {info['path']} by {request.user.username}."
+                    message=f"L'accès des utilisateurs {', '.join(users_removed)} au rapport {info['name']} (ID : {report_id}) dans {info['path']} a été retiré par {request.user.username}."
                 )
             # Notify users who lost access
             for username in users_removed:
@@ -2344,7 +2363,7 @@ def remove_selected_users_from_report(request, report_id):
                 if user_obj:
                     Notification.objects.create(
                         user=user_obj,
-                        message=f"Your access to the report {info['name']} (ID: {report_id}) from {info['path']} has been revoked by {request.user.username}."
+                        message=f"Votre accès au rapport {info['name']} (ID : {report_id}) dans {info['path']} a été retiré par {request.user.username}."
                     )
                     print(f"User with ad2000={username} not found for notification.")
 
@@ -2389,7 +2408,7 @@ def missing_users(request, report_id):
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = Notification.objects.filter(user=request.user, is_read=False).count()
     permissions = get_user_permissions(request.user)
-    log_history(request.user, f"Viewed no access permissions for report: (ID: {report_id})")
+    log_history(request.user, f"Permissions manquantes consultées pour le rapport (ID : {report_id})")
     context = {
         'report_id': report_id,
         'missing_users': missing_users,
@@ -2529,9 +2548,9 @@ def user_permission(request, username):
                 UserReportPermission.objects.bulk_create(new_permissions)
                 messages.success(request, f"Permissions synchronisées avec succès : {len(new_permissions)} rapports trouvés.")
             else:
-                 # If no reports allowed, clear existing permissions
-                UserReportPermission.objects.filter(user=selected_user).delete()
-                messages.warning(request, "Aucune permission trouvée sur le serveur pour cet utilisateur.")
+                # No permissions found via per-report ACL API (may be inherited from folder).
+                # Do NOT delete existing local permissions to avoid false resets.
+                messages.warning(request, "La vérification PBIRS n'a pas retourné de résultats directs. Les permissions locales restent inchangées (les accès hérités via dossier ne sont pas détectés par cette méthode).")
 
         except Exception as e:
             logger.error(f"Error force syncing permissions: {e}")
@@ -2697,7 +2716,7 @@ def missing_permissions(request, username):
         if not is_allowed:
             missing_reports.append(report)
 
-    # log_history(request.user, f"Viewed no access report permissions for user :{username})")
+    log_history(request.user, f"Permissions incomplètes consultées pour l'utilisateur : {username}")
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
@@ -2836,7 +2855,7 @@ def add_permission_to_server(request, report_id, username):
                     continue
                 Notification.objects.create(
                     user=admin,
-                    message=f"User {username} has been granted access to report {info['name']} (ID: {report_id}) in {info['path']} by {request.user.username}."
+                    message=f"L'utilisateur {username} a obtenu l'accès au rapport {info['name']} (ID : {report_id}) dans {info['path']} par {request.user.username}."
                 )
             messages.success(request, f"Successfully added permissions for user {username} to report.")
             log_history(request.user, f"Added permission for user {username} to report {info['name']} (ID: {report_id}) in {info['path']} with roles {', '.join(role['Name'] for role in roles)}")
@@ -2992,7 +3011,7 @@ def add_selected_permissions(request, username):
                     continue
                 Notification.objects.create(
                     user=admin,
-                    message=f"User {username} has been granted access to {len(granted_reports)} report(s): {report_details} by {request.user.username}."
+                    message=f"L'utilisateur {username} a obtenu l'accès à {len(granted_reports)} rapport(s) : {report_details} par {request.user.username}."
                 )
             messages.success(request, f"Successfully added permissions for user {username} to {len(granted_reports)} report(s).")
             log_history(request.user, f"Added permissions for user {username} to reports: {report_details} with roles {', '.join(role['Name'] for role in roles)}")
@@ -3049,7 +3068,7 @@ def remove_permission_from_server(request, report_id, username):
                 user_obj = CustomUser.objects.get(ad2000__iexact=username)
                 Notification.objects.create(
                     user=user_obj,
-                    message=f"Your access to report {info['name']} (ID: {report_id}) in {info['path']} has been removed by {request.user.username}."
+                    message=f"Votre accès au rapport {info['name']} (ID : {report_id}) dans {info['path']} a été retiré par {request.user.username}."
                 )
             except ObjectDoesNotExist:
                 print(f"User with ad2000={username} not found for notification.")
@@ -3059,7 +3078,7 @@ def remove_permission_from_server(request, report_id, username):
             for admin in admin_users:
                 Notification.objects.create(
                     user=admin,
-                    message=f"User {username} has had access removed from report {info['name']} (ID: {report_id}) in {info['path']} by {request.user.username}."
+                    message=f"L'accès de l'utilisateur {username} au rapport {info['name']} (ID : {report_id}) dans {info['path']} a été retiré par {request.user.username}."
                 )
             return redirect('powerbi_report:user_permission', username=username)
         except requests.exceptions.RequestException as e:
@@ -3126,7 +3145,7 @@ def remove_all_permissions(request, username):
                 print(f"Request Error for report {report_id}: {err}")
         
         user_obj = CustomUser.objects.get(ad2000__iexact=username)
-        message = "Your access to all reports has been removed."
+        message = "Votre accès à tous les rapports a été retiré."
         Notification.objects.create(user=user_obj, message=message)
         
         return redirect('powerbi_report:user_permission', username=username )
@@ -3194,14 +3213,14 @@ def remove_selected_permissions(request, username):
         report_details = ", ".join([f"{name} (ID: {rid}) in {path}" for rid, name, path in removed_reports])
         Notification.objects.create(
             user=user_obj,
-            message=f"Your access to {len(removed_reports)} report(s) has been removed: {report_details} by {request.user.username}."
+            message=f"Votre accès à {len(removed_reports)} rapport(s) a été retiré : {report_details} par {request.user.username}."
         )
         # Notify admin users
         admin_users = CustomUser.objects.filter(is_superuser=True)
         for admin in admin_users:
             Notification.objects.create(
                 user=admin,
-                message=f"User {username} has had access removed from {len(removed_reports)} report(s): {report_details} by {request.user.username}."
+                message=f"L'accès de l'utilisateur {username} a été retiré de {len(removed_reports)} rapport(s) : {report_details} par {request.user.username}."
             )
         messages.success(request, f"Successfully removed permissions for user {username} from {len(removed_reports)} report(s).")
         log_history(request.user, f"Removed permissions for user {username} from reports: {report_details}")
@@ -3239,7 +3258,7 @@ def dashboard(request):
         return render(request, 'home.html', cached_data)
 
     # Default dashboard data
-    total_users = CustomUser.objects.count()
+    total_users = CustomUser.objects.filter(last_login__isnull=False).count()
     active_users = CustomUser.objects.filter(last_login__isnull=False).count()
 
     now = timezone.now()
@@ -3322,41 +3341,45 @@ def dashboard(request):
         .order_by('hours')
     )
 
-    # ============ NEW: Enhanced BI Analytics ============
+    # ============ Dashboard KPIs ============
     
-    # Report distribution by view type (from CustomFolder)
     from .models import CustomFolder, ReportRef, FolderReportItem
     from users.models import UserHistory
     
-    reports_by_view_type = list(
-        CustomFolder.objects
-        .values('view_type')
-        .annotate(folder_count=Count('id'))
-        .order_by('view_type')
-    )
+    # --- KPI: Counts per category ---
+    # Dashboards = business + department view types
+    dashboard_report_count = FolderReportItem.objects.filter(
+        folder__view_type__in=['business', 'department']
+    ).values('report').distinct().count()
     
-    # Count reports in each view type
-    business_folders = CustomFolder.objects.filter(view_type='business')
-    biblio_folders = CustomFolder.objects.filter(view_type='biblio')
+    # Extraction reports = biblio view type
+    extraction_report_count = FolderReportItem.objects.filter(
+        folder__view_type='biblio'
+    ).values('report').distinct().count()
     
-    business_report_count = FolderReportItem.objects.filter(folder__view_type='business').count()
-    biblio_report_count = FolderReportItem.objects.filter(folder__view_type='biblio').count()
-    
-    report_distribution = [
-        {'name': 'Société', 'count': business_report_count, 'color': '#137fec'},
-        {'name': 'Bibliothèque', 'count': biblio_report_count, 'color': '#10b981'},
-    ]
+    # Anomaly reports = anomalie view type
+    anomaly_report_count = FolderReportItem.objects.filter(
+        folder__view_type='anomalie'
+    ).values('report').distinct().count()
     
     # Total synced reports
     total_synced_reports = ReportRef.objects.count()
     
-    # Top folders by report count
-    top_folders = list(
-        CustomFolder.objects
-        .annotate(report_count=Count('report_items'))
-        .filter(report_count__gt=0)
-        .order_by('-report_count')[:5]
-        .values('name', 'view_type', 'report_count')
+    # --- Most requested dashboards and extraction reports (from UserHistory) ---
+    from django.db.models import Q
+    
+    most_requested = list(
+        UserHistory.objects
+        .filter(
+            Q(action__icontains='Viewed report') |
+            Q(action__icontains='Accessed report') |
+            Q(action__icontains='opened report') |
+            Q(action__icontains='Viewed Business') |
+            Q(action__icontains='Viewed Department')
+        )
+        .values('action')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:10]
     )
     
     # Recent activity (last 10 actions)
@@ -3367,40 +3390,57 @@ def dashboard(request):
         .values('user__username', 'action', 'timestamp')
     )
     
-    # Users by company (societe)
+    # Users by company (societe) - only active users (logged in at least once)
     users_by_company = list(
         CustomUser.objects
+        .filter(last_login__isnull=False)
         .exclude(societe__isnull=True)
         .exclude(societe='')
         .values('societe')
         .annotate(count=Count('id'))
         .order_by('-count')[:6]
     )
+
+    # --- New reports per folder (anomalie + business) ---
+    from .models import FolderReportItem as FRI2
     
-    # Today vs yesterday logins
-    yesterday_start = start_of_day - timedelta(days=1)
-    yesterday_end = start_of_day
+    # Monthly breakdown for the current year
+    reports_per_folder_monthly = list(
+        FRI2.objects
+        .filter(
+            folder__view_type__in=['business', 'department', 'anomalie'],
+            report__last_synced__year=current_year
+        )
+        .annotate(month=TruncMonth('report__last_synced'))
+        .values('month', 'folder__view_type')
+        .annotate(count=Count('report', distinct=True))
+        .order_by('month')
+    )
     
-    logins_today = LoginEvent.objects.filter(
-        login_type=LoginEvent.LOGIN,
-        datetime__gte=start_of_day,
-        datetime__lt=end_of_day
-    ).count()
+    # Quarterly breakdown for the current year
+    reports_per_folder_quarterly = list(
+        FRI2.objects
+        .filter(
+            folder__view_type__in=['business', 'department', 'anomalie'],
+            report__last_synced__year=current_year
+        )
+        .annotate(quarter=TruncQuarter('report__last_synced'))
+        .values('quarter', 'folder__view_type')
+        .annotate(count=Count('report', distinct=True))
+        .order_by('quarter')
+    )
     
-    logins_yesterday = LoginEvent.objects.filter(
-        login_type=LoginEvent.LOGIN,
-        datetime__gte=yesterday_start,
-        datetime__lt=yesterday_end
-    ).count()
-    
-    login_trend = logins_today - logins_yesterday
-    login_trend_percent = round((login_trend / logins_yesterday * 100), 1) if logins_yesterday > 0 else 0
-    
-    # New users this month
-    new_users_this_month = CustomUser.objects.filter(
-        date_joined__year=current_year,
-        date_joined__month=current_month
-    ).count()
+    # Yearly breakdown
+    reports_per_folder_yearly = list(
+        FRI2.objects
+        .filter(
+            folder__view_type__in=['business', 'department', 'anomalie']
+        )
+        .annotate(year=TruncYear('report__last_synced'))
+        .values('year', 'folder__view_type')
+        .annotate(count=Count('report', distinct=True))
+        .order_by('year')
+    )
 
     context = {
         'total_users': total_users,
@@ -3414,19 +3454,17 @@ def dashboard(request):
         'daily_logins': list(daily_logins),
         'weekly_logins': list(weekly_logins),
         'hourly_logins': list(hourly_logins),
-        # New analytics data
-        'report_distribution': report_distribution,
+        # New KPIs
+        'dashboard_report_count': dashboard_report_count,
+        'extraction_report_count': extraction_report_count,
+        'anomaly_report_count': anomaly_report_count,
         'total_synced_reports': total_synced_reports,
-        'top_folders': top_folders,
+        'most_requested': most_requested,
         'recent_activity': recent_activity,
         'users_by_company': users_by_company,
-        'logins_today': logins_today,
-        'logins_yesterday': logins_yesterday,
-        'login_trend': login_trend,
-        'login_trend_percent': login_trend_percent,
-        'new_users_this_month': new_users_this_month,
-        'business_folder_count': business_folders.count(),
-        'biblio_folder_count': biblio_folders.count(),
+        'reports_per_folder_monthly': reports_per_folder_monthly,
+        'reports_per_folder_quarterly': reports_per_folder_quarterly,
+        'reports_per_folder_yearly': reports_per_folder_yearly,
     }
 
     if refresh_data:
@@ -3727,7 +3765,7 @@ def custom_folders_list(request, view_type='business', folder_id=None):
     Filters based on PBIRS permissions.
     """
     # Validate view type
-    if view_type not in ['business', 'department', 'biblio']:
+    if view_type not in ['business', 'department', 'biblio', 'anomalie']:
         raise Http404("Invalid view type")
     
     # Get the current folder if specified
@@ -3770,7 +3808,8 @@ def custom_folders_list(request, view_type='business', folder_id=None):
     view_titles = {
         'business': 'CBI',
         'department': 'Rapports par Pôle',
-        'biblio': 'Bibliothèque'
+        'biblio': 'Bibliothèque',
+        'anomalie': 'Anomalie',
     }
     view_title = view_titles.get(view_type, 'Dossiers personnalisés')
     
@@ -4062,7 +4101,7 @@ def delete_powerbi_report_server(request, report_id):
             for admin in admin_users:
                 Notification.objects.create(
                     user=admin,
-                    message=f"Report (ID: {report_id}) has been deleted from server by {request.user.username}."
+                    message=f"Le rapport (ID : {report_id}) a été supprimé du serveur par {request.user.username}."
                 )
             
             # Trigger permission sync to update local cache (remove deleted report permissions)

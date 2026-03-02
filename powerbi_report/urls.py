@@ -62,10 +62,13 @@ urlpatterns = [
     path('custom/business/<int:folder_id>/', views.custom_folders_list, {'view_type': 'business'}, name='custom_folder_detail'),
     path('custom/biblio/', views.custom_folders_list, {'view_type': 'biblio'}, name='custom_biblio'),
     path('custom/biblio/<int:folder_id>/', views.custom_folders_list, {'view_type': 'biblio'}, name='custom_folder_detail'),
+    path('custom/anomalie/', views.custom_folders_list, {'view_type': 'anomalie'}, name='custom_anomalie'),
+    path('custom/anomalie/<int:folder_id>/', views.custom_folders_list, {'view_type': 'anomalie'}, name='custom_folder_detail'),
     path('custom/folder/<str:view_type>/<int:folder_id>/report/<int:report_id>/', views.embed_custom_report, name='embed_custom_report'),
     # Department view uses the same view as Reports page (report_list_hierarchy)
-    path('custom/department/', views.report_list_hierarchy, name='custom_department'),
-    path('custom/department/<path:folder_path>/', views.report_list_hierarchy, name='custom_department_folder'),
+    # root_scope='CBI' pre-navigates into the /CBI folder so top-level shows Pôles
+    path('custom/department/', views.report_list_hierarchy, {'root_scope': 'CBI', 'view_type': 'department'}, name='custom_department'),
+    path('custom/department/<path:folder_path>/', views.report_list_hierarchy, {'root_scope': 'CBI', 'view_type': 'department'}, name='custom_department_folder'),
     
     # Custom Folder Management (Admin)
     path('custom/folder/create/<str:view_type>/', views.create_custom_folder, name='create_custom_folder'),

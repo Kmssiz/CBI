@@ -52,6 +52,7 @@ class CustomFolder(models.Model):
     VIEW_TYPE_CHOICES = [
         ('business', 'Business Folders'),
         ('department', 'Department/Role'),
+        ('anomalie', 'Anomalie'),
     ]
     
     name = models.CharField(max_length=255)

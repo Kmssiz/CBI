@@ -17,7 +17,7 @@ def log_history(user, action):
 def notifications_list(request):
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread=Notification.objects.filter(user=request.user, is_read=False).count()
-    # log_history(request.user, "Viewed notifications list")
+    # log_history(request.user, "Liste des notifications consultée")
     permissions = get_user_permissions(request.user)
 
     return render(request, 'notifications/notifications.html',{
@@ -31,7 +31,7 @@ def delete_notification(request, id):
     notification = get_object_or_404(Notification, pk=id)
 
     if request.method == 'POST':  
-        # log_history(request.user, f"Deleted notification {notification.id}")
+        # log_history(request.user, f"Notification supprimée {notification.id}")
         notification.delete()
         
         if request.headers.get('Content-Type') == 'application/json':
@@ -45,7 +45,7 @@ def delete_notification(request, id):
 def delete_all_notifications(request):
     notifications = Notification.objects.filter(user=request.user)
     count = notifications.count()  
-    # log_history(request.user, f"Deleted all notifications ({count} total)")
+    # log_history(request.user, f"Toutes les notifications supprimées ({count} au total)")
 
     if request.method == 'POST':
         notifications.delete()
@@ -66,7 +66,7 @@ def mark_notifications(request):
         count = notifications.count() 
         notifications.update(is_read=True)  
         
-        # log_history(request.user, f"Marked {count} notifications as read")
+        # log_history(request.user, f"{count} notifications marquées comme lues")
         
         if request.headers.get('Content-Type') == 'application/json':
             return JsonResponse({'success': True})
@@ -81,7 +81,7 @@ def mark_as_read(request, notification_id):
         notification = get_object_or_404(Notification, id=notification_id)
         notification.is_read = True
         notification.save()
-        # log_history(request.user, f"Marked notification {notification.id} as read")
+        # log_history(request.user, f"Notification {notification.id} marquée comme lue")
 
         return JsonResponse({"success": True})
     return JsonResponse({"success": False}, status=400)

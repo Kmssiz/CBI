@@ -19,12 +19,12 @@
 <div class="px-8 py-6">
     <!-- Display messages -->
     {% if messages %}
-    <div class="mb-6">
+    <div class="mb-6" id="alertContainer">
       {% for message in messages %}
-      <div class="flex items-center gap-3 p-4 rounded-xl {% if message.tags == 'error' %}bg-red-500/10 border border-red-500/20 text-red-400{% else %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% endif %} alert-dismissible fade show" role="alert">
+      <div class="alert-msg flex items-center gap-3 p-4 rounded-xl {% if message.tags == 'error' %}bg-red-500/10 border border-red-500/20 text-red-400{% else %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% endif %}" role="alert">
         <span class="material-symbols-outlined text-[20px]">{% if message.tags == 'error' %}error{% else %}check_circle{% endif %}</span>
         <span class="text-sm font-medium">{{ message }}</span>
-        <button type="button" class="ml-auto text-current opacity-50 hover:opacity-100 transition-opacity" data-bs-dismiss="alert">
+        <button type="button" class="ml-auto text-current opacity-50 hover:opacity-100 transition-opacity" onclick="this.closest('.alert-msg').remove()">
           <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
       </div>
@@ -46,8 +46,9 @@
 
     <!-- Filters Section -->
     <div class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-3xl p-6 mb-8 shadow-xl shadow-black/10">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
-            <div class="lg:col-span-4 space-y-2">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
+            <!-- Search -->
+            <div class="lg:col-span-3 space-y-2">
                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Rechercher</label>
                 <div class="relative">
                     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
@@ -55,7 +56,19 @@
                 </div>
             </div>
 
-            <div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- Type Filter (new) -->
+            <div class="lg:col-span-2 space-y-2">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Type</label>
+                <select id="typeFilter" class="w-full input-theme bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl py-2.5 px-4 text-sm text-slate-700 dark:text-slate-300 focus:border-primary/50 transition-all outline-none appearance-none">
+                    <option value="">Tous les types</option>
+                    <option value="CBI">CBI (Business / Pôle)</option>
+                    <option value="BI">Bibliothèque</option>
+                    <option value="Anomalie">Anomalie</option>
+                </select>
+            </div>
+
+            <!-- Pole / Société / Direction -->
+            <div class="lg:col-span-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="space-y-2">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Pôle</label>
                     <select id="poleFilter" class="w-full input-theme bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl py-2.5 px-4 text-sm text-slate-700 dark:text-slate-300 focus:border-primary/50 transition-all outline-none appearance-none">
@@ -98,7 +111,10 @@
                     <thead>
                         <tr class="border-b border-slate-200 dark:border-slate-800/50 bg-slate-50 dark:bg-white/[0.01]">
                             <th class="px-8 py-4 w-12 text-center">
-                                <input type="checkbox" id="selectAll" class="size-5 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 accent-primary cursor-pointer">
+                                <div class="flex items-center justify-center relative">
+                                    <input type="checkbox" id="selectAll" class="custom-checkbox peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 cursor-pointer transition-all">
+                                    <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+                                </div>
                             </th>
                             <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Rapport</th>
                             <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Chemin Serveur</th>
@@ -107,21 +123,24 @@
                     </thead>
                     <tbody class="divide-y divide-slate-200 dark:divide-slate-800/30">
                         {% for report in missing_reports %}
-                        <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group">
+                        <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group report-row">
                             <td class="px-8 py-5 text-center">
-                                <input type="checkbox" name="report_ids" value="{{ report.Id }}" class="reportCheckbox size-5 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 accent-primary cursor-pointer">
+                                <div class="flex items-center justify-center relative">
+                                    <input type="checkbox" name="report_ids" value="{{ report.Id }}" class="reportCheckbox custom-checkbox peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 cursor-pointer transition-all">
+                                    <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+                                </div>
                             </td>
                             <td class="px-8 py-5">
                                 <div class="flex items-center gap-3">
                                     <div class="size-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 group-hover:scale-110 transition-transform">
                                         <span class="material-symbols-outlined text-[20px]">bar_chart</span>
                                     </div>
-                                    <span class="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{{ report.Name }}</span>
+                                    <span class="report-name text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{{ report.Name }}</span>
                                 </div>
                             </td>
                             <td class="px-8 py-5">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[11px] text-slate-600 dark:text-slate-500 bg-slate-100 dark:bg-slate-900/50 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-800 max-w-md truncate" title="{{ report.Path }}">
+                                    <span class="report-path text-[11px] text-slate-600 dark:text-slate-500 bg-slate-100 dark:bg-slate-900/50 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-800 max-w-md truncate" title="{{ report.Path }}">
                                         {{ report.Path }}
                                     </span>
                                 </div>
@@ -164,13 +183,13 @@
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const reportTable = document.getElementById('reportTable');
-    const rows = reportTable ? reportTable.querySelectorAll('tbody tr') : [];
+    const rows = reportTable ? Array.from(reportTable.querySelectorAll('tbody tr.report-row')) : [];
+    const typeFilter = document.getElementById('typeFilter');
     const poleFilter = document.getElementById('poleFilter');
     const sousDirectionFilter = document.getElementById('sousDirectionFilter');
     const directionFilter = document.getElementById('directionFilter');
     const reportSearch = document.getElementById('reportSearch');
     const selectAllCheckbox = document.getElementById('selectAll');
-    const checkboxes = document.querySelectorAll('.reportCheckbox');
     const addSelectedBtn = document.getElementById('addSelectedBtn');
     const clearFiltersBtn = document.getElementById('clearFilters');
     const loadingPrompt = document.getElementById('loadingPrompt');
@@ -182,30 +201,31 @@
 
     // Extract path components and build relationships
     rows.forEach(row => {
-      const pathDisplay = row.querySelector('td:nth-child(3) span');
-      const path = pathDisplay ? pathDisplay.getAttribute('title') : '';
+      const pathElement = row.querySelector('.report-path');
+      const path = pathElement ? (pathElement.getAttribute('title') || pathElement.textContent.trim()) : '';
       if (!path) return;
       
       const parts = path.split('/').filter(part => part);
-      const pole = parts[0] || '';
-      let sousDirection = '';
-      let direction = '';
+      // parts[0] is the root (CBI, BI, Anomalie, etc.)
+      // For CBI paths: parts[1] is Pôle, parts[2] may be Direction or Société, etc.
+      const rootFolder = parts[0] || '';
+      const pole = parts[1] || '';
 
-      if (pole) {
+      if (rootFolder === 'CBI' && pole) {
         if (!pathData[pole]) {
           pathData[pole] = { sousDirections: new Set(), directions: {}, directDirections: new Set() };
         }
 
-        if (parts[1] && parts[1].toLowerCase().startsWith('direction')) {
-          direction = parts[1];
+        if (parts[2] && parts[2].toLowerCase().startsWith('direction')) {
+          const direction = parts[2];
           pathData[pole].directDirections.add(direction);
           allDirections.add(direction);
-        } else if (parts[1]) {
-          sousDirection = parts[1];
+        } else if (parts[2]) {
+          const sousDirection = parts[2];
           pathData[pole].sousDirections.add(sousDirection);
           allSousDirections.add(sousDirection);
-          if (parts[2] && parts[2].toLowerCase().startsWith('direction')) {
-            direction = parts[2];
+          if (parts[3] && parts[3].toLowerCase().startsWith('direction')) {
+            const direction = parts[3];
             if (!pathData[pole].directions[sousDirection]) {
               pathData[pole].directions[sousDirection] = new Set();
             }
@@ -216,15 +236,14 @@
       }
     });
 
-    // Populate Filters
+    // Populate Pole filter (only relevant for CBI)
     Object.keys(pathData).sort().forEach(pole => {
-      const option = new Option(pole, pole);
-      poleFilter.add(option);
+      poleFilter.add(new Option(pole, pole));
     });
 
     function populateSousDirectionFilter(selectedPole) {
       sousDirectionFilter.innerHTML = '<option value="">Toutes les Sociétés</option>';
-      const source = selectedPole ? pathData[selectedPole].sousDirections : allSousDirections;
+      const source = selectedPole && pathData[selectedPole] ? pathData[selectedPole].sousDirections : allSousDirections;
       Array.from(source).sort().forEach(sd => {
         sousDirectionFilter.add(new Option(sd, sd));
       });
@@ -252,42 +271,80 @@
 
     function filterReports() {
       const search = reportSearch.value.toLowerCase();
+      const typeVal = typeFilter.value;     // e.g. 'CBI', 'BI', 'Anomalie', ''
       const p = poleFilter.value;
       const sd = sousDirectionFilter.value;
       const d = directionFilter.value;
 
       rows.forEach(row => {
-        const name = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-        const path = row.querySelector('td:nth-child(3) span').getAttribute('title');
+        const nameEl = row.querySelector('.report-name');
+        const pathEl = row.querySelector('.report-path');
+        if (!nameEl || !pathEl) { row.style.display = 'none'; return; }
+
+        const name = nameEl.textContent.toLowerCase();
+        const path = pathEl.getAttribute('title') || pathEl.textContent.trim();
         const parts = path.split('/').filter(part => part);
-        
+
+        const rootFolder = parts[0] || '';  // CBI, BI, Anomalie
+
+        // Type filter
+        const matchesType = !typeVal || rootFolder === typeVal;
+
         const matchesSearch = name.includes(search);
-        const matchesPole = !p || parts[0] === p;
+
+        // Pole/Société/Direction only apply to CBI
+        let matchesPole = true;
         let matchesSD = true;
         let matchesD = true;
 
-        if (parts[1] && parts[1].toLowerCase().startsWith('direction')) {
-          matchesSD = !sd;
-          matchesD = !d || parts[1] === d;
+        if (rootFolder === 'CBI') {
+          const pole = parts[1] || '';
+          matchesPole = !p || pole === p;
+
+          if (parts[2] && parts[2].toLowerCase().startsWith('direction')) {
+            matchesSD = !sd;
+            matchesD = !d || parts[2] === d;
+          } else {
+            matchesSD = !sd || parts[2] === sd;
+            matchesD = !d || parts[3] === d;
+          }
         } else {
-          matchesSD = !sd || parts[1] === sd;
-          matchesD = !d || parts[2] === d;
+          // Non-CBI reports: ignore pole/SD/direction filters unless none are set
+          if (p || sd || d) {
+            // If a CBI-specific filter is active, hide non-CBI reports
+            matchesPole = false;
+          }
         }
 
-        const visible = matchesSearch && matchesPole && matchesSD && matchesD;
+        const visible = matchesType && matchesSearch && matchesPole && matchesSD && matchesD;
         row.style.display = visible ? '' : 'none';
-        if (!visible) row.querySelector('.reportCheckbox').checked = false;
+        if (!visible) {
+          const cb = row.querySelector('.reportCheckbox');
+          if (cb) cb.checked = false;
+        }
       });
       updateUI();
     }
 
     function updateUI() {
-        const checked = document.querySelectorAll('.reportCheckbox:checked').length;
-        if (addSelectedBtn) {
-            addSelectedBtn.classList.toggle('hidden', checked === 0);
-            addSelectedBtn.classList.toggle('flex', checked > 0);
-        }
+      const checked = document.querySelectorAll('.reportCheckbox:checked').length;
+      if (addSelectedBtn) {
+        addSelectedBtn.classList.toggle('hidden', checked === 0);
+        addSelectedBtn.classList.toggle('flex', checked > 0);
+      }
     }
+
+    // When type changes, reset and repopulate pole-related filters
+    typeFilter.addEventListener('change', function() {
+      poleFilter.value = '';
+      sousDirectionFilter.innerHTML = '<option value="">Toutes les Sociétés</option>';
+      directionFilter.innerHTML = '<option value="">Toutes les Directions</option>';
+      if (this.value === 'CBI') {
+        populateSousDirectionFilter('');
+        populateDirectionFilter('', '');
+      }
+      filterReports();
+    });
 
     poleFilter.addEventListener('change', function() {
       populateSousDirectionFilter(this.value);
@@ -304,25 +361,27 @@
     reportSearch.addEventListener('input', filterReports);
     
     clearFiltersBtn.addEventListener('click', () => {
-        reportSearch.value = '';
-        poleFilter.value = '';
-        populateSousDirectionFilter('');
-        populateDirectionFilter('', '');
-        filterReports();
+      reportSearch.value = '';
+      typeFilter.value = '';
+      poleFilter.value = '';
+      populateSousDirectionFilter('');
+      populateDirectionFilter('', '');
+      filterReports();
     });
 
     if (selectAllCheckbox) {
       selectAllCheckbox.addEventListener('change', function() {
         rows.forEach(row => {
           if (row.style.display !== 'none') {
-            row.querySelector('.reportCheckbox').checked = this.checked;
+            const cb = row.querySelector('.reportCheckbox');
+            if (cb) cb.checked = this.checked;
           }
         });
         updateUI();
       });
     }
 
-    checkboxes.forEach(cb => cb.addEventListener('change', updateUI));
+    document.querySelectorAll('.reportCheckbox').forEach(cb => cb.addEventListener('change', updateUI));
 
     // Initialize
     populateSousDirectionFilter('');
@@ -330,23 +389,31 @@
 
     // Form Loading
     document.querySelectorAll('form').forEach(f => {
-        f.addEventListener('submit', (e) => {
-            if (f.id === 'selectedReportsForm' || f.querySelector('button[type="submit"]').textContent.includes('Accorder')) {
-                if (!confirm('Confirmer l\'ajout des permissions ?')) {
-                    e.preventDefault();
-                    return;
-                }
-            }
-            if (loadingPrompt) loadingPrompt.classList.remove('hidden');
-        });
+      f.addEventListener('submit', (e) => {
+        const btn = f.querySelector('button[type="submit"]');
+        if (f.id === 'selectedReportsForm' || (btn && btn.textContent.includes('Accorder'))) {
+          if (!confirm('Confirmer l\'ajout des permissions ?')) {
+            e.preventDefault();
+            return;
+          }
+        }
+        if (loadingPrompt) loadingPrompt.classList.remove('hidden');
+      });
     });
 
-    // Auto-close alerts
+    // Auto-close alerts after 5 seconds using plain DOM
     setTimeout(() => {
-        document.querySelectorAll('.alert').forEach(a => {
-            new bootstrap.Alert(a).close();
-        });
+      document.querySelectorAll('.alert-msg').forEach(a => {
+        a.style.transition = 'opacity 0.4s';
+        a.style.opacity = '0';
+        setTimeout(() => a.remove(), 400);
+      });
     }, 5000);
-  });
 </script>
+<style>
+  .custom-checkbox:checked {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+  }
+</style>
 {% endblock %}

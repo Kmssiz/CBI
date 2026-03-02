@@ -29,70 +29,48 @@
   <!-- Quick Stats Row -->
   <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
     
-    <!-- Logins Today -->
-    <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm dark:shadow-none">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="material-symbols-outlined text-primary text-[18px]">login</span>
-        <span class="text-[10px] font-bold text-slate-500 uppercase">Aujourd'hui</span>
-      </div>
-      <p class="text-2xl font-black text-theme text-slate-900">{{ logins_today }}</p>
-      <div class="flex items-center gap-1 mt-1">
-        {% if login_trend >= 0 %}
-        <span class="material-symbols-outlined text-emerald-500 dark:text-emerald-400 text-[14px]">trending_up</span>
-        <span class="text-[11px] text-emerald-500 dark:text-emerald-400">+{{ login_trend_percent }}%</span>
-        {% else %}
-        <span class="material-symbols-outlined text-red-500 dark:text-red-400 text-[14px]">trending_down</span>
-        <span class="text-[11px] text-red-500 dark:text-red-400">{{ login_trend_percent }}%</span>
-        {% endif %}
-        <span class="text-[10px] text-slate-500 dark:text-slate-600">vs hier</span>
-      </div>
-    </div>
-
-    <!-- Active Users -->
+    <!-- Users this month -->
     <a href="{% url 'users_view' %}" class="group block">
       <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:border-primary/30 transition-all shadow-sm dark:shadow-none">
         <div class="flex items-center gap-2 mb-2">
-          <span class="material-symbols-outlined text-emerald-500 dark:text-emerald-400 text-[18px]">group</span>
-          <span class="text-[10px] font-bold text-slate-500 uppercase">Utilisateurs</span>
+          <span class="material-symbols-outlined text-primary text-[18px]">group</span>
+          <span class="text-[10px] font-bold text-slate-500 uppercase">Utilisateurs / mois</span>
         </div>
-        <p class="text-2xl font-black text-theme text-slate-900">{{ active_users }}</p>
+        <p class="text-2xl font-black text-theme text-slate-900">{{ users_this_month }}</p>
         <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-1">sur {{ total_users }} au total</p>
       </div>
     </a>
 
-    <!-- Reports -->
-    <a href="{% url 'powerbi_report:report_list' %}" class="group block">
-      <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:border-primary/30 transition-all shadow-sm dark:shadow-none">
-        <div class="flex items-center gap-2 mb-2">
-          <span class="material-symbols-outlined text-amber-500 dark:text-amber-400 text-[18px]">analytics</span>
-          <span class="text-[10px] font-bold text-slate-500 uppercase">Rapports</span>
-        </div>
-        <p class="text-2xl font-black text-theme text-slate-900">{{ total_reports }}</p>
-        <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-1">{{ total_synced_reports }} synchronisés</p>
-      </div>
-    </a>
-
-    <!-- Folders -->
+   
+    <!-- Anomalies -->
     <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm dark:shadow-none">
       <div class="flex items-center gap-2 mb-2">
-        <span class="material-symbols-outlined text-violet-500 dark:text-violet-400 text-[18px]">folder</span>
-        <span class="text-[10px] font-bold text-slate-500 uppercase">Dossiers</span>
+        <span class="material-symbols-outlined text-red-500 dark:text-red-400 text-[18px]">warning</span>
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Anomalies / mois</span>
       </div>
-      <p class="text-2xl font-black text-theme text-slate-900">{{ business_folder_count|add:biblio_folder_count }}</p>
-      <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-1">{{ business_folder_count }} société, {{ biblio_folder_count }} biblio</p>
+      <p class="text-2xl font-black text-theme text-slate-900">{{ anomaly_report_count }}</p>
+      <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-1">rapports d'anomalie</p>
     </div>
 
-    <!-- New Users -->
+    <!-- Dashboards -->
     <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm dark:shadow-none">
       <div class="flex items-center gap-2 mb-2">
-        <span class="material-symbols-outlined text-cyan-500 dark:text-cyan-400 text-[18px]">person_add</span>
-        <span class="text-[10px] font-bold text-slate-500 uppercase">Nouveaux</span>
+        <span class="material-symbols-outlined text-violet-500 dark:text-violet-400 text-[18px]">dashboard</span>
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Tableaux de bord / mois</span>
       </div>
-      <p class="text-2xl font-black text-theme text-slate-900">{{ new_users_this_month }}</p>
-      <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-1">ce mois-ci</p>
+      <p class="text-2xl font-black text-theme text-slate-900">{{ dashboard_report_count }}</p>
+      <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-1">CBI</p>
     </div>
 
-
+    <!-- Extraction Reports -->
+    <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm dark:shadow-none">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-emerald-500 dark:text-emerald-400 text-[18px]">library_books</span>
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Extractions / mois</span>
+      </div>
+      <p class="text-2xl font-black text-theme text-slate-900">{{ extraction_report_count }}</p>
+      <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-1">rapports d'extraction</p>
+    </div>
 
   </div>
 
@@ -132,54 +110,34 @@
         </div>
       </div>
 
-      <!-- Report Distribution & Top Folders -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        <!-- Report Distribution -->
-        <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm dark:shadow-none">
-          <h3 class="text-sm font-bold text-theme text-slate-900 mb-4">Distribution des rapports</h3>
-          <div class="flex items-center justify-center mb-4">
-            <canvas id="distribution-chart" class="!h-[160px] !w-[160px]"></canvas>
-          </div>
-          <div class="space-y-2">
-            {% for item in report_distribution %}
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="size-3 rounded-full" style="background-color: {{ item.color }}"></span>
-                <span class="text-sm text-slate-600 dark:text-slate-400">{{ item.name }}</span>
-              </div>
-              <span class="text-sm font-bold text-theme text-slate-900">{{ item.count }}</span>
-            </div>
-            {% endfor %}
-          </div>
+      <!-- Most Requested Dashboards & Extraction Reports -->
+      <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm dark:shadow-none">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50">
+          <h3 class="text-base font-bold text-theme text-slate-900">Rapports et tableaux de bord les plus consultés</h3>
+          <p class="text-xs text-slate-500 mt-0.5">Basé sur l'historique des accès utilisateurs</p>
         </div>
-
-        <!-- Top Folders -->
-        <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm dark:shadow-none">
-          <h3 class="text-sm font-bold text-theme text-slate-900 mb-4">Top dossiers</h3>
-          {% if top_folders %}
+        <div class="p-6">
+          {% if most_requested %}
           <div class="space-y-3">
-            {% for folder in top_folders %}
+            {% for item in most_requested %}
             <div class="flex items-center gap-3">
-              <div class="size-8 rounded-lg {% if folder.view_type == 'business' %}bg-primary/10 text-primary{% else %}bg-emerald-500/10 text-emerald-500 dark:text-emerald-400{% endif %} flex items-center justify-center">
-                <span class="material-symbols-outlined text-[16px]">folder</span>
+              <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[16px]">bar_chart</span>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-theme text-slate-900 truncate">{{ folder.name }}</p>
-                <p class="text-[10px] text-slate-500 dark:text-slate-600">{{ folder.view_type }}</p>
+                <p class="text-sm font-medium text-theme text-slate-900 truncate">{{ item.action }}</p>
               </div>
-              <span class="text-sm font-bold text-theme text-slate-900">{{ folder.report_count }}</span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary">{{ item.count }}</span>
             </div>
             {% endfor %}
           </div>
           {% else %}
           <div class="py-8 text-center">
-            <span class="material-symbols-outlined text-[32px] text-slate-400 dark:text-slate-700 mb-2">folder_off</span>
-            <p class="text-xs text-slate-500">Aucun dossier avec rapports</p>
+            <span class="material-symbols-outlined text-[32px] text-slate-400 dark:text-slate-700 mb-2">analytics</span>
+            <p class="text-xs text-slate-500">Aucune donnée d'utilisation disponible</p>
           </div>
           {% endif %}
         </div>
-
       </div>
 
     </div>
@@ -249,21 +207,41 @@
   </div>
   {% endif %}
 
+  {% if permissions.view_dashboard %}
+  <!-- New Reports per Folder Card -->
+  <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm dark:shadow-none">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between">
+      <div>
+        <h3 class="text-base font-bold text-theme text-slate-900">Nouveaux rapports par catégorie</h3>
+        <p class="text-xs text-slate-500 mt-0.5">Répartition des rapports CBI et Anomalie</p>
+      </div>
+      <div class="flex gap-1 bg-slate-100 dark:bg-slate-900/50 p-1 rounded-lg">
+        <button class="folder-period-btn active px-3 py-1.5 rounded-md text-xs font-medium" data-period="monthly">Mois</button>
+        <button class="folder-period-btn px-3 py-1.5 rounded-md text-xs font-medium" data-period="quarterly">Trimestre</button>
+        <button class="folder-period-btn px-3 py-1.5 rounded-md text-xs font-medium" data-period="yearly">Année</button>
+      </div>
+    </div>
+    <div class="p-6">
+      <canvas id="reports-per-folder-chart" style="height: 280px; width: 100%;"></canvas>
+    </div>
+  </div>
+  {% endif %}
+
   {% if permissions.view_refresh %}
   {% if report_refresh_list %}
   <!-- Refresh Table Section -->
   <div class="space-y-4">
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <div>
-        <h2 class="text-lg font-bold text-white">Actualisations récentes</h2>
+        <h2 class="text-lg font-bold text-theme text-slate-900">Actualisations récentes</h2>
         <p class="text-sm text-slate-500">État des rafraîchissements de données</p>
       </div>
       <div class="flex flex-col sm:flex-row gap-3">
         <div class="relative">
           <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
-          <input type="text" id="searchName" placeholder="Rechercher..." class="w-full sm:w-64 pl-10 pr-4 py-2.5 bg-surface-dark/60 border border-slate-800/50 rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-primary/50 transition-colors">
+          <input type="text" id="searchName" placeholder="Rechercher..." class="w-full sm:w-64 pl-10 pr-4 py-2.5 bg-white dark:bg-surface-dark/60 border border-slate-200 dark:border-slate-800/50 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-primary/50 transition-colors">
         </div>
-        <select id="statusFilter" class="px-4 py-2.5 bg-surface-dark/60 border border-slate-800/50 rounded-xl text-sm text-white focus:outline-none focus:border-primary/50 transition-colors">
+        <select id="statusFilter" class="px-4 py-2.5 bg-white dark:bg-surface-dark/60 border border-slate-200 dark:border-slate-800/50 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
           <option value="">Tous les statuts</option>
           <option value="Completed">Terminé</option>
           <option value="failed">Échoué</option>
@@ -271,45 +249,45 @@
       </div>
     </div>
 
-    <div class="bg-surface-dark/60 border border-slate-800/50 rounded-2xl overflow-hidden">
+    <div class="card-theme bg-white dark:bg-surface-dark/60 border border-slate-200 dark:border-slate-800/50 rounded-2xl overflow-hidden shadow-sm dark:shadow-none">
       <div class="overflow-x-auto">
         <table class="w-full" id="reportTable">
           <thead>
-            <tr class="border-b border-slate-800/50">
+            <tr class="border-b border-slate-200 dark:border-slate-800/50">
               <th class="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Rapport</th>
               <th class="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Dernière actualisation</th>
               <th class="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Statut</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-800/30">
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800/30">
             {% for report in report_refresh_list %}
-            <tr class="hover:bg-white/[0.02] transition-colors {% if permissions.view_dashboard %}cursor-pointer{% endif %}" 
+            <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors {% if permissions.view_dashboard %}cursor-pointer{% endif %}" 
                 {% if permissions.view_dashboard %}onclick="window.location.href='{% url 'powerbi_report:report_detail' report.report_id %}'"{% endif %}>
               <td class="px-6 py-4 report-name">
                 <div class="flex items-center gap-3">
                   <div class="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                     <span class="material-symbols-outlined text-[18px]">analytics</span>
                   </div>
-                  <span class="text-sm font-medium text-white">{{ report.report_name }}</span>
+                  <span class="text-sm font-medium text-theme text-slate-900">{{ report.report_name }}</span>
                 </div>
               </td>
               <td class="px-6 py-4 last-refresh">
-                <span class="text-sm text-slate-400">{{ report.last_refresh }}</span>
+                <span class="text-sm text-slate-500 dark:text-slate-400">{{ report.last_refresh }}</span>
               </td>
               <td class="px-6 py-4 status">
                 {% if 'Completed' in report.status %}
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  <span class="size-1.5 rounded-full bg-emerald-400"></span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border border-emerald-500/20">
+                  <span class="size-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400"></span>
                   Terminé
                 </span>
                 {% elif 'failed' in report.status %}
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20">
-                  <span class="size-1.5 rounded-full bg-red-400"></span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-500 dark:text-red-400 border border-red-500/20">
+                  <span class="size-1.5 rounded-full bg-red-500 dark:bg-red-400"></span>
                   Échec
                 </span>
                 {% else %}
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  <span class="size-1.5 rounded-full bg-amber-400"></span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20">
+                  <span class="size-1.5 rounded-full bg-amber-500 dark:bg-amber-400"></span>
                   Planifié
                 </span>
                 {% endif %}
@@ -319,7 +297,7 @@
             <tr>
               <td colspan="3" class="px-6 py-12 text-center">
                 <div class="flex flex-col items-center">
-                  <span class="material-symbols-outlined text-[48px] text-slate-700 mb-3">sync_disabled</span>
+                  <span class="material-symbols-outlined text-[48px] text-slate-400 dark:text-slate-700 mb-3">sync_disabled</span>
                   <p class="text-sm text-slate-500">Aucune actualisation disponible</p>
                 </div>
               </td>
@@ -357,8 +335,28 @@
   }
 
   select option {
+    background: var(--bg-surface, #fff);
+    color: var(--text-primary, #0f172a);
+  }
+
+  :is(.dark) select option {
     background: #121922;
     color: white;
+  }
+
+  .folder-period-btn {
+    background: transparent;
+    color: rgb(100, 116, 139);
+    transition: all 0.2s;
+  }
+
+  .folder-period-btn:hover {
+    color: rgb(226, 232, 240);
+  }
+
+  .folder-period-btn.active {
+    background: rgba(19, 127, 236, 0.15);
+    color: rgb(19, 127, 236);
   }
 
   .custom-scrollbar::-webkit-scrollbar {
@@ -419,39 +417,6 @@
   });
 </script>
 
-<!-- Distribution Chart -->
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const distributionData = [
-      {% for item in report_distribution %}
-      { name: "{{ item.name }}", count: {{ item.count }}, color: "{{ item.color }}" }{% if not forloop.last %},{% endif %}
-      {% endfor %}
-    ];
-
-    const ctx = document.getElementById('distribution-chart');
-    if (ctx && distributionData.length > 0) {
-      new Chart(ctx.getContext('2d'), {
-        type: 'doughnut',
-        data: {
-          labels: distributionData.map(d => d.name),
-          datasets: [{
-            data: distributionData.map(d => d.count),
-            backgroundColor: distributionData.map(d => d.color),
-            borderWidth: 0,
-            cutout: '70%'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: { display: false }
-          }
-        }
-      });
-    }
-  });
-</script>
 
 <!-- Monthly Chart -->
 <script>
@@ -633,6 +598,96 @@
         .then(response => response.json())
         .catch(error => console.error('Error:', error));
     }, 100);
+  });
+</script>
+
+<!-- Reports per Folder Chart -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const monthlyData = [
+      {% for item in reports_per_folder_monthly %}
+      { period: "{{ item.month|date:'M Y' }}", type: "{{ item.folder__view_type }}", count: {{ item.count }} }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
+    const quarterlyData = [
+      {% for item in reports_per_folder_quarterly %}
+      { period: "{{ item.quarter|date:'M Y' }}", type: "{{ item.folder__view_type }}", count: {{ item.count }} }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
+    const yearlyData = [
+      {% for item in reports_per_folder_yearly %}
+      { period: "{{ item.year|date:'Y' }}", type: "{{ item.folder__view_type }}", count: {{ item.count }} }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
+
+    const datasets = { monthly: monthlyData, quarterly: quarterlyData, yearly: yearlyData };
+    let folderChart = null;
+
+    function buildChart(data) {
+      const labels = [...new Set(data.map(d => d.period))];
+      // Combine business + department as "CBI"
+      const cbiCounts = labels.map(l => {
+        return data.filter(d => d.period === l && (d.type === 'business' || d.type === 'department'))
+                   .reduce((sum, d) => sum + d.count, 0);
+      });
+      const anomalieCounts = labels.map(l => {
+        return data.filter(d => d.period === l && d.type === 'anomalie')
+                   .reduce((sum, d) => sum + d.count, 0);
+      });
+
+      const ctx = document.getElementById('reports-per-folder-chart');
+      if (!ctx) return;
+
+      if (folderChart) folderChart.destroy();
+
+      folderChart = new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'CBI',
+              data: cbiCounts,
+              backgroundColor: 'rgba(139, 92, 246, 0.6)',
+              borderRadius: 4
+            },
+            {
+              label: 'Anomalie',
+              data: anomalieCounts,
+              backgroundColor: 'rgba(239, 68, 68, 0.6)',
+              borderRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(100, 116, 139, 0.1)' }, ticks: { color: 'rgb(100, 116, 139)', stepSize: 1 } },
+            x: { grid: { display: false }, ticks: { color: 'rgb(100, 116, 139)' } }
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+              labels: { color: 'rgb(100, 116, 139)', usePointStyle: true, pointStyle: 'circle', padding: 16, font: { size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    // Initial render
+    buildChart(datasets.monthly);
+
+    // Period toggle buttons
+    document.querySelectorAll('.folder-period-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.folder-period-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        buildChart(datasets[this.dataset.period]);
+      });
+    });
   });
 </script>
 

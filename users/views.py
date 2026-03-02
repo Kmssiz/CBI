@@ -86,7 +86,7 @@ def login_view(request):
                 user.backend = 'django.contrib.auth.backends.ModelBackend'
                 user.save()
                 login(request, user)
-                log_history(user, "User logged in")
+                log_history(user, "Utilisateur connecté par AD")
 
                 if user.role and user.role.name == "admin":
                     return redirect('powerbi_report:dashboard')
@@ -178,7 +178,7 @@ def login_view(request):
             request.session['ldap_password'] = password # Kept for NTLM
             
             login(request, user)
-            log_history(user, "User logged in")
+            log_history(user, "Utilisateur connecté via compte de service PBIRS")
             
             # Sync user permissions from PBIRS using their credentials
             try:
@@ -202,7 +202,7 @@ def login_view(request):
             
             if user is not None:
                 login(request, user)
-                log_history(user, "User logged in (Local/Admin)")
+                log_history(user, "Utilisateur connecté (Local/Admin)")
                 
                 # Setup session defaults that might be expected
                 request.session['userinfo'] = {
@@ -303,21 +303,21 @@ def clear_history(request, user_id):
 @login_required
 def home_view(request):
     if request.user.role and request.user.role.name == "admin":
-        # log_history(request.user, "Viewed home page")
+        # log_history(request.user, "Page d'accueil consultée")
         return redirect('powerbi_report:dashboard')
     
     if request.user.role and request.user.role.name == "user":
         # Check default view preference
         if hasattr(request.user, 'default_view'):
             if request.user.default_view == 'business':
-                # log_history(request.user, "Viewed Business View (Home)")
+                # log_history(request.user, "Vue Business consultée (Accueil)")
                 return redirect('powerbi_report:custom_business')
             elif request.user.default_view == 'department':
-                # log_history(request.user, "Viewed Department View (Home)")
+                # log_history(request.user, "Vue Pôle consultée (Accueil)")
                 return redirect('powerbi_report:custom_department')
         
         # Fallback
-        # log_history(request.user, "Viewed report_list_hierarchy page")
+        # log_history(request.user, "Page report_list_hierarchy consultée")
         return redirect('powerbi_report:report_list_hierarchy')
     
     return redirect('logout')
@@ -380,7 +380,7 @@ def user_management(request):
     users = paginator.get_page(page_number)
     
     roles = Role.objects.all()
-    # log_history(request.user, "Accessed user management page")
+    # log_history(request.user, "Page de gestion des utilisateurs consultée")
 
     permissions = get_user_permissions(request.user)
 
@@ -743,22 +743,22 @@ def user_edit(request, user_id):
 
         # Log the updates
         if new_role:
-            log_history(request.user, f"Updated role for {user.username} to {new_role.name}")
+            log_history(request.user, f"Rôle mis à jour pour {user.username} vers {new_role.name}")
         if old_view != new_default_view:
             view_label = 'Business View' if new_default_view == 'business' else 'Department View'
-            log_history(request.user, f"Updated default view for {user.username} to {view_label}")
+            log_history(request.user, f"Vue par défaut mise à jour pour {user.username} vers {view_label}")
 
         # Notify the user
         if new_role:
             Notification.objects.create(
                 user=user,
-                message=f"Your role has been updated to {new_role.name}."
+                message=f"Votre rôle a été mis à jour : {new_role.name}."
             )
         if old_view != new_default_view:
             view_label = 'Business View' if new_default_view == 'business' else 'Department View'
             Notification.objects.create(
                 user=user,
-                message=f"Your default view has been changed to {view_label}."
+                message=f"Votre vue par défaut a été modifiée : {view_label}."
             )
 
         # Notify all admins
@@ -767,7 +767,7 @@ def user_edit(request, user_id):
             if admin != request.user:
                 Notification.objects.create(
                     user=admin,
-                    message=f"{request.user.username} updated settings for {user.username}."
+                    message=f"{request.user.username} a modifié les paramètres de {user.username}."
                 )
 
         messages.success(request, "User settings updated successfully.")
@@ -784,7 +784,7 @@ def logout_view(request):
     user_id = request.user.id
     request.user.status = "Not Active"
     request.user.save()
-    log_history(request.user, "User logged out")
+    log_history(request.user, "Utilisateur déconnecté")
     request.session.flush()
     logout(request)
     cache.delete(f"powerbi_reports_cache_{user_id}")
