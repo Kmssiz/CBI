@@ -10,7 +10,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5222:5222"
+      - "5222:5432"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U cbi_user -d cbi_db" ]
       interval: 5s

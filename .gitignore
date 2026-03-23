@@ -27,11 +27,11 @@ db.sqlite3
 */migrations/*.pyc
 
 # Environment variables
-#.env
-#*.env
+.env
+*.env
 
 # Static and media files (if using collectstatic)
-#staticfiles/
+staticfiles/
 #static/
 #media/
 #anomaly-detection/

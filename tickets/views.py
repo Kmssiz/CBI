@@ -11,7 +11,12 @@ from .models import Ticket
 
 
 def _is_admin(user) -> bool:
-    return user.is_superuser or user.groups.filter(name=settings.ADMIN_ROLE_NAME).exists()
+    role_name = (getattr(getattr(user, "role", None), "name", "") or "").lower()
+    return (
+        user.is_superuser
+        or role_name == settings.ADMIN_ROLE_NAME.lower()
+        or user.groups.filter(name=settings.ADMIN_ROLE_NAME).exists()
+    )
 
 
 def _can_access_ticket(user, ticket: Ticket) -> bool:
@@ -21,7 +26,9 @@ def _can_access_ticket(user, ticket: Ticket) -> bool:
 def _get_admin_users():
     user_model = get_user_model()
     return user_model.objects.filter(
-        models.Q(is_superuser=True) | models.Q(groups__name=settings.ADMIN_ROLE_NAME)
+        models.Q(is_superuser=True)
+        | models.Q(role__name__iexact=settings.ADMIN_ROLE_NAME)
+        | models.Q(groups__name=settings.ADMIN_ROLE_NAME)
     ).distinct()
 
 

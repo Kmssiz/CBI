@@ -1,7 +1,6 @@
 # powerbi_report/models.py
 
 from django.db import models
-from django.contrib.auth.models import User
 from users.models import CustomUser
 
 # Unused models removed for cleanup

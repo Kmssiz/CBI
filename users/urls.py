@@ -1,5 +1,4 @@
 from django.urls import path
-from django.contrib.auth.views import LogoutView
 from .views import (
     login_view, 
     home_view, 
@@ -18,8 +17,6 @@ from .views import (
     permissions_list,
     server_status
 )
-from django.conf import settings
-from django.conf.urls.static import static
 
 urlpatterns = [
     path('', login_view, name='login'),
@@ -38,6 +35,4 @@ urlpatterns = [
     path("roles/remove/<int:role_id>/", remove_role, name="remove_role"),
     path('roles/permissions/<int:role_id>/', permissions_list, name='permissions_list'),
     path('server-status/', server_status, name='server_status'),
-
-
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]

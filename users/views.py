@@ -1,25 +1,24 @@
+import logging
+
 import requests
-from requests.auth import HTTPBasicAuth
-from django.shortcuts import render, redirect, get_object_or_404 ,HttpResponse
-from django.urls import reverse_lazy
+from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout
-from notifications.models import Notification
-from users.models import CustomUser,UserHistory,Role
-from django.utils.timezone import now
-from django.core.cache import cache
-from django.conf import settings  
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Permission
-from guardian.shortcuts import assign_perm, remove_perm
-from django.contrib.auth.decorators import login_required, permission_required
-from django.shortcuts import render, redirect
-from django.contrib.auth.models import Permission, Group
+from django.core.cache import cache
 from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 
 from .ldap_utils import connexion_ad2000, get_ad_users
 from .utils import log_history, get_user_permissions
 from powerbi_report.services import sync_user_permissions_on_login
+from notifications.models import Notification
+from users.models import CustomUser, Role, UserHistory
+
+
+logger = logging.getLogger("users")
 
 
 def _normalize_ad_groups(raw_groups):
@@ -33,71 +32,6 @@ def _normalize_ad_groups(raw_groups):
 #################################################################################################################
 #                    Handles user login with LDAP authentication                                                #
 #################################################################################################################
-'''
-def login_view(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-
-        response = requests.post(LDAP_API_URL, auth=HTTPBasicAuth(username, password))
-        
-        if response.status_code == 200:
-            data = response.json()
-            if data.get("authenticated"):
-                userinfo = data.get("userinfo", {})
-                email = userinfo.get("mail", "")
-                ad2000 = userinfo.get("ad2000", "")
-
-                user = (CustomUser.objects.filter(username=username).first() or
-                        CustomUser.objects.filter(email=email).first() or
-                        CustomUser.objects.filter(ad2000=ad2000).first())
-
-                if user:
-                    user.username = user.username or username
-                    user.first_name = user.first_name or userinfo.get("fname", "")
-                    user.last_name = user.last_name or userinfo.get("name", "")
-                    user.ad2000 = user.ad2000 or ad2000
-                    user.status = "Active"
-
-                else:
-                    user_role, created = Role.objects.get_or_create(name="user")
-                    user = CustomUser(
-                        username=username,
-                        first_name=userinfo.get("fname", ""),
-                        last_name=userinfo.get("name", ""),
-                        email=email,
-                        ad2000=ad2000,
-                        role=user_role,
-                        status="Active"
-                    )
-                    user.save()
-
-                    new_permissions = user_role.permissions.all()
-                    user.user_permissions.add(*new_permissions)
-                
-                user.ldap_password = password  
-                user.backend = 'django.contrib.auth.backends.ModelBackend'
-                user.save()
-
-                request.session['userinfo'] = userinfo
-                request.session['ldap_password'] = password  
-                user.ldap_password = password  
-
-                user.backend = 'django.contrib.auth.backends.ModelBackend'
-                user.save()
-                login(request, user)
-                log_history(user, "Utilisateur connecté par AD")
-
-                if user.role and user.role.name == "admin":
-                    return redirect('powerbi_report:dashboard')
-                return redirect('home')
-            else:
-                messages.error(request, "Invalid credentials")
-        else:
-            messages.error(request, "Authentication failed.")
-    
-    return render(request, 'users/login.html')
-'''
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('home')
@@ -115,7 +49,12 @@ def login_view(request):
             email = user_info.get("email", "")
             ad2000 = user_info.get("ad2000", "")
             
-            print(f"[DEBUG LOGIN] LDAP returned: username='{ldap_username}', email='{email}', ad2000='{ad2000}'")
+            logger.debug(
+                "LDAP returned username=%s email=%s ad2000=%s",
+                ldap_username,
+                email,
+                ad2000,
+            )
 
             # Normalize empty-like values
             email = email.strip() if email else ""
@@ -124,19 +63,24 @@ def login_view(request):
                 ad2000 = None  # Use None for unique constraint compatibility
             
             # Look up user by LDAP username (canonical identifier), then by email, then by ad2000
-            print(f"[DEBUG LOGIN] Looking up user with ldap_username='{ldap_username}', email='{email}', ad2000='{ad2000}'")
+            logger.debug(
+                "Looking up user ldap_username=%s email=%s ad2000=%s",
+                ldap_username,
+                email,
+                ad2000,
+            )
             
             # Use case-insensitive lookup for username
             user = CustomUser.objects.filter(username__iexact=ldap_username).first()
-            print(f"[DEBUG LOGIN] Username lookup result: {user.id if user else None}")
+            logger.debug("Username lookup result user_id=%s", user.id if user else None)
             
             if not user and email:
                 user = CustomUser.objects.filter(email__iexact=email).first()
-                print(f"[DEBUG LOGIN] Email lookup result: {user.id if user else None}")
+                logger.debug("Email lookup result user_id=%s", user.id if user else None)
             
             if not user and ad2000:
                 user = CustomUser.objects.filter(ad2000__iexact=ad2000).first()
-                print(f"[DEBUG LOGIN] AD2000 lookup result: {user.id if user else None}")
+                logger.debug("AD2000 lookup result user_id=%s", user.id if user else None)
 
             if user:
                 # Update user info from LDAP (but keep username as LDAP's sAMAccountName)
@@ -150,10 +94,14 @@ def login_view(request):
                 user.ad2000 = ad2000
                 user.ad_groups = user_info.get("ad_groups", [])
                 user.status = "Active"
-                print(f"[DEBUG LOGIN] Updated existing user {user.id} with ldap_username='{ldap_username}'")
+                logger.debug(
+                    "Updated existing user id=%s with ldap_username=%s",
+                    user.id,
+                    ldap_username,
+                )
             else:
                 # Create new user
-                role, created = Role.objects.get_or_create(name="user")
+                role, _ = Role.objects.get_or_create(name=settings.USER_ROLE_NAME)
                 
                 user = CustomUser(
                     username=ldap_username,  # Use LDAP's canonical username
@@ -183,16 +131,24 @@ def login_view(request):
             # Sync user permissions from PBIRS using their credentials
             try:
                 permissions_synced = sync_user_permissions_on_login(user, password)
-                print(f"[LOGIN] Synced {permissions_synced} report permissions for user {user.username}")
+                logger.info(
+                    "Synced %s report permissions for user %s",
+                    permissions_synced,
+                    user.username,
+                )
             except Exception as e:
-                print(f"[LOGIN] Failed to sync permissions for {user.username}: {e}")
+                logger.error(
+                    "Failed to sync permissions for %s: %s",
+                    user.username,
+                    e,
+                )
             
             # Clear cached data to ensure fresh fetch for this user
             cache.delete(f"powerbi_reports_cache_{user.id}")
             cache.delete(f"dashboard_data_{user.id}")
-            print(f"[DEBUG LOGIN] Cleared cache for user {user.id}")
+            logger.debug("Cleared login cache for user id=%s", user.id)
 
-            if user.role and user.role.name == "admin":
+            if user.role and user.role.name.lower() == settings.ADMIN_ROLE_NAME:
                 return redirect('powerbi_report:dashboard')
             return redirect('home')
         else:
@@ -212,7 +168,7 @@ def login_view(request):
                     "ad2000": user.ad2000
                 }
                 
-                if user.role and user.role.name == "admin":
+                if user.role and user.role.name.lower() == settings.ADMIN_ROLE_NAME:
                     return redirect('powerbi_report:dashboard')
                 return redirect('home')
             
@@ -224,9 +180,8 @@ def login_view(request):
 #                    Displays user history for a specific user                                                  #
 #################################################################################################################
 @login_required
-@login_required
 def user_history(request):
-    if not request.user.role or request.user.role.name != "admin":
+    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
         messages.error(request, "Permission denied. Admin access required.")
         return redirect('home')
 
@@ -289,7 +244,7 @@ def user_history(request):
 #################################################################################################################
 @login_required
 def clear_history(request, user_id):
-    if not request.user.role or request.user.role.name != "admin":
+    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
         messages.error(request, "Permission denied. Admin access required.")
         return redirect('home')
     
@@ -302,11 +257,11 @@ def clear_history(request, user_id):
 #################################################################################################################
 @login_required
 def home_view(request):
-    if request.user.role and request.user.role.name == "admin":
+    if request.user.role and request.user.role.name.lower() == settings.ADMIN_ROLE_NAME:
         # log_history(request.user, "Page d'accueil consultée")
         return redirect('powerbi_report:dashboard')
     
-    if request.user.role and request.user.role.name == "user":
+    if request.user.role and request.user.role.name.lower() == settings.USER_ROLE_NAME:
         # Check default view preference
         if hasattr(request.user, 'default_view'):
             if request.user.default_view == 'business':
@@ -332,7 +287,7 @@ def home_view(request):
 #################################################################################################################
 @login_required
 def user_management(request):
-    if not request.user.role or request.user.role.name != "admin":
+    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
         messages.error(request, "Permission denied. Admin access required.")
         return redirect('home')
     
@@ -402,7 +357,7 @@ def user_management(request):
 #################################################################################################################
 @login_required
 def manage_roles(request):
-    if not request.user.role or request.user.role.name != "admin":
+    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
         messages.error(request, "Permission denied. Admin access required.")
         return redirect('home')
     
@@ -443,7 +398,7 @@ def manage_roles(request):
 #################################################################################################################
 @login_required
 def create_role(request):
-    if not request.user.role or request.user.role.name != "admin":
+    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
         messages.error(request, "Permission denied. Admin access required.")
         return redirect('home')
     
@@ -473,7 +428,7 @@ def create_role(request):
 #################################################################################################################
 @login_required
 def edit_role(request, role_id):
-    if not request.user.role or request.user.role.name != "admin":
+    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
         messages.error(request, "Permission denied. Admin access required.")
         return redirect('home')
     
@@ -506,7 +461,7 @@ def edit_role(request, role_id):
 #################################################################################################################
 @login_required
 def remove_role(request, role_id):
-    if not request.user.role or request.user.role.name != "admin":
+    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
         messages.error(request, "Permission denied. Admin access required.")
         return redirect('home')
     
@@ -525,7 +480,7 @@ def remove_role(request, role_id):
 #################################################################################################################
 @login_required
 def permissions_list(request, role_id):
-    if not request.user.role or request.user.role.name != "admin":
+    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
         messages.error(request, "Permission denied. Admin access required.")
         return redirect('home')
     
@@ -612,7 +567,12 @@ def sync_users(request):
     
     # Debug: print first 5 LDAP users to see actual data
     for i, ldap_user in enumerate(ldap_users[:5]):
-        print(f"[SYNC DEBUG] Sample user {i}: sAMAccountName='{ldap_user.get('sAMAccountName')}', ad2000='{ldap_user.get('ad2000')}'")
+        logger.debug(
+            "LDAP sync sample idx=%s sam=%s ad2000=%s",
+            i,
+            ldap_user.get("sAMAccountName"),
+            ldap_user.get("ad2000"),
+        )
     
     for ldap_user in ldap_users:
         ad2000 = ldap_user.get("ad2000", "").strip()
@@ -639,10 +599,18 @@ def sync_users(request):
         
         # Debug: Print first few matches to understand why they're matching
         if user and already_exist < 5:
-            print(f"[SYNC DEBUG] Match found for LDAP user '{sam_account}' (ad2000='{ad2000}') - matched by {matched_by} to DB user id={user.id}, username='{user.username}', ad2000='{user.ad2000}'")
+            logger.debug(
+                "LDAP sync match sam=%s ad2000=%s matched_by=%s user_id=%s db_username=%s db_ad2000=%s",
+                sam_account,
+                ad2000,
+                matched_by,
+                user.id,
+                user.username,
+                user.ad2000,
+            )
         
         if not user:
-            user_role, _ = Role.objects.get_or_create(name="user")
+            user_role, _ = Role.objects.get_or_create(name=settings.USER_ROLE_NAME)
 
             try:
                 user = CustomUser(
@@ -660,7 +628,7 @@ def sync_users(request):
                 user.user_permissions.set(user_role.permissions.all())  
                 count += 1
             except Exception as e:
-                print(f"[SYNC DEBUG] Failed to save user {sam_account}: {e}")
+                logger.exception("Failed to save synced LDAP user %s: %s", sam_account, e)
         else:
             # Minimize expensive model.save() calls (signals/audit) to avoid sync timeouts.
             update_fields = {}
@@ -679,7 +647,13 @@ def sync_users(request):
             
             already_exist += 1
 
-    print(f"[SYNC DEBUG] Total LDAP users: {len(ldap_users)}, Created: {count}, Already exist: {already_exist}, Skipped (no ID): {skipped}")
+    logger.info(
+        "LDAP sync summary total=%s created=%s existing=%s skipped=%s",
+        len(ldap_users),
+        count,
+        already_exist,
+        skipped,
+    )
     messages.success(request, f"User synchronization completed. {count} new users added. ({already_exist} already existed)")
     return redirect('users_view')
 
@@ -715,9 +689,11 @@ def user_details(request):
 #################################################################################################################
 @login_required
 def user_edit(request, user_id):
-    user = get_object_or_404(CustomUser, id=user_id)
-    roles = Role.objects.all()  # Get all available roles
+    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
+        messages.error(request, "Permission denied. Admin access required.")
+        return redirect("home")
 
+    user = get_object_or_404(CustomUser, id=user_id)
     if request.method == 'POST':
         new_role_id = request.POST.get('role')  # Get the selected role ID
         new_role = get_object_or_404(Role, id=new_role_id) if new_role_id else None  # Fetch the role object
@@ -733,8 +709,9 @@ def user_edit(request, user_id):
 
             # Update role and superuser status
             user.role = new_role  
-            user.is_superuser = new_role.name.lower() == 'admin'  # Set superuser status only for admin role
-            user.is_staff = new_role.name.lower() == 'admin'  # Optionally set is_staff for admin access
+            is_admin_role = new_role.name.lower() == settings.ADMIN_ROLE_NAME
+            user.is_superuser = is_admin_role
+            user.is_staff = is_admin_role
         
         # Update default view (always update, even if role is not changed)
         old_view = user.default_view
@@ -762,7 +739,7 @@ def user_edit(request, user_id):
             )
 
         # Notify all admins
-        admins = CustomUser.objects.filter(role__name='admin')  
+        admins = CustomUser.objects.filter(role__name__iexact=settings.ADMIN_ROLE_NAME)
         for admin in admins:
             if admin != request.user:
                 Notification.objects.create(
@@ -774,7 +751,7 @@ def user_edit(request, user_id):
 
         return redirect('users_view')
 
-    return render(request, 'users/user_edit.html', {'user': user, 'roles': roles})
+    return redirect("users_view")
 
 #################################################################################################################
 #                    Logs out the user and clears session data                                                  #
@@ -792,25 +769,22 @@ def logout_view(request):
 
     return redirect("login")
 
-from django.http import JsonResponse
-from django.conf import settings
-import requests
-
 def server_status(request):
     """
     Endpoint to check connectivity to the PowerBI Report Server.
     Used by the login page 'Systeme Status' feature.
     """
     try:
-        url = getattr(settings, 'POWERBI_REPORT_SERVER_URL', None)
+        url = getattr(settings, "POWERBI_REPORT_SERVER_URL", None)
         if not url:
-            return JsonResponse({'status': 'down', 'error': 'Configuration missing'}, status=500)
+            return JsonResponse({"status": "down", "error": "Configuration missing"}, status=500)
             
         # Ping the server with a short timeout
         response = requests.get(url, timeout=5)
         if response.status_code < 500:
-            return JsonResponse({'status': 'up'})
-        else:
-            return JsonResponse({'status': 'down', 'code': response.status_code})
-    except Exception as e:
-        return JsonResponse({'status': 'down', 'error': str(e)}, status=500)
+            return JsonResponse({"status": "up"})
+        return JsonResponse({"status": "down", "code": response.status_code})
+    except requests.exceptions.RequestException as e:
+        logger.warning("PBIRS status check failed: %s", e)
+        return JsonResponse({"status": "down", "error": str(e)}, status=500)
+

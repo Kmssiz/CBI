@@ -9,8 +9,9 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-from pathlib import Path
 import os
+from pathlib import Path
+
 from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,41 +21,63 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
+def _config_bool(name: str, default: bool = False) -> bool:
+    """Parse relaxed boolean env values while rejecting unknown values."""
+    raw_value = config(name, default=str(default))
+    if isinstance(raw_value, bool):
+        return raw_value
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+    normalized = str(raw_value).strip().lower()
+    truthy = {"1", "true", "yes", "on", "debug"}
+    falsy = {"0", "false", "no", "off", "release", "prod", "production", ""}
+    if normalized in truthy:
+        return True
+    if normalized in falsy:
+        return False
+    raise ValueError(f"Invalid truth value for {name}: {raw_value!r}")
 
-ALLOWED_HOSTS = ['*']
+
+def _config_list(name: str, default: str = "") -> list[str]:
+    raw_value = config(name, default=default)
+    return [item.strip() for item in raw_value.split(",") if item.strip()]
+
+
+# SECURITY WARNING: keep the secret key used in production secret.
+SECRET_KEY = config("SECRET_KEY")
+
+# SECURITY WARNING: don't run with debug turned on in production.
+DEBUG = _config_bool("DEBUG", default=False)
+
+ALLOWED_HOSTS = _config_list("ALLOWED_HOSTS", default="127.0.0.1,localhost")
+CSRF_TRUSTED_ORIGINS = _config_list("CSRF_TRUSTED_ORIGINS", default="")
 
 # Base URL of your report server 
 
-POWERBI_REPORT_SERVER_URL = config('POWERBI_REPORT_SERVER_URL')
+POWERBI_REPORT_SERVER_URL = config("POWERBI_REPORT_SERVER_URL")
 
 
 # LDAP Configuration
-LDAP_SERVER_NAME = config('LDAP_SERVER_NAME')
-LDAP_DOMAIN = config('LDAP_DOMAIN')
-LDAP_SEARCH_BASE = config('LDAP_SEARCH_BASE')
-LDAP_PORT = config('LDAP_PORT', default=389, cast=int)
-LDAP_USE_SSL = config('LDAP_USE_SSL', default=False, cast=bool)
-LDAP_CONNECT_TIMEOUT = config('LDAP_CONNECT_TIMEOUT', default=8, cast=int)
-LDAP_RECEIVE_TIMEOUT = config('LDAP_RECEIVE_TIMEOUT', default=20, cast=int)
-LDAP_ENABLE_PORT_FALLBACK = config('LDAP_ENABLE_PORT_FALLBACK', default=True, cast=bool)
+LDAP_SERVER_NAME = config("LDAP_SERVER_NAME")
+LDAP_DOMAIN = config("LDAP_DOMAIN")
+LDAP_SEARCH_BASE = config("LDAP_SEARCH_BASE")
+LDAP_PORT = config("LDAP_PORT", default=389, cast=int)
+LDAP_USE_SSL = _config_bool("LDAP_USE_SSL", default=False)
+LDAP_CONNECT_TIMEOUT = config("LDAP_CONNECT_TIMEOUT", default=8, cast=int)
+LDAP_RECEIVE_TIMEOUT = config("LDAP_RECEIVE_TIMEOUT", default=20, cast=int)
+LDAP_ENABLE_PORT_FALLBACK = _config_bool("LDAP_ENABLE_PORT_FALLBACK", default=True)
 LDAP_SERVER_ALTERNATES = [
     host.strip()
-    for host in config('LDAP_SERVER_ALTERNATES', default='').split(',')
+    for host in config("LDAP_SERVER_ALTERNATES", default="").split(",")
     if host.strip()
 ]
 
 # LDAP Service Account (for user sync operations)
-LDAP_SERVICE_USERNAME = config('LDAP_SERVICE_USERNAME', default='')
-LDAP_SERVICE_PASSWORD = config('LDAP_SERVICE_PASSWORD', default='')
+LDAP_SERVICE_USERNAME = config("LDAP_SERVICE_USERNAME", default="")
+LDAP_SERVICE_PASSWORD = config("LDAP_SERVICE_PASSWORD", default="")
 
 # Role names (centralized to avoid hardcoded strings)
-ADMIN_ROLE_NAME = 'admin'
-USER_ROLE_NAME = 'user'
+ADMIN_ROLE_NAME = "admin"
+USER_ROLE_NAME = "user"
 
 
 # Application definition
@@ -105,7 +128,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join('templates')],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -127,16 +150,26 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME', default='cbi_db'),
-        'USER': config('DB_USER', default='cbi_user'),
-        'PASSWORD': config('DB_PASSWORD', default='cbi_password'),
-        'HOST': config('DB_HOST', default='db'),
-        'PORT': config('DB_PORT', default='5432'),
+DB_ENGINE = config('DB_ENGINE', default='postgresql').strip().lower()
+if DB_ENGINE in {'sqlite', 'sqlite3'}:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': config('SQLITE_NAME', default=str(BASE_DIR / 'db.sqlite3')),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DB_NAME', default='cbi_db'),
+            'USER': config('DB_USER', default='cbi_user'),
+            'PASSWORD': config('DB_PASSWORD', default='cbi_password'),
+            'HOST': config('DB_HOST', default='db'),
+            'PORT': config('DB_PORT', default='5432'),
+            'CONN_MAX_AGE': config('DB_CONN_MAX_AGE', default=60, cast=int),
+        }
+    }
 
 CACHES = {
     'default': {
@@ -172,19 +205,32 @@ AUTH_USER_MODEL = 'users.CustomUser'
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'Africa/Algiers'
+TIME_ZONE = config('TIME_ZONE', default='Africa/Algiers')
 
 USE_I18N = True
 
 USE_TZ = True
 
 
+# Security hardening for production deployments.
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = _config_bool('SESSION_COOKIE_SECURE', default=not DEBUG)
+CSRF_COOKIE_SECURE = _config_bool('CSRF_COOKIE_SECURE', default=not DEBUG)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = config('SECURE_REFERRER_POLICY', default='strict-origin-when-cross-origin')
+SECURE_SSL_REDIRECT = _config_bool('SECURE_SSL_REDIRECT', default=not DEBUG)
+SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000 if not DEBUG else 0, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _config_bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=not DEBUG)
+SECURE_HSTS_PRELOAD = _config_bool('SECURE_HSTS_PRELOAD', default=not DEBUG)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'),]
+STATICFILES_DIRS = [BASE_DIR / 'static']
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = "/media/"

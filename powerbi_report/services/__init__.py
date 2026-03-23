@@ -5,10 +5,12 @@ from .permission_sync import (
     sync_all_user_permissions,
     sync_user_permissions_on_login,
 )
+from .ldap_group_members import get_group_members
 
 __all__ = [
     'PBIRSClient',
     'PermissionSyncService',
     'sync_all_user_permissions',
     'sync_user_permissions_on_login',
+    'get_group_members',
 ]

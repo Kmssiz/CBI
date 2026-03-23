@@ -46,7 +46,6 @@ urlpatterns = [
     path('report/<str:report_id>/edit-description/', views.edit_powerbi_report_description, name='edit_report_description'),
 
     path('load_cache/', views.load_cache, name='load_cache'),
-    path('report-security/<str:username>/<str:report_id>/', views.report_security_view, name='report_security'),
 
 
     path('report/<str:report_id>/download/', views.download_report, name='download_report'),
@@ -55,15 +54,13 @@ urlpatterns = [
     path('report/<str:report_id>/add_refresh_plan/', views.add_refresh_plan, name='add_refresh_plan'),
     path('upload/', views.upload_powerbi_report, name='upload_powerbi_report'),
     
-    path('folders/', views.get_folder_list, name='folder_list'),
+    path('folders/json/', views.get_folder_list, name='folder_list'),
 
     # Custom Virtual Folder Views
     path('custom/business/', views.custom_folders_list, {'view_type': 'business'}, name='custom_business'),
-    path('custom/business/<int:folder_id>/', views.custom_folders_list, {'view_type': 'business'}, name='custom_folder_detail'),
     path('custom/biblio/', views.custom_folders_list, {'view_type': 'biblio'}, name='custom_biblio'),
-    path('custom/biblio/<int:folder_id>/', views.custom_folders_list, {'view_type': 'biblio'}, name='custom_folder_detail'),
     path('custom/anomalie/', views.custom_folders_list, {'view_type': 'anomalie'}, name='custom_anomalie'),
-    path('custom/anomalie/<int:folder_id>/', views.custom_folders_list, {'view_type': 'anomalie'}, name='custom_folder_detail'),
+    path('custom/<str:view_type>/<int:folder_id>/', views.custom_folders_list, name='custom_folder_detail'),
     path('custom/folder/<str:view_type>/<int:folder_id>/report/<int:report_id>/', views.embed_custom_report, name='embed_custom_report'),
     # Department view uses the same view as Reports page (report_list_hierarchy)
     # root_scope='CBI' pre-navigates into the /CBI folder so top-level shows Pôles
