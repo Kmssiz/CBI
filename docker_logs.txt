@@ -1,0 +1,201 @@
+﻿Operations to perform:
+docker : [2026-03-25 07:30:11 +0000] [9] [INFO] Starting gunicorn 23.0.0
+At line:1 char:1
++ docker logs PBI --since 30m 2>&1 | Out-File -FilePath C:\Users\H00175 ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([2026-03-25 07:...gunicorn 23.0.0:Strin 
+   g) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  Apply all migrations: admin, auth, contenttypes, easyaudit, guardian, notifications, powerbi_report, sessions, tickets, users
+Running migrations:
+  No migrations to apply.
+  Your models in app(s): 'tickets' have changes that are not yet reflected in a migration, and so won't be applied.
+  Run 'manage.py makemigrations' to make new migrations, and then re-run 'manage.py migrate' to apply them.
+
+129 static files copied to '/app/staticfiles', 71 unmodified.
+[2026-03-25 07:30:11 +0000] [9] [INFO] Listening at: http://0.0.0.0:8222 (9)
+[2026-03-25 07:30:11 +0000] [9] [INFO] Using worker: sync
+[2026-03-25 07:30:11 +0000] [10] [INFO] Booting worker with pid: 10
+[2026-03-25 07:30:11 +0000] [11] [INFO] Booting worker with pid: 11
+[2026-03-25 07:30:11 +0000] [12] [INFO] Booting worker with pid: 12
+[2026-03-25 07:30:11 +0000] [13] [INFO] Booting worker with pid: 13
+INFO 2026-03-25 08:30:43,816 ldap_utils LDAP bind successful on 
+ldap.groupe-hasnaoui.com:389 (ssl=False)
+INFO 2026-03-25 08:30:43,975 permission_sync Using service account: 
+GROUPE-HASNAOUI\cs_bi
+INFO 2026-03-25 08:30:43,975 permission_sync Fetching reports from: 
+http://10.20.10.63/Reports/api/v2.0/PowerBIReports
+INFO 2026-03-25 08:30:47,795 permission_sync Response status: 200
+INFO 2026-03-25 08:30:48,406 permission_sync Synced 17 reports to ReportRef table
+INFO 2026-03-25 08:30:48,406 permission_sync Fetching reports from: 
+http://10.20.10.63/Reports/api/v2.0/PowerBIReports
+INFO 2026-03-25 08:31:17,739 permission_sync Response status: 200
+INFO 2026-03-25 08:31:32,826 permission_sync Synced 591 reports to ReportRef table
+INFO 2026-03-25 08:31:33,100 permission_sync Synced 591 permissions for user H0017549
+INFO 2026-03-25 08:31:33,102 views Synced 591 report permissions for user H0017549
+INFO 2026-03-25 08:34:32,767 permission_sync Fetching report list using credentials 
+of H0017549
+INFO 2026-03-25 08:34:32,767 permission_sync Fetching reports from: 
+http://10.20.10.63/Reports/api/v2.0/PowerBIReports
+INFO 2026-03-25 08:34:35,744 permission_sync Response status: 200
+INFO 2026-03-25 08:34:44,029 permission_sync Synced 591 reports to ReportRef table
+[2026-03-25 07:36:37 +0000] [9] [CRITICAL] WORKER TIMEOUT (pid:12)
+[2026-03-25 08:36:37 +0100] [12] [ERROR] Error handling request 
+/powerbi/refresh-list/
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/gunicorn/workers/sync.py", line 134, 
+in handle
+    self.handle_request(listener, req, client, addr)
+  File "/usr/local/lib/python3.12/site-packages/gunicorn/workers/sync.py", line 177, 
+in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/wsgi.py", line 
+124, in __call__
+    response = self.get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/base.py", line 
+140, in get_response
+    response = self._middleware_chain(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/exception.py", 
+line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/utils/deprecation.py", line 
+129, in __call__
+    response = response or self.get_response(request)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/exception.py", 
+line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/whitenoise/middleware.py", line 124, 
+in __call__
+    return self.get_response(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/exception.py", 
+line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/utils/deprecation.py", line 
+129, in __call__
+    response = response or self.get_response(request)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/exception.py", 
+line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/utils/deprecation.py", line 
+129, in __call__
+    response = response or self.get_response(request)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/exception.py", 
+line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/utils/deprecation.py", line 
+129, in __call__
+    response = response or self.get_response(request)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/exception.py", 
+line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/utils/deprecation.py", line 
+129, in __call__
+    response = response or self.get_response(request)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/exception.py", 
+line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/utils/deprecation.py", line 
+129, in __call__
+    response = response or self.get_response(request)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/exception.py", 
+line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/utils/deprecation.py", line 
+129, in __call__
+    response = response or self.get_response(request)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/exception.py", 
+line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/easyaudit/middleware/easyaudit.py", 
+line 52, in __call__
+    response = response or self.get_response(request)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/exception.py", 
+line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/core/handlers/base.py", line 
+197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/django/contrib/auth/decorators.py", 
+line 60, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/powerbi_report/views.py", line 2690, in get_report_refresh_list
+    refresh_response = requests.get(refresh_url, auth=auth, timeout=10)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/requests/api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/requests/sessions.py", line 589, in 
+request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/requests/sessions.py", line 703, in 
+send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/requests/adapters.py", line 667, in 
+send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/urllib3/connectionpool.py", line 
+787, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/urllib3/connectionpool.py", line 
+493, in _make_request
+    conn.request(
+  File "/usr/local/lib/python3.12/site-packages/urllib3/connection.py", line 500, in 
+request
+    self.endheaders()
+  File "/usr/local/lib/python3.12/http/client.py", line 1353, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+  File "/usr/local/lib/python3.12/http/client.py", line 1113, in _send_output
+    self.send(msg)
+  File "/usr/local/lib/python3.12/http/client.py", line 1057, in send
+    self.connect()
+  File "/usr/local/lib/python3.12/site-packages/urllib3/connection.py", line 331, in 
+connect
+    self.sock = self._new_conn()
+                ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/urllib3/connection.py", line 204, in 
+_new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/urllib3/util/connection.py", line 
+73, in create_connection
+    sock.connect(sa)
+  File "/usr/local/lib/python3.12/site-packages/gunicorn/workers/base.py", line 204, 
+in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2026-03-25 08:36:37 +0100] [12] [INFO] Worker exiting (pid: 12)
+[2026-03-25 07:36:38 +0000] [14] [INFO] Booting worker with pid: 14
+INFO 2026-03-25 08:38:40,334 permission_sync Permission sync completed: 3026 users, 
+1803496 permissions

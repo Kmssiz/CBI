@@ -130,7 +130,10 @@ class FolderReportItem(models.Model):
         unique_together = [['folder', 'report']]
 
     def __str__(self):
-        return f"{self.report.name} in {self.folder.name}"
+        try:
+            return f"{self.report.name} in {self.folder.name}"
+        except Exception:
+            return f"FolderReportItem (id={self.pk})"
 
 
 class UserReportPermission(models.Model):
