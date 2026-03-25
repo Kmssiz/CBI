@@ -48,7 +48,8 @@ SECRET_KEY = config("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production.
 DEBUG = _config_bool("DEBUG", default=False)
 
-ALLOWED_HOSTS = _config_list("ALLOWED_HOSTS", default="127.0.0.1,localhost")
+# ALLOWED_HOSTS = _config_list("ALLOWED_HOSTS", default="127.0.0.1,localhost")
+ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = _config_list("CSRF_TRUSTED_ORIGINS", default="")
 
 # Base URL of your report server 
