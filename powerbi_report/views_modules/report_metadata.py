@@ -10,6 +10,7 @@ from django.core.cache import cache
 from django.shortcuts import redirect
 
 from notifications.models import Notification
+from powerbi_report.models import ReportRef
 from users.models import CustomUser
 
 logger = logging.getLogger("powerbi_report")
@@ -21,7 +22,7 @@ def get_powerbi_report_info_data(
     auth_getter: Callable,
 ):
     """Retrieve basic report info from PBIRS."""
-    url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})"
+    url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})"
     auth = auth_getter(request)
     if not auth:
         return None
@@ -65,7 +66,7 @@ def edit_powerbi_report_name_view(
         messages.error(request, "Please provide a new report name.")
         return redirect("powerbi_report:report_detail", report_id=report_id)
 
-    update_url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})"
+    update_url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})"
     auth = auth_getter(request)
     if not auth:
         messages.error(request, "Session expiree. Veuillez vous reconnecter.")
@@ -157,7 +158,7 @@ def edit_powerbi_report_path_view(
         messages.error(request, "Please provide a new report path.")
         return redirect("powerbi_report:report_list")
 
-    update_url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})"
+    update_url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})"
     auth = auth_getter(request)
     if not auth:
         messages.error(request, "Session expiree. Veuillez vous reconnecter.")
@@ -195,7 +196,7 @@ def edit_powerbi_report_description_view(
         messages.error(request, "Please provide a new report description.")
         return redirect("powerbi_report:report_detail", report_id=report_id)
 
-    update_url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})"
+    update_url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})"
     auth = auth_getter(request)
     if not auth:
         messages.error(request, "Session expiree. Veuillez vous reconnecter.")

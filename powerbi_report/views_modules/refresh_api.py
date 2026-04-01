@@ -7,12 +7,14 @@ import requests
 from django.conf import settings
 from django.http import JsonResponse
 
+from powerbi_report.models import ReportRef
+
 logger = logging.getLogger("powerbi_report")
 
 
 def get_refresh_plans_data(report_id: str, request, auth_getter: Callable) -> list[dict]:
     """Fetch cache refresh plans for a report."""
-    url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/CacheRefreshPlans"
+    url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/CacheRefreshPlans"
     auth = auth_getter(request)
 
     try:

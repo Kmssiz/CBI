@@ -771,20 +771,34 @@ def logout_view(request):
 
 def server_status(request):
     """
-    Endpoint to check connectivity to the PowerBI Report Server.
+    Endpoint to check connectivity to all configured PowerBI Report Servers.
     Used by the login page 'Systeme Status' feature.
     """
     try:
-        url = getattr(settings, "POWERBI_REPORT_SERVER_URL", None)
-        if not url:
+        server_urls = getattr(settings, "POWERBI_REPORT_SERVER_URLS", None)
+        if not server_urls:
+            url = getattr(settings, "POWERBI_REPORT_SERVER_URL", None)
+            server_urls = [url] if url else []
+        if not server_urls:
             return JsonResponse({"status": "down", "error": "Configuration missing"}, status=500)
-            
-        # Ping the server with a short timeout
-        response = requests.get(url, timeout=5)
-        if response.status_code < 500:
-            return JsonResponse({"status": "up"})
-        return JsonResponse({"status": "down", "code": response.status_code})
-    except requests.exceptions.RequestException as e:
+
+        results = []
+        all_up = True
+        for url in server_urls:
+            try:
+                response = requests.get(url, timeout=5)
+                if response.status_code < 500:
+                    results.append({"url": url, "status": "up"})
+                else:
+                    results.append({"url": url, "status": "down", "code": response.status_code})
+                    all_up = False
+            except requests.exceptions.RequestException as e:
+                results.append({"url": url, "status": "down", "error": str(e)})
+                all_up = False
+
+        overall_status = "up" if all_up else ("partial" if any(r["status"] == "up" for r in results) else "down")
+        return JsonResponse({"status": overall_status, "servers": results})
+    except Exception as e:
         logger.warning("PBIRS status check failed: %s", e)
         return JsonResponse({"status": "down", "error": str(e)}, status=500)
 

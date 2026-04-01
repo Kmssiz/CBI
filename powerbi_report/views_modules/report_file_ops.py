@@ -10,8 +10,7 @@ from django.core.cache import cache
 from django.http import StreamingHttpResponse
 from django.shortcuts import redirect
 
-from notifications.models import Notification
-from users.models import CustomUser
+from powerbi_report.models import ReportRef
 
 logger = logging.getLogger("powerbi_report")
 
@@ -51,8 +50,9 @@ def replace_powerbi_report_view(
         messages.error(request, "Le chemin du rapport est manquant.")
         return redirect("powerbi_report:report_detail", report_id=report_id)
 
+    server_url = ReportRef.get_server_url(report_id)
     api_url = (
-        f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/"
+        f"{server_url}/Reports/api/v2.0/"
         f"PowerBIReports({report_id})/Model.Upload"
     )
     auth = auth_getter(request)

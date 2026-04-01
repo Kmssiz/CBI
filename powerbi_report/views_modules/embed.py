@@ -24,12 +24,16 @@ def embed_report_view(
 
     report_path = report_path.strip("/")
     encoded_path = quote(report_path, safe="/")
-    embed_url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/powerbi/{encoded_path}?rs:embed=true"
 
     report_ref = ReportRef.objects.filter(path="/" + report_path).first()
     if not report_ref:
         report_ref = ReportRef.objects.filter(path=report_path).first()
     report_id = report_ref.pbirs_id if report_ref else None
+
+    # Use the report's own server URL, or fall back to default
+    server_url = (report_ref.server_url if report_ref and report_ref.server_url
+                  else settings.POWERBI_REPORT_SERVER_URL)
+    embed_url = f"{server_url}/Reports/powerbi/{encoded_path}?rs:embed=true"
 
     breadcrumbs = []
     path_parts = report_path.split("/")

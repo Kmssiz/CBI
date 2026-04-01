@@ -55,6 +55,12 @@ CSRF_TRUSTED_ORIGINS = _config_list("CSRF_TRUSTED_ORIGINS", default="")
 
 POWERBI_REPORT_SERVER_URL = config("POWERBI_REPORT_SERVER_URL")
 
+# All PBIRS server URLs (comma-separated). Defaults to the single URL above.
+POWERBI_REPORT_SERVER_URLS = _config_list(
+    "POWERBI_REPORT_SERVER_URLS",
+    default=config("POWERBI_REPORT_SERVER_URL"),
+)
+
 
 # LDAP Configuration
 LDAP_SERVER_NAME = config("LDAP_SERVER_NAME")

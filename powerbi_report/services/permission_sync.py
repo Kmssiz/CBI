@@ -41,6 +41,7 @@ class PermissionSyncService:
         """
         self.triggered_by = triggered_by
         self.base_url = settings.POWERBI_REPORT_SERVER_URL
+        self.server_urls = getattr(settings, 'POWERBI_REPORT_SERVER_URLS', [self.base_url])
         self.sync_log = None
     
     def _get_service_auth(self):
@@ -63,25 +64,27 @@ class PermissionSyncService:
         ntlm_username = f"{domain}\\{user.username}"
         return HttpNtlmAuth(ntlm_username, password)
     
-    def _fetch_reports_for_auth(self, auth):
+    def _fetch_reports_for_auth(self, auth, base_url=None):
         """
-        Fetch reports accessible to a given auth credential.
+        Fetch reports accessible to a given auth credential from a single server.
         
         Args:
             auth: HttpNtlmAuth object.
+            base_url: PBIRS server base URL. Defaults to primary.
             
         Returns:
             List of report dictionaries (Type=PowerBIReport only).
         """
+        base_url = base_url or self.base_url
         try:
-            url = f"{self.base_url}/Reports/api/v2.0/PowerBIReports"
+            url = f"{base_url}/Reports/api/v2.0/PowerBIReports"
             logger.info(f"Fetching reports from: {url}")
             response = requests.get(url, auth=auth, timeout=30)
             logger.info(f"Response status: {response.status_code}")
             response.raise_for_status()
             
             items = response.json().get('value', [])
-            folder_paths = self._fetch_folder_paths_for_auth(auth)
+            folder_paths = self._fetch_folder_paths_for_auth(auth, base_url=base_url)
 
             filtered_reports = []
             for item in items:
@@ -95,14 +98,33 @@ class PermissionSyncService:
                 if item_path in folder_paths:
                     continue
 
+                # Tag each report with the server it came from
+                item['_server_url'] = base_url
                 filtered_reports.append(item)
 
             return filtered_reports
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to fetch reports: {e}")
+            logger.error(f"Failed to fetch reports from {base_url}: {e}")
             if hasattr(e, 'response') and e.response is not None:
                  logger.error(f"Response content: {e.response.text}")
             return []
+
+    def _fetch_reports_for_auth_all_servers(self, auth):
+        """
+        Fetch reports from ALL configured PBIRS servers for a given auth.
+        
+        Args:
+            auth: HttpNtlmAuth object.
+            
+        Returns:
+            List of report dictionaries from all servers.
+        """
+        all_reports = []
+        for server_url in self.server_urls:
+            reports = self._fetch_reports_for_auth(auth, base_url=server_url)
+            all_reports.extend(reports)
+            logger.info(f"Fetched {len(reports)} reports from {server_url}")
+        return all_reports
 
     @staticmethod
     def _normalize_pbirs_item_type(item: dict) -> str:
@@ -128,24 +150,25 @@ class PermissionSyncService:
 
         return ""
 
-    def _fetch_folder_paths_for_auth(self, auth) -> set[str]:
-        """Fetch folder paths from PBIRS using provided auth."""
+    def _fetch_folder_paths_for_auth(self, auth, base_url=None) -> set[str]:
+        """Fetch folder paths from a PBIRS server using provided auth."""
+        base_url = base_url or self.base_url
         try:
-            url = f"{self.base_url}/Reports/api/v2.0/Folders"
+            url = f"{base_url}/Reports/api/v2.0/Folders"
             response = requests.get(url, auth=auth, timeout=30)
             response.raise_for_status()
             items = response.json().get("value", [])
             return {item.get("Path", "") for item in items if item.get("Path")}
         except requests.exceptions.RequestException as e:
-            logger.warning(f"Failed to fetch folder paths: {e}")
+            logger.warning(f"Failed to fetch folder paths from {base_url}: {e}")
             return set()
     
     def _fetch_all_reports_as_admin(self):
-        """Fetch all reports using service account."""
+        """Fetch all reports from all servers using service account."""
         auth = self._get_service_auth()
         if not auth:
             return []
-        return self._fetch_reports_for_auth(auth)
+        return self._fetch_reports_for_auth_all_servers(auth)
     
     def _sync_reports_to_local(self, reports):
         """
@@ -158,19 +181,17 @@ class PermissionSyncService:
         Returns:
             Number of reports synced.
         """
-        base_embed_url = f"{self.base_url}/Reports/powerbi/"
         synced_count = 0
         
         with transaction.atomic():
             for report in reports:
-                # PowerBIReports endpoint ensures these are reports, validation optional
-                # if report.get('Type') != 'PowerBIReport': continue
-
                 pbirs_id = report.get('Id')
                 name = report.get('Name', 'Unnamed')
                 path = report.get('Path', '')
+                server_url = report.get('_server_url', self.base_url)
                 
-                # Build embed URL
+                # Build embed URL using the report's own server
+                base_embed_url = f"{server_url}/Reports/powerbi/"
                 clean_path = path.strip('/')
                 encoded_path = urllib.parse.quote(clean_path, safe='/')
                 embed_url = f"{base_embed_url}{encoded_path}?rs:embed=true"
@@ -181,6 +202,7 @@ class PermissionSyncService:
                     defaults={
                         'name': name,
                         'path': path,
+                        'server_url': server_url,
                         'embed_url': embed_url,
                     }
                 )
@@ -203,7 +225,7 @@ class PermissionSyncService:
         from django.db import transaction
         
         auth = self._get_user_auth(user, password)
-        reports = self._fetch_reports_for_auth(auth)
+        reports = self._fetch_reports_for_auth_all_servers(auth)
         
         # Robustness fix: Ensure these reports exist in ReportRef
         # This handles case where service account cannot see some reports
@@ -273,8 +295,8 @@ class PermissionSyncService:
             if not auth_to_use:
                 raise Exception("No valid authentication method available to fetch reports.")
 
-            # 2. Fetch all reports from PBIRS using the determined auth
-            all_reports = self._fetch_reports_for_auth(auth_to_use)
+            # 2. Fetch all reports from ALL PBIRS servers using the determined auth
+            all_reports = self._fetch_reports_for_auth_all_servers(auth_to_use)
             if not all_reports:
                 raise Exception("Failed to fetch reports from PBIRS")
             

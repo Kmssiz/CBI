@@ -93,7 +93,7 @@ def add_powerbi_folder_view(request, auth_getter: Callable, history_logger: Call
             messages.error(request, "Folder name is required.")
             return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
 
-        url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/Folders"
+        url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/Folders"  # Uses primary server
         auth = auth_getter(request)
         session = requests.Session()
         session.auth = auth

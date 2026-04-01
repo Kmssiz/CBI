@@ -23,6 +23,12 @@ class ReportRef(models.Model):
     )
     name = models.CharField(max_length=255)
     path = models.CharField(max_length=1024, help_text="Path on PBIRS server (e.g., /Sales/Q1)")
+    server_url = models.URLField(
+        max_length=512,
+        blank=True,
+        null=True,
+        help_text="Base URL of the PBIRS server this report belongs to",
+    )
     embed_url = models.URLField(max_length=2048, blank=True, null=True)
     last_synced = models.DateTimeField(auto_now=True)
     modified_at = models.DateTimeField(null=True, blank=True)
@@ -41,6 +47,20 @@ class ReportRef(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.path})"
+
+    @classmethod
+    def get_server_url(cls, report_id: str) -> str:
+        """Resolve the PBIRS server URL for a given report ID.
+        Falls back to the primary server URL if not found.
+        """
+        from django.conf import settings
+        try:
+            ref = cls.objects.get(pbirs_id=report_id)
+            if ref.server_url:
+                return ref.server_url
+        except cls.DoesNotExist:
+            pass
+        return settings.POWERBI_REPORT_SERVER_URL
 
 
 class CustomFolder(models.Model):

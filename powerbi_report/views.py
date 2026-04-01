@@ -1,4 +1,4 @@
-﻿"""
+"""
 PowerBI Report Views.
 
 This module handles all view logic for Power BI Report management,
@@ -144,7 +144,7 @@ def _normalize_pbirs_path(path: str) -> str:
 
 def _get_pbirs_folder_paths(request) -> set[str]:
     """
-    Fetch folder paths from PBIRS for the current user.
+    Fetch folder paths from all configured PBIRS servers for the current user.
     Used as source-of-truth to prevent folders being treated as reports.
     """
     user_id = request.user.id if request.user.is_authenticated else "anonymous"
@@ -153,7 +153,7 @@ def _get_pbirs_folder_paths(request) -> set[str]:
     if cached_paths is not None:
         return set(cached_paths)
 
-    url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/Folders"
+    server_urls = getattr(settings, 'POWERBI_REPORT_SERVER_URLS', [settings.POWERBI_REPORT_SERVER_URL])
 
     auth_candidates = []
     user_auth = get_current_user_auth(request)
@@ -171,18 +171,23 @@ def _get_pbirs_folder_paths(request) -> set[str]:
         )
 
     for auth in auth_candidates:
-        try:
-            response = requests.get(url, auth=auth, timeout=10)
-            response.raise_for_status()
-            items = response.json().get("value", [])
-            paths = {
-                _normalize_pbirs_path(item.get("Path", ""))
-                for item in items if item.get("Path")
-            }
-            cache.set(cache_key, list(paths), timeout=200)
-            return paths
-        except requests.exceptions.RequestException as err:
-            logger.warning(f"Failed to fetch PBIRS folder paths with one auth method: {err}")
+        all_paths = set()
+        for server_url in server_urls:
+            try:
+                url = f"{server_url}/Reports/api/v2.0/Folders"
+                response = requests.get(url, auth=auth, timeout=10)
+                response.raise_for_status()
+                items = response.json().get("value", [])
+                paths = {
+                    _normalize_pbirs_path(item.get("Path", ""))
+                    for item in items if item.get("Path")
+                }
+                all_paths.update(paths)
+            except requests.exceptions.RequestException as err:
+                logger.warning(f"Failed to fetch PBIRS folder paths from {server_url}: {err}")
+        if all_paths:
+            cache.set(cache_key, list(all_paths), timeout=200)
+            return all_paths
 
     return set()
 
@@ -200,7 +205,7 @@ def get_powerbi_reports(request, endpoint="PowerBIReports"):
         )
         return cached_reports
 
-    url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/{endpoint}"
+    server_urls = getattr(settings, 'POWERBI_REPORT_SERVER_URLS', [settings.POWERBI_REPORT_SERVER_URL])
     auth = get_current_user_auth(request)
     
     # Handle missing auth (session expired)
@@ -211,41 +216,44 @@ def get_powerbi_reports(request, endpoint="PowerBIReports"):
     session = requests.Session()  
     session.auth = auth  
 
-    try:
-        response = session.get(url=url, auth=auth, timeout=10)  
-        response.raise_for_status()
+    all_filtered_items = []
+    for server_url in server_urls:
+        try:
+            url = f"{server_url}/Reports/api/v2.0/{endpoint}"
+            response = session.get(url=url, auth=auth, timeout=10)  
+            response.raise_for_status()
 
-        items = response.json().get('value', []) if response.status_code == 200 else []
-        
-        filtered_items = []
-        if endpoint == "CatalogItems":
-            for item in items:
-                item_type = _normalize_pbirs_item_type(item)
-                if item_type == "PowerBIReport":
-                    filtered_items.append({**item, "Type": "PowerBIReport"})
-        else:
-            folder_paths = _get_pbirs_folder_paths(request)
-            for item in items:
-                item_path = item.get("Path", "")
-                if not item_path:
-                    continue
+            items = response.json().get('value', []) if response.status_code == 200 else []
+            
+            if endpoint == "CatalogItems":
+                for item in items:
+                    item_type = _normalize_pbirs_item_type(item)
+                    if item_type == "PowerBIReport":
+                        item['_server_url'] = server_url
+                        all_filtered_items.append({**item, "Type": "PowerBIReport"})
+            else:
+                folder_paths = _get_pbirs_folder_paths(request)
+                for item in items:
+                    item_path = item.get("Path", "")
+                    if not item_path:
+                        continue
 
-                item_type = _normalize_pbirs_item_type(item)
-                if item_type == "Folder":
-                    continue
-                if _normalize_pbirs_path(item_path) in folder_paths:
-                    continue
+                    item_type = _normalize_pbirs_item_type(item)
+                    if item_type == "Folder":
+                        continue
+                    if _normalize_pbirs_path(item_path) in folder_paths:
+                        continue
 
-                filtered_items.append({**item, "Type": "PowerBIReport"})
+                    item['_server_url'] = server_url
+                    all_filtered_items.append({**item, "Type": "PowerBIReport"})
 
-        cache.set(cache_key, filtered_items, timeout=200) 
-        return filtered_items
-    except requests.exceptions.Timeout:
-        logger.warning("PBIRS request timed out for user %s (endpoint=%s).", user_id, endpoint)
-        return []
-    except requests.exceptions.RequestException as err:
-        logger.error("PBIRS request error for user %s (endpoint=%s): %s", user_id, endpoint, err)
-        return []
+        except requests.exceptions.Timeout:
+            logger.warning("PBIRS request timed out for user %s (endpoint=%s) on server %s.", user_id, endpoint, server_url)
+        except requests.exceptions.RequestException as err:
+            logger.error("PBIRS request error for user %s (endpoint=%s) on server %s: %s", user_id, endpoint, server_url, err)
+
+    cache.set(cache_key, all_filtered_items, timeout=200) 
+    return all_filtered_items
 
 #################################################################################################################
 #                    Local DB report listing (uses UserReportPermission instead of PBIRS API)                   #
@@ -279,13 +287,13 @@ def get_local_reports_for_user(user, request=None):
     # Defensive fallback for historical cache pollution.
     report_refs = _filter_reportref_to_leaf_items(report_refs)
 
-    base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
     reports = []
     for ref in report_refs:
         path = ref.path or ""
         clean_path = path.lstrip("/")
         encoded_path = urllib.parse.quote(clean_path, safe="/")
-        embed_url = ref.embed_url or f"{base_embed_url}{encoded_path}?rs:embed=true"
+        server_url = ref.server_url or REPORT_SERVER_URL
+        embed_url = ref.embed_url or f"{server_url}/Reports/powerbi/{encoded_path}?rs:embed=true"
 
         # Derive ParentFolderId-like info from path for hierarchy views
         path_parts = path.strip("/").split("/") if path else []
@@ -626,7 +634,6 @@ def report_list_hierarchy(request, folder_path="", root_scope=None, view_type=No
     items = get_local_reports_for_user(request.user, request=request)
     # Also include derived folders so the hierarchy builds correctly
     items += get_local_folders_from_reports(items)
-    base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
     
     folder_dict = {}
 
@@ -666,10 +673,9 @@ def report_list_hierarchy(request, folder_path="", root_scope=None, view_type=No
                 and current_level[item_name].get('type') == 'Folder'
             ):
                 continue
-            encoded_path = urllib.parse.quote(item.get("Path", ""), safe="/")
             current_level[item_name] = {
                 "type": "PowerBIReport",
-                "url": f"{base_embed_url}{encoded_path}?rs:embed=true",
+                "url": item.get("embed_url"),
                 "path": item.get("Path", "")
             }
 
@@ -734,7 +740,7 @@ def upload_powerbi_report(request):
         # Construct the report path
         report_path = f"/{folder_path}/{report_name}" if folder_path else f"/{report_name}"
         encoded_path = report_path.replace("'", "''").replace(" ", "%20")
-        api_url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports(path='{encoded_path}')/Model.Upload"
+        api_url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports(path='{encoded_path}')/Model.Upload"  # Uses primary server for uploads
 
         # Setup authentication using get_current_user_auth
         auth = get_current_user_auth(request)
@@ -880,7 +886,7 @@ def report_detail(request, report_id):
             log_history(request.user, f"Ã‰chec d'authentification pour l'action {action} sur le plan d'actualisation ID : {refresh_plan_id} pour le rapport ID : {report_id}")
         else:
             if action == "refresh":
-                refresh_url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/CacheRefreshPlans({refresh_plan_id})/Model.Execute"
+                refresh_url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/CacheRefreshPlans({refresh_plan_id})/Model.Execute"
                 try:
                     response = requests.post(refresh_url, auth=auth, headers={"Content-Type": "application/json"})
                     response.raise_for_status()
@@ -903,7 +909,7 @@ def report_detail(request, report_id):
                     return redirect('powerbi_report:report_detail', report_id=report_id)
 
             elif action == "delete":
-                delete_url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/CacheRefreshPlans({refresh_plan_id})"
+                delete_url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/CacheRefreshPlans({refresh_plan_id})"
                 try:
                     response = requests.delete(delete_url, auth=auth)
                     response.raise_for_status()
@@ -960,7 +966,7 @@ def report_detail(request, report_id):
 def add_refresh_plan(request, report_id):
     if request.method == 'POST':
         # Define server URL and credentials
-        url = f"{settings.POWERBI_REPORT_SERVER_URL}/reports/api/v2.0/CacheRefreshPlans"
+        url = f"{ReportRef.get_server_url(report_id)}/reports/api/v2.0/CacheRefreshPlans"
         
         auth = get_current_user_auth(request)
 
@@ -2684,7 +2690,7 @@ def get_report_refresh_list(request):
         if not report_id:
             continue
 
-        refresh_url = f"{settings.POWERBI_REPORT_SERVER_URL}/reports/api/v2.0/PowerBIReports({report_id})/CacheRefreshPlans"
+        refresh_url = f"{ReportRef.get_server_url(report_id)}/reports/api/v2.0/PowerBIReports({report_id})/CacheRefreshPlans"
 
         try:
             refresh_response = requests.get(refresh_url, auth=auth, timeout=10)
@@ -3253,7 +3259,7 @@ def delete_powerbi_report_server(request, report_id):
 
     if request.method == "POST":
         # report_id here is the PBIRS ID (UUID)
-        url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})"
+        url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})"
         auth = get_current_user_auth(request)
         
         try:
