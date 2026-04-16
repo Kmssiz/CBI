@@ -8,7 +8,16 @@ from django.conf import settings
 from django.shortcuts import render
 
 from notifications.models import Notification
-from powerbi_report.models import ReportRef
+from powerbi_report.models import ReportRef, UserReportPermission
+
+
+def _can_access_report(user, report_ref: ReportRef | None) -> bool:
+    """Check report access from the local permission cache."""
+    if not user.is_authenticated or report_ref is None:
+        return False
+    if user.is_superuser:
+        return True
+    return UserReportPermission.objects.filter(user=user, report=report_ref).exists()
 
 
 def embed_report_view(
@@ -29,6 +38,18 @@ def embed_report_view(
     if not report_ref:
         report_ref = ReportRef.objects.filter(path=report_path).first()
     report_id = report_ref.pbirs_id if report_ref else None
+
+    if not _can_access_report(request.user, report_ref):
+        return render(
+            request,
+            "powerbi_report/embed_report.html",
+            {
+                "error": "Vous n'avez pas la permission de consulter ce rapport.",
+                "report_id": report_id,
+                "breadcrumbs": [],
+            },
+            status=403,
+        )
 
     # Use the report's own server URL, or fall back to default
     server_url = (report_ref.server_url if report_ref and report_ref.server_url

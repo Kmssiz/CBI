@@ -31,6 +31,18 @@ services:
       db:
         condition: service_healthy
 
+  permission-sync:
+    container_name: PBI_PERMISSION_SYNC
+    build: .
+    command: sh -c "python manage.py migrate && while true; do python manage.py sync_pbirs_permissions; sleep 3600; done"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   postgres_data:
 networks:

@@ -6,7 +6,10 @@ It queries PBIRS for each user's accessible reports and stores them in UserRepor
 """
 
 import logging
+import re
+import time
 import urllib.parse
+from collections import defaultdict
 from datetime import datetime
 
 import requests
@@ -17,6 +20,8 @@ from django.utils import timezone
 from users.models import CustomUser
 from powerbi_report.models import ReportRef, UserReportPermission, PermissionSyncLog
 from django.db import transaction, connection
+from django.db.models import Q
+from powerbi_report.services.ldap_group_members import get_group_members
 
 logger = logging.getLogger('powerbi_report')
 
@@ -31,6 +36,7 @@ class PermissionSyncService:
     
     DEFAULT_TIMEOUT = 15
     BULK_BATCH_SIZE = 5000
+    FULL_SYNC_LOCK_ID = 2026041601
     
     def __init__(self, triggered_by=None):
         """
@@ -42,6 +48,8 @@ class PermissionSyncService:
         self.triggered_by = triggered_by
         self.base_url = settings.POWERBI_REPORT_SERVER_URL
         self.server_urls = getattr(settings, 'POWERBI_REPORT_SERVER_URLS', [self.base_url])
+        self._report_fetch_success = {}
+        self._sync_lock_acquired = False
         self.sync_log = None
     
     def _get_service_auth(self):
@@ -63,6 +71,77 @@ class PermissionSyncService:
         domain = settings.LDAP_DOMAIN
         ntlm_username = f"{domain}\\{user.username}"
         return HttpNtlmAuth(ntlm_username, password)
+
+    @staticmethod
+    def _clean_identity(value):
+        """Normalize a PBIRS policy identity to the account/group short name."""
+        if not value:
+            return ""
+
+        cleaned = str(value).strip()
+        if not cleaned:
+            return ""
+
+        if "\\" in cleaned:
+            cleaned = cleaned.split("\\")[-1]
+
+        # Some LDAP payloads come as distinguished names.
+        if cleaned.upper().startswith("CN="):
+            cleaned = cleaned[3:].split(",", 1)[0]
+
+        return cleaned.strip()
+
+    @classmethod
+    def _identity_key(cls, value):
+        """Case-insensitive key for usernames, AD2000 identifiers, and groups."""
+        return cls._clean_identity(value).casefold()
+
+    @staticmethod
+    def _normalize_path(path):
+        """Normalize PBIRS paths for local comparisons."""
+        if not path:
+            return ""
+        normalized = str(path).strip()
+        if normalized != "/":
+            normalized = normalized.rstrip("/")
+        return normalized.casefold()
+
+    @staticmethod
+    def _parent_paths(report_path):
+        """Return parent folder paths from closest parent up to root."""
+        parts = [part for part in (report_path or "").strip("/").split("/") if part]
+        parent_parts = parts[:-1]
+        paths = []
+        while parent_parts:
+            paths.append("/" + "/".join(parent_parts))
+            parent_parts = parent_parts[:-1]
+        paths.append("/")
+        return paths
+
+    @classmethod
+    def _looks_like_group(cls, value):
+        """Avoid calling the group API for user/ad2000-looking policy identities."""
+        cleaned = cls._clean_identity(value)
+        if not cleaned:
+            return False
+
+        if cls._is_ignored_policy_identity(cleaned):
+            return False
+
+        if re.fullmatch(r"H\d+", cleaned, flags=re.IGNORECASE):
+            return False
+
+        return "-" in cleaned or cleaned.isupper()
+
+    @classmethod
+    def _is_ignored_policy_identity(cls, value):
+        """Return true for PBIRS/system identities that are not AD report groups."""
+        cleaned = cls._clean_identity(value).casefold()
+        return cleaned in {
+            "administrators",
+            "administrator",
+            "system",
+        }
     
     def _fetch_reports_for_auth(self, auth, base_url=None):
         """
@@ -82,9 +161,13 @@ class PermissionSyncService:
             response = requests.get(url, auth=auth, timeout=30)
             logger.info(f"Response status: {response.status_code}")
             response.raise_for_status()
+            self._report_fetch_success[base_url] = True
             
             items = response.json().get('value', [])
-            folder_paths = self._fetch_folder_paths_for_auth(auth, base_url=base_url)
+            folder_paths = {
+                self._normalize_path(path)
+                for path in self._fetch_folder_paths_for_auth(auth, base_url=base_url)
+            }
 
             filtered_reports = []
             for item in items:
@@ -95,7 +178,7 @@ class PermissionSyncService:
                 item_type = self._normalize_pbirs_item_type(item)
                 if item_type == "Folder":
                     continue
-                if item_path in folder_paths:
+                if self._normalize_path(item_path) in folder_paths:
                     continue
 
                 # Tag each report with the server it came from
@@ -104,6 +187,7 @@ class PermissionSyncService:
 
             return filtered_reports
         except requests.exceptions.RequestException as e:
+            self._report_fetch_success[base_url] = False
             logger.error(f"Failed to fetch reports from {base_url}: {e}")
             if hasattr(e, 'response') and e.response is not None:
                  logger.error(f"Response content: {e.response.text}")
@@ -162,6 +246,28 @@ class PermissionSyncService:
         except requests.exceptions.RequestException as e:
             logger.warning(f"Failed to fetch folder paths from {base_url}: {e}")
             return set()
+
+    def _fetch_folders_for_auth(self, auth, base_url=None):
+        """Fetch folder objects from a PBIRS server using provided auth."""
+        base_url = base_url or self.base_url
+        try:
+            url = f"{base_url}/Reports/api/v2.0/Folders"
+            response = requests.get(url, auth=auth, timeout=30)
+            response.raise_for_status()
+            folders = response.json().get("value", [])
+            for folder in folders:
+                folder["_server_url"] = base_url
+            return folders
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Failed to fetch folders from {base_url}: {e}")
+            return []
+
+    def _fetch_folders_for_auth_all_servers(self, auth):
+        """Fetch folders from all configured PBIRS servers."""
+        folders = []
+        for server_url in self.server_urls:
+            folders.extend(self._fetch_folders_for_auth(auth, base_url=server_url))
+        return folders
     
     def _fetch_all_reports_as_admin(self):
         """Fetch all reports from all servers using service account."""
@@ -169,6 +275,213 @@ class PermissionSyncService:
         if not auth:
             return []
         return self._fetch_reports_for_auth_all_servers(auth)
+
+    def _fetch_report_policies_for_auth(
+        self,
+        auth,
+        report,
+        folder_by_server_path=None,
+        folder_policy_cache=None,
+    ):
+        """
+        Fetch policies for a report, falling back to inherited folder policies.
+
+        Normal page navigation never calls this; it is intentionally used by
+        sync jobs/manual admin sync only.
+        """
+        report_id = report.get("Id")
+        server_url = report.get("_server_url") or self.base_url
+        if not report_id:
+            return []
+
+        try:
+            url = f"{server_url}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
+            self._pace_policy_request()
+            response = self._get_pbirs_policy_response(
+                url,
+                auth,
+                f"report policies for {report_id} on {server_url}",
+            )
+            data = response.json()
+            policies = data.get("Policies", [])
+            if policies:
+                return policies
+        except requests.exceptions.RequestException as e:
+            logger.warning(
+                "Failed to fetch report policies for %s on %s: %s",
+                report_id,
+                server_url,
+                e,
+            )
+
+        folder_by_server_path = folder_by_server_path or {}
+        folder_policy_cache = folder_policy_cache if folder_policy_cache is not None else {}
+
+        parent_folder_id = report.get("ParentFolderId")
+        if parent_folder_id:
+            policies = self._fetch_folder_policies_for_auth(
+                auth,
+                server_url,
+                parent_folder_id,
+                folder_policy_cache,
+            )
+            if policies:
+                return policies
+
+        for parent_path in self._parent_paths(report.get("Path", "")):
+            folder = folder_by_server_path.get((server_url, self._normalize_path(parent_path)))
+            if not folder:
+                continue
+
+            folder_id = folder.get("Id")
+            if not folder_id:
+                continue
+
+            policies = self._fetch_folder_policies_for_auth(
+                auth,
+                server_url,
+                folder_id,
+                folder_policy_cache,
+            )
+            if policies:
+                return policies
+
+        return []
+
+    def _pace_policy_request(self):
+        """Apply a tiny delay between PBIRS policy requests during bulk sync."""
+        delay = max(0.0, getattr(settings, "PBIRS_SYNC_POLICY_REQUEST_DELAY", 0.0))
+        if delay:
+            time.sleep(delay)
+
+    def _get_pbirs_policy_response(self, url, auth, context):
+        """
+        Fetch a PBIRS policy URL with short retries for transient connection refusals.
+        """
+        retries = max(0, getattr(settings, "PBIRS_SYNC_POLICY_RETRIES", 2))
+        retry_delay = max(0.0, getattr(settings, "PBIRS_SYNC_POLICY_RETRY_DELAY", 1.5))
+        timeout = getattr(settings, "PBIRS_SYNC_POLICY_TIMEOUT", self.DEFAULT_TIMEOUT)
+
+        for attempt in range(retries + 1):
+            try:
+                response = requests.get(url, auth=auth, timeout=timeout)
+                response.raise_for_status()
+                return response
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+                if attempt >= retries:
+                    raise
+
+                sleep_seconds = retry_delay * (attempt + 1)
+                logger.info(
+                    "Transient PBIRS failure while fetching %s; retrying in %.1fs (%s/%s).",
+                    context,
+                    sleep_seconds,
+                    attempt + 1,
+                    retries,
+                )
+                time.sleep(sleep_seconds)
+
+        raise requests.exceptions.RequestException(f"Failed to fetch {context}")
+
+    def _fetch_folder_policies_for_auth(self, auth, server_url, folder_id, folder_policy_cache):
+        """Fetch and cache policies for a PBIRS folder."""
+        cache_key = (server_url, folder_id)
+        if cache_key in folder_policy_cache:
+            return folder_policy_cache[cache_key]
+
+        try:
+            url = f"{server_url}/Reports/api/v2.0/Folders({folder_id})/Policies"
+            self._pace_policy_request()
+            response = self._get_pbirs_policy_response(
+                url,
+                auth,
+                f"folder policies for {folder_id} on {server_url}",
+            )
+            policies = response.json().get("Policies", [])
+        except requests.exceptions.RequestException as e:
+            logger.warning(
+                "Failed to fetch folder policies for %s on %s: %s",
+                folder_id,
+                server_url,
+                e,
+            )
+            policies = []
+
+        folder_policy_cache[cache_key] = policies
+        return policies
+
+    def _build_local_identity_maps(self):
+        """Build fast lookup maps for local users and their cached AD groups."""
+        users = list(
+            CustomUser.objects.filter(is_active=True).only(
+                "id",
+                "username",
+                "ad2000",
+                "ad_groups",
+            )
+        )
+
+        users_by_identity = {}
+        users_by_group = defaultdict(list)
+
+        for user in users:
+            for identifier in (user.username, user.ad2000):
+                key = self._identity_key(identifier)
+                if key:
+                    users_by_identity[key] = user
+
+            raw_groups = user.ad_groups or []
+            if not isinstance(raw_groups, list):
+                raw_groups = [raw_groups]
+
+            for group in raw_groups:
+                group_key = self._identity_key(group)
+                if group_key:
+                    users_by_group[group_key].append(user)
+
+        return users, users_by_identity, users_by_group
+
+    def _resolve_policy_users(
+        self,
+        policy,
+        users_by_identity,
+        users_by_group,
+        resolved_group_cache,
+    ):
+        """
+        Resolve one PBIRS policy to local users.
+
+        PBIRS often uses GroupUserName for both users and groups, so we first
+        match local user identifiers. If no user matches, the identity is
+        treated as a group and expanded from cached AD groups plus LDAP API.
+        """
+        raw_identity = policy.get("UserName") or policy.get("GroupUserName")
+        identity_key = self._identity_key(raw_identity)
+        if not identity_key:
+            return []
+
+        direct_user = users_by_identity.get(identity_key)
+        if direct_user:
+            return [(direct_user, True)]
+
+        resolved_users = {user.id: user for user in users_by_group.get(identity_key, [])}
+
+        if not resolved_users and self._is_ignored_policy_identity(raw_identity):
+            return []
+
+        if identity_key not in users_by_group and not self._looks_like_group(raw_identity):
+            return []
+
+        if identity_key not in resolved_group_cache:
+            group_name = self._clean_identity(raw_identity)
+            resolved_group_cache[identity_key] = get_group_members(group_name)
+
+        for member in resolved_group_cache.get(identity_key, set()):
+            user = users_by_identity.get(self._identity_key(member))
+            if user:
+                resolved_users[user.id] = user
+
+        return [(user, False) for user in resolved_users.values()]
     
     def _sync_reports_to_local(self, reports):
         """
@@ -210,6 +523,66 @@ class PermissionSyncService:
         
         logger.info(f"Synced {synced_count} reports to ReportRef table")
         return synced_count
+
+    def _remove_stale_report_refs(self, reports):
+        """
+        Remove local reports that disappeared from successfully fetched PBIRS servers.
+
+        If one server is unreachable, its local reports are left untouched instead
+        of being deleted from a partial sync result.
+        """
+        valid_ids_by_server = defaultdict(set)
+        for report in reports:
+            report_id = report.get("Id")
+            server_url = report.get("_server_url") or self.base_url
+            if report_id:
+                valid_ids_by_server[server_url].add(report_id)
+
+        removed_report_refs = 0
+        removed_related_rows = 0
+        for server_url in self.server_urls:
+            if not self._report_fetch_success.get(server_url):
+                continue
+
+            server_filter = Q(server_url=server_url)
+            if server_url == self.base_url:
+                server_filter |= Q(server_url__isnull=True) | Q(server_url="")
+
+            queryset = ReportRef.objects.filter(server_filter)
+            valid_ids = valid_ids_by_server.get(server_url, set())
+            if valid_ids:
+                queryset = queryset.exclude(pbirs_id__in=valid_ids)
+
+            deleted_count, deleted_details = queryset.delete()
+            deleted_report_refs = deleted_details.get("powerbi_report.ReportRef", 0)
+            removed_report_refs += deleted_report_refs
+            removed_related_rows += max(deleted_count - deleted_report_refs, 0)
+
+        if removed_report_refs:
+            logger.info(
+                "Removed %s stale ReportRef rows and %s related rows.",
+                removed_report_refs,
+                removed_related_rows,
+            )
+
+        return removed_report_refs
+
+    def sync_reports_only(self):
+        """
+        Sync only PBIRS report metadata into ReportRef using the service account.
+        """
+        auth = self._get_service_auth()
+        if not auth:
+            raise Exception("LDAP service account credentials are not configured.")
+
+        reports = self._fetch_reports_for_auth_all_servers(auth)
+        if not reports:
+            raise Exception("Failed to fetch reports from PBIRS")
+
+        synced_count = self._sync_reports_to_local(reports)
+        removed_count = self._remove_stale_report_refs(reports)
+
+        return synced_count, removed_count
     
     def sync_permissions_for_user_with_password(self, user, password):
         """
@@ -265,14 +638,20 @@ class PermissionSyncService:
     
     def sync_all_permissions_with_service_account(self, user_for_auth=None, password_for_auth=None):
         """
-        Sync permissions for ALL users using the service account to fetch the report list.
-        Iterates through all reports and all users to rebuild local permissions.
+        Sync permissions for ALL users from PBIRS policies into local DB.
+
+        This is the expensive operation. It should run manually, on an
+        external hourly schedule, or after admin permission changes. Normal
+        report navigation reads UserReportPermission and never calls this.
         
         Args:
             user_for_auth: Optional user object to use for fetching the initial report list 
                            instead of the service account.
             password_for_auth: Password for user_for_auth, if provided.
         """
+        if not self._acquire_full_sync_lock():
+            raise Exception("A PBIRS permission sync is already running.")
+
         self.started_at = timezone.now()
         self.sync_log = PermissionSyncLog.objects.create(
             triggered_by=self.triggered_by,
@@ -282,7 +661,7 @@ class PermissionSyncService:
         )
         
         try:
-            # 1. Determine authentication to use for fetching all reports
+            # 1. Determine authentication to use for fetching reports/policies.
             auth_to_use = None
             if user_for_auth and password_for_auth:
                 logger.info(f"Fetching report list using credentials of {user_for_auth.username}")
@@ -295,49 +674,73 @@ class PermissionSyncService:
             if not auth_to_use:
                 raise Exception("No valid authentication method available to fetch reports.")
 
-            # 2. Fetch all reports from ALL PBIRS servers using the determined auth
+            # 2. Fetch all reports from ALL PBIRS servers using the determined auth.
             all_reports = self._fetch_reports_for_auth_all_servers(auth_to_use)
             if not all_reports:
                 raise Exception("Failed to fetch reports from PBIRS")
             
             self._sync_reports_to_local(all_reports)
-            
-            # Get all active users and synced report IDs.
-            users = list(
-                CustomUser.objects.filter(is_active=True).only('id', 'username')
+            self._remove_stale_report_refs(all_reports)
+
+            folders = self._fetch_folders_for_auth_all_servers(auth_to_use)
+            folder_by_server_path = {
+                (folder.get("_server_url") or self.base_url, self._normalize_path(folder.get("Path", ""))): folder
+                for folder in folders
+                if folder.get("Path")
+            }
+
+            _, users_by_identity, users_by_group = self._build_local_identity_maps()
+            report_refs = ReportRef.objects.filter(
+                pbirs_id__in=[report.get("Id") for report in all_reports if report.get("Id")]
             )
-            report_ids = list(ReportRef.objects.values_list('id', flat=True))
-            users_synced = len(users)
-            total_permissions = users_synced * len(report_ids)
+            report_ref_by_pbirs_id = {ref.pbirs_id: ref for ref in report_refs}
+
+            permission_map = {}
+            folder_policy_cache = {}
+            resolved_group_cache = {}
+
+            for report in all_reports:
+                report_id = report.get("Id")
+                report_ref = report_ref_by_pbirs_id.get(report_id)
+                if not report_ref:
+                    continue
+
+                policies = self._fetch_report_policies_for_auth(
+                    auth_to_use,
+                    report,
+                    folder_by_server_path=folder_by_server_path,
+                    folder_policy_cache=folder_policy_cache,
+                )
+
+                for policy in policies:
+                    for user, is_direct in self._resolve_policy_users(
+                        policy,
+                        users_by_identity,
+                        users_by_group,
+                        resolved_group_cache,
+                    ):
+                        key = (user.id, report_ref.id)
+                        permission_map[key] = permission_map.get(key, False) or is_direct
+
+            permissions_to_create = [
+                UserReportPermission(
+                    user_id=user_id,
+                    report_id=report_id,
+                    is_direct=is_direct,
+                )
+                for (user_id, report_id), is_direct in permission_map.items()
+            ]
+            users_synced = len({user_id for user_id, _ in permission_map.keys()})
+            total_permissions = len(permissions_to_create)
 
             # Rebuild the permission table in bulk to avoid per-row CRUD signal overhead.
             with transaction.atomic():
                 self._clear_user_report_permissions_fast()
-
-                if users and report_ids:
-                    permissions_buffer = []
-                    for user in users:
-                        for report_id in report_ids:
-                            permissions_buffer.append(
-                                UserReportPermission(
-                                    user_id=user.id,
-                                    report_id=report_id,
-                                    is_direct=False
-                                )
-                            )
-
-                            if len(permissions_buffer) >= self.BULK_BATCH_SIZE:
-                                UserReportPermission.objects.bulk_create(
-                                    permissions_buffer,
-                                    batch_size=self.BULK_BATCH_SIZE
-                                )
-                                permissions_buffer.clear()
-
-                    if permissions_buffer:
-                        UserReportPermission.objects.bulk_create(
-                            permissions_buffer,
-                            batch_size=self.BULK_BATCH_SIZE
-                        )
+                if permissions_to_create:
+                    UserReportPermission.objects.bulk_create(
+                        permissions_to_create,
+                        batch_size=self.BULK_BATCH_SIZE,
+                    )
             
             # Update sync log
             self.sync_log.status = 'completed'
@@ -357,6 +760,8 @@ class PermissionSyncService:
                 self.sync_log.completed_at = timezone.now()
                 self.sync_log.save()
             raise
+        finally:
+            self._release_full_sync_lock()
 
     def _clear_user_report_permissions_fast(self):
         """
@@ -370,6 +775,29 @@ class PermissionSyncService:
                 cursor.execute(f"TRUNCATE TABLE {table_name} RESTART IDENTITY")
             else:
                 cursor.execute(f"DELETE FROM {table_name}")
+
+    def _acquire_full_sync_lock(self):
+        """Prevent concurrent full permission syncs across web and worker containers."""
+        if connection.vendor != 'postgresql':
+            self._sync_lock_acquired = True
+            return True
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_try_advisory_lock(%s)", [self.FULL_SYNC_LOCK_ID])
+            self._sync_lock_acquired = bool(cursor.fetchone()[0])
+
+        return self._sync_lock_acquired
+
+    def _release_full_sync_lock(self):
+        """Release the PostgreSQL advisory lock used by full permission sync."""
+        if not self._sync_lock_acquired:
+            return
+
+        if connection.vendor == 'postgresql':
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_unlock(%s)", [self.FULL_SYNC_LOCK_ID])
+
+        self._sync_lock_acquired = False
     
     def sync_permissions_on_login(self, user, password):
         """
@@ -395,6 +823,82 @@ class PermissionSyncService:
             logger.error(f"Failed to sync permissions on login for {user.username}: {e}")
             return 0
 
+    def sync_permissions_for_report_id(self, report_id):
+        """
+        Refresh local permissions for a single report using the service account.
+
+        This is useful after an admin grants/revokes permissions on one report:
+        it keeps local navigation accurate without running a full all-report sync.
+        """
+        auth = self._get_service_auth()
+        if not auth:
+            raise Exception("LDAP service account credentials are not configured.")
+
+        report_ref = ReportRef.objects.filter(pbirs_id__iexact=report_id).first()
+        if not report_ref:
+            report_data = None
+            for report in self._fetch_reports_for_auth_all_servers(auth):
+                if str(report.get("Id", "")).casefold() == str(report_id).casefold():
+                    self._sync_reports_to_local([report])
+                    report_ref = ReportRef.objects.filter(pbirs_id=report.get("Id")).first()
+                    report_data = report
+                    break
+            if not report_ref:
+                raise Exception(f"Report {report_id} was not found in PBIRS or local cache.")
+        else:
+            report_data = {
+                "Id": report_ref.pbirs_id,
+                "Name": report_ref.name,
+                "Path": report_ref.path,
+                "_server_url": report_ref.server_url or self.base_url,
+            }
+
+        folders = self._fetch_folders_for_auth(auth, base_url=report_data.get("_server_url"))
+        folder_by_server_path = {
+            (folder.get("_server_url") or self.base_url, self._normalize_path(folder.get("Path", ""))): folder
+            for folder in folders
+            if folder.get("Path")
+        }
+        _, users_by_identity, users_by_group = self._build_local_identity_maps()
+        folder_policy_cache = {}
+        resolved_group_cache = {}
+        policies = self._fetch_report_policies_for_auth(
+            auth,
+            report_data,
+            folder_by_server_path=folder_by_server_path,
+            folder_policy_cache=folder_policy_cache,
+        )
+
+        permission_map = {}
+        for policy in policies:
+            for user, is_direct in self._resolve_policy_users(
+                policy,
+                users_by_identity,
+                users_by_group,
+                resolved_group_cache,
+            ):
+                key = (user.id, report_ref.id)
+                permission_map[key] = permission_map.get(key, False) or is_direct
+
+        permissions_to_create = [
+            UserReportPermission(
+                user_id=user_id,
+                report_id=local_report_id,
+                is_direct=is_direct,
+            )
+            for (user_id, local_report_id), is_direct in permission_map.items()
+        ]
+
+        with transaction.atomic():
+            UserReportPermission.objects.filter(report=report_ref).delete()
+            if permissions_to_create:
+                UserReportPermission.objects.bulk_create(
+                    permissions_to_create,
+                    batch_size=self.BULK_BATCH_SIZE,
+                )
+
+        return len(permissions_to_create)
+
 
 def sync_all_user_permissions(triggered_by=None, user_for_auth=None, password_for_auth=None):
     """
@@ -414,6 +918,22 @@ def sync_all_user_permissions(triggered_by=None, user_for_auth=None, password_fo
     )
     
     return users_synced, permissions_count
+
+
+def sync_report_refs(triggered_by=None):
+    """
+    Convenience function to sync ReportRef metadata only.
+    """
+    service = PermissionSyncService(triggered_by=triggered_by)
+    return service.sync_reports_only()
+
+
+def sync_report_permissions(report_id, triggered_by=None):
+    """
+    Convenience function to sync local permissions for one PBIRS report.
+    """
+    service = PermissionSyncService(triggered_by=triggered_by)
+    return service.sync_permissions_for_report_id(report_id)
 
 
 def sync_user_permissions_on_login(user, password):

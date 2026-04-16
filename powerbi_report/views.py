@@ -8,6 +8,7 @@ including report listing, embedding, permissions, and folder management.
 import logging
 import os
 import json
+import time
 import urllib.parse
 from collections import Counter
 from datetime import datetime, timedelta
@@ -44,7 +45,13 @@ from users.models import CustomUser, UserHistory, Role
 from users.utils import log_history, get_user_permissions
 
 from .models import ReportRef, CustomFolder, FolderReportItem, UserReportPermission, PermissionSyncLog
-from .services import PBIRSClient, sync_all_user_permissions, get_group_members
+from .services import (
+    PBIRSClient,
+    get_group_members,
+    sync_all_user_permissions,
+    sync_report_permissions,
+    sync_report_refs,
+)
 from .services.ldap_group_members import LDAP_API_TOKEN, LDAP_GROUP_MEMBERS_URL
 from .views_modules.folder_api import get_folder_list_response, get_folders_response
 from .views_modules.embed import embed_report_view
@@ -232,7 +239,6 @@ def get_powerbi_reports(request, endpoint="PowerBIReports"):
                         item['_server_url'] = server_url
                         all_filtered_items.append({**item, "Type": "PowerBIReport"})
             else:
-                folder_paths = _get_pbirs_folder_paths(request)
                 for item in items:
                     item_path = item.get("Path", "")
                     if not item_path:
@@ -241,7 +247,7 @@ def get_powerbi_reports(request, endpoint="PowerBIReports"):
                     item_type = _normalize_pbirs_item_type(item)
                     if item_type == "Folder":
                         continue
-                    if _normalize_pbirs_path(item_path) in folder_paths:
+                    if item_type and item_type != "PowerBIReport":
                         continue
 
                     item['_server_url'] = server_url
@@ -275,15 +281,6 @@ def get_local_reports_for_user(user, request=None):
         ).values_list('report_id', flat=True)
         report_refs = ReportRef.objects.filter(id__in=permitted_report_ids)
 
-    folder_paths = _get_pbirs_folder_paths(request) if request is not None else set()
-
-    # Exclude known PBIRS folders first (source of truth).
-    if folder_paths:
-        report_refs = [
-            ref for ref in report_refs
-            if _normalize_pbirs_path(ref.path) not in folder_paths
-        ]
-
     # Defensive fallback for historical cache pollution.
     report_refs = _filter_reportref_to_leaf_items(report_refs)
 
@@ -311,6 +308,32 @@ def get_local_reports_for_user(user, request=None):
         })
 
     return reports
+
+
+def _user_can_access_report(user, report_ref):
+    """Check report access from local DB only."""
+    if not user.is_authenticated or not report_ref:
+        return False
+    if user.is_superuser:
+        return True
+    return UserReportPermission.objects.filter(user=user, report=report_ref).exists()
+
+
+def _sync_local_permissions_for_report(report_id, user):
+    """Refresh one report's local permissions after an admin PBIRS policy change."""
+    try:
+        synced_count = sync_report_permissions(report_id, triggered_by=user)
+        logger.info(
+            "Synced %s local permissions for report %s after admin change.",
+            synced_count,
+            report_id,
+        )
+    except Exception as exc:
+        logger.error(
+            "Failed to sync local permissions for report %s after admin change: %s",
+            report_id,
+            exc,
+        )
 
 
 def get_local_folders_from_reports(reports):
@@ -616,6 +639,7 @@ def report_list_flat(request):
         context_root_folders=CONTEXT_ROOT_FOLDERS,
         reports_getter=get_powerbi_reports,
         permissions_getter=get_user_permissions,
+        local_reports_getter=get_local_reports_for_user,
     )
 
 
@@ -858,7 +882,11 @@ def report_detail(request, report_id):
     if not report_ref:
         log_history(request.user, f"Tentative d'accÃ¨s Ã  un rapport inexistant ID : {report_id}")
         raise Http404("Report not found")
-    
+
+    if not _user_can_access_report(request.user, report_ref):
+        log_history(request.user, f"Tentative d'accÃƒÂ¨s non autorisÃƒÂ©e au rapport ID : {report_id}")
+        return HttpResponse("You do not have permission to view this report.", status=403)
+
     # Build report dict to match expected format
     report = {
         'Id': report_ref.pbirs_id,
@@ -1320,6 +1348,7 @@ def add_users_to_report(request, report_id, username):
                 )
             
             _update_report_metadata(report_id, request.user)
+            _sync_local_permissions_for_report(report_id, request.user)
             return redirect('powerbi_report:missing_users', report_id=report_id)
         except requests.exceptions.HTTPError as errh:
             messages.error(request, f"Failed to add permission due to HTTP error: {str(errh)}")
@@ -1403,6 +1432,7 @@ def add_selected_users_to_report(request, report_id):
                     logger.warning("User with ad2000=%s not found for notification.", added_username)
 
             _update_report_metadata(report_id, request.user)
+            _sync_local_permissions_for_report(report_id, request.user)
             return redirect('powerbi_report:missing_users', report_id=report_id)
         except requests.exceptions.HTTPError as errh:
             logger.error("HTTP Error while adding report permissions: %s", errh)
@@ -1534,6 +1564,7 @@ def remove_users_from_report(request, report_id, username):
                 )
             
             _update_report_metadata(report_id, request.user)
+            _sync_local_permissions_for_report(report_id, request.user)
             return redirect('powerbi_report:report_permissions', report_id=report_id)
         except requests.exceptions.HTTPError as errh:
             messages.error(request, f"Failed to remove permission due to HTTP error: {str(errh)}")
@@ -1610,6 +1641,7 @@ def remove_selected_users_from_report(request, report_id):
                     logger.warning("User with ad2000=%s not found for notification.", username)
 
             _update_report_metadata(report_id, request.user)
+            _sync_local_permissions_for_report(report_id, request.user)
             return redirect('powerbi_report:report_permissions', report_id=report_id)
         except requests.exceptions.HTTPError as errh:
             logger.error("HTTP Error while removing permissions: %s", errh)
@@ -2040,6 +2072,7 @@ def add_permission_to_server(request, report_id, username):
             log_history(request.user, f"Added permission for user {username} to report {info['name']} (ID: {report_id}) in {info['path']} with roles {', '.join(role['Name'] for role in roles)}")
 
             _update_report_metadata(report_id, request.user)
+            _sync_local_permissions_for_report(report_id, request.user)
             return redirect('powerbi_report:missing_permissions', username=username)
         except requests.exceptions.RequestException as err:
             messages.error(request, f"Failed to add permission due to request error: {str(err)}")
@@ -2065,6 +2098,7 @@ def add_all_permissions(request, username):
         headers = {"Content-Type": "application/json"}
          
         granted_report_names = []
+        granted_report_ids = []
 
         for report in all_reports:
             policies = get_report_permissions(request, report['Id'])
@@ -2099,10 +2133,21 @@ def add_all_permissions(request, username):
                     response = requests.put(url, json=payload, auth=auth, headers=headers)
                     response.raise_for_status()
                     granted_report_names.append(report.get('Name') or report.get('Id', 'Unknown Report'))
+                    granted_report_ids.append(report['Id'])
 
                 except Exception as e:
                     logger.error("Error adding permission for report %s: %s", report['Id'], e)
         if granted_report_names:
+            report_refs = ReportRef.objects.filter(pbirs_id__in=granted_report_ids)
+            for report_ref in report_refs:
+                permission, created = UserReportPermission.objects.get_or_create(
+                    user=user_obj,
+                    report=report_ref,
+                    defaults={"is_direct": True},
+                )
+                if not created and not permission.is_direct:
+                    permission.is_direct = True
+                    permission.save(update_fields=["is_direct"])
             Notification.objects.create(
                 user=user_obj,
                 message=_format_granted_reports_message(granted_report_names)
@@ -2170,6 +2215,7 @@ def add_selected_permissions(request, username):
                     if info:
                         granted_reports.append((report_id, info['name'], info['path']))
                         cache.set(cache_key, policies, timeout=300)
+                        _sync_local_permissions_for_report(report_id, request.user)
                     else:
                         messages.error(request, f"Failed to retrieve report information for report ID '{report_id}'.")
                 except requests.exceptions.RequestException as e:
@@ -2259,6 +2305,7 @@ def remove_permission_from_server(request, report_id, username):
                     user=admin,
                     message=f"L'accÃ¨s de l'utilisateur {username} au rapport {info['name']} (ID : {report_id}) dans {info['path']} a Ã©tÃ© retirÃ© par {request.user.username}."
                 )
+            _sync_local_permissions_for_report(report_id, request.user)
             return redirect('powerbi_report:user_permission', username=username)
         except requests.exceptions.RequestException as e:
             logger.error("Failed to remove permission for report ID '%s': %s", report_id, e)
@@ -2316,8 +2363,9 @@ def remove_all_permissions(request, username):
                 
                 cache.set(cache_key, updated_policies, timeout=300)
                 logger.info("Permissions updated for report %s.", report_id)
-                
+                 
                 _update_report_metadata(report_id, request.user)
+                _sync_local_permissions_for_report(report_id, request.user)
             except requests.exceptions.HTTPError as errh:
                 logger.error("HTTP Error updating report %s permissions: %s", report_id, errh)
             except requests.exceptions.RequestException as err:
@@ -2379,6 +2427,7 @@ def remove_selected_permissions(request, username):
             info = get_powerbi_report_info(request, report_id)  # Pass request here
             if info:
                 _update_report_metadata(report_id, request.user)
+                _sync_local_permissions_for_report(report_id, request.user)
                 removed_reports.append((report_id, info['name'], info['path']))
             else:
                 logger.error("Failed to retrieve report info for ID '%s'", report_id)
@@ -2669,21 +2718,52 @@ def get_report_refresh_list(request):
             'failed_refreshes': cached_data.get('failed_refreshes', 0),
         })
 
+    empty_context = {
+        'completed_refreshes': 0,
+        'failed_refreshes': 0,
+        'Report_Refresh_List': [],
+    }
 
+    if not getattr(settings, "PBIRS_REFRESH_STATUS_LIVE", False):
+        cache.set(cache_key, empty_context, timeout=300)
+        return JsonResponse({
+            'report_refresh_list': [],
+            'completed_refreshes': 0,
+            'failed_refreshes': 0,
+        })
 
+    auth = get_current_user_auth(request)
+    if not auth:
+        cache.set(cache_key, empty_context, timeout=300)
+        return JsonResponse({
+            'report_refresh_list': [],
+            'completed_refreshes': 0,
+            'failed_refreshes': 0,
+        })
 
     now = datetime.now(pytz.timezone("Africa/Algiers"))
     start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
     end_of_day = now.replace(hour=23, minute=59, second=59)
 
-    powerbi_reports = get_powerbi_reports(request)
+    powerbi_reports = get_local_reports_for_user(request.user)
+    max_reports = max(0, getattr(settings, "PBIRS_REFRESH_STATUS_MAX_REPORTS", 40))
+    request_timeout = max(1, getattr(settings, "PBIRS_REFRESH_STATUS_TIMEOUT", 2))
+    max_seconds = max(1, getattr(settings, "PBIRS_REFRESH_STATUS_MAX_SECONDS", 20))
+    deadline = time.monotonic() + max_seconds
+
     completed_refreshes = 0
     failed_refreshes = 0
     report_refresh_list = []
 
-    auth = get_current_user_auth(request)
+    for report in powerbi_reports[:max_reports]:
+        if time.monotonic() >= deadline:
+            logger.warning(
+                "Refresh-list stopped after %s seconds for user %s.",
+                max_seconds,
+                request.user.username,
+            )
+            break
 
-    for report in powerbi_reports:
         report_id = report.get("Id")
         report_name = report.get("Name", "Unknown Report")
 
@@ -2693,7 +2773,7 @@ def get_report_refresh_list(request):
         refresh_url = f"{ReportRef.get_server_url(report_id)}/reports/api/v2.0/PowerBIReports({report_id})/CacheRefreshPlans"
 
         try:
-            refresh_response = requests.get(refresh_url, auth=auth, timeout=10)
+            refresh_response = requests.get(refresh_url, auth=auth, timeout=request_timeout)
             refresh_response.raise_for_status()
             refresh_data = refresh_response.json().get("value", [])
 
@@ -2755,23 +2835,15 @@ def get_visible_report_ids(request):
     Reads from local UserReportPermission table (synced at login).
     """
     user = request.user
-    from powerbi_report.models import UserReportPermission
-    
-    # Get from local database
+
+    if user.is_superuser:
+        return set(ReportRef.objects.values_list('pbirs_id', flat=True))
+
+    # Get from local database only. Normal navigation must not call PBIRS.
     local_permissions = UserReportPermission.objects.filter(user=user).select_related('report')
     if not local_permissions.exists():
         logger.warning(f"No local permissions found for {user.username}. User may need to log out and log back in.")
         return set()
-
-    folder_paths = _get_pbirs_folder_paths(request)
-    if folder_paths:
-        filtered_permissions = []
-        for perm in local_permissions:
-            report_path = _normalize_pbirs_path(perm.report.path if perm.report else "")
-            if report_path and report_path in folder_paths:
-                continue
-            filtered_permissions.append(perm)
-        local_permissions = filtered_permissions
 
     # Defensive fallback for historical cache pollution.
     permission_reports = [perm.report for perm in local_permissions if getattr(perm, "report_id", None)]
@@ -2782,31 +2854,40 @@ def get_visible_report_ids(request):
 def get_visible_folders(request, view_type):
     """
     Filter custom folders to only show those containing at least one visible report.
-    Uses PBIRS permissions as the source of truth.
+    Uses the local UserReportPermission cache as the source of truth.
     """
     visible_ids = get_visible_report_ids(request)
     
-    # Get all folders for this view type
-    all_folders = CustomFolder.objects.filter(view_type=view_type)
-    visible_folders = []
-    
-    for folder in all_folders:
-        # Get all reports in this folder (including subfolders)
-        folder_report_ids = folder.get_all_report_ids()
-        
-        # If any report in this folder is visible to the user, include the folder
-        if folder_report_ids & visible_ids:
-            visible_folders.append(folder)
-    
-    return visible_folders
+    if not visible_ids:
+        return []
+
+    all_folders = list(CustomFolder.objects.filter(view_type=view_type))
+    parent_by_id = {folder.id: folder.parent_id for folder in all_folders}
+
+    direct_folder_ids = set(
+        FolderReportItem.objects.filter(
+            folder__view_type=view_type,
+            report__pbirs_id__in=visible_ids,
+        ).values_list("folder_id", flat=True)
+    )
+
+    visible_folder_ids = set()
+    for folder_id in direct_folder_ids:
+        current_id = folder_id
+        while current_id:
+            if current_id in visible_folder_ids:
+                break
+            visible_folder_ids.add(current_id)
+            current_id = parent_by_id.get(current_id)
+
+    return [folder for folder in all_folders if folder.id in visible_folder_ids]
 
 
 def get_visible_reports_in_folder(request, folder):
     """
-    Get reports in a specific folder that the user has access to via PBIRS.
+    Get reports in a specific folder that the user has access to locally.
     """
     visible_ids = get_visible_report_ids(request)
-    folder_paths = _get_pbirs_folder_paths(request)
     
     # Get reports assigned to this folder
     folder_items = list(FolderReportItem.objects.filter(folder=folder).select_related('report'))
@@ -2816,8 +2897,6 @@ def get_visible_reports_in_folder(request, folder):
     
     visible_reports = []
     for item in folder_items:
-        if folder_paths and _normalize_pbirs_path(item.report.path) in folder_paths:
-            continue
         if item.report.id in leaf_report_ids and item.report.pbirs_id in visible_ids:
             visible_reports.append({
                 'id': item.report.id,
@@ -2840,68 +2919,20 @@ def sync_reports_from_pbirs(request):
     if not request.user.is_superuser:
         messages.error(request, "Only administrators can sync reports.")
         return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_business'))
-    
-    # Use PowerBIReports + folder path exclusion to avoid folder pollution.
-    pbirs_reports = get_powerbi_reports(request, endpoint="PowerBIReports")
-    folder_paths = _get_pbirs_folder_paths(request)
-    base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
-    
-    synced_count = 0
-    valid_pbirs_ids = set()
-    for report in pbirs_reports:
-        pbirs_id = report.get('Id')
-        if not pbirs_id:
-            continue
 
-        valid_pbirs_ids.add(pbirs_id)
-        name = report.get('Name', 'Unnamed')
-        path = report.get('Path', '')
-        
-        # Build embed URL
-        clean_path = path.strip('/')
-        encoded_path = urllib.parse.quote(clean_path, safe='/')
-        embed_url = f"{base_embed_url}{encoded_path}?rs:embed=true"
-        
-        # Update or create the report reference
-        report_ref, created = ReportRef.objects.update_or_create(
-            pbirs_id=pbirs_id,
-            defaults={
-                'name': name,
-                'path': path,
-                'embed_url': embed_url,
-            }
+    try:
+        synced_count, removed_count = sync_report_refs(triggered_by=request.user)
+        messages.success(request, f"Successfully synced {synced_count} reports from PBIRS.")
+        if removed_count:
+            messages.info(request, f"Cleaned {removed_count} stale cached items.")
+        log_history(request.user, f"Synced {synced_count} reports from PBIRS to local cache")
+        messages.info(
+            request,
+            "Reports synced. Use 'Synchroniser Permission' to refresh permissions."
         )
-        synced_count += 1
-
-    # Remove known folder rows from ReportRef (bad historical cache pollution).
-    removed_folder_count = 0
-    if folder_paths:
-        folder_ref_ids = [
-            ref.id
-            for ref in ReportRef.objects.only('id', 'path')
-            if _normalize_pbirs_path(ref.path) in folder_paths
-        ]
-        if folder_ref_ids:
-            removed_folder_count, _ = ReportRef.objects.filter(id__in=folder_ref_ids).delete()
-
-    # Remove stale cached entries not present in latest PBIRS report list.
-    removed_count = 0
-    if valid_pbirs_ids:
-        removed_count, _ = ReportRef.objects.exclude(pbirs_id__in=valid_pbirs_ids).delete()
-    
-    messages.success(request, f"Successfully synced {synced_count} reports from PBIRS.")
-    if removed_folder_count:
-        messages.info(request, f"Removed {removed_folder_count} folder rows from report cache.")
-    if removed_count:
-        messages.info(request, f"Cleaned {removed_count} stale cached items.")
-    log_history(request.user, f"Synced {synced_count} reports from PBIRS to local cache")
-    
-    # Do not run full permission sync inline here; it can be long-running.
-    # Use the dedicated "sync permissions" action instead.
-    messages.info(
-        request,
-        "Reports synced. Use 'Synchroniser Permission' to refresh permissions."
-    )
+    except Exception as exc:
+        logger.error("Report sync failed: %s", exc)
+        messages.error(request, f"Report sync failed: {exc}")
     
     return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_business'))
 
@@ -2909,20 +2940,15 @@ def sync_reports_from_pbirs(request):
 @login_required
 def sync_permissions(request):
     """
-    Manually trigger permission sync using the current user's credentials if available.
+    Manually trigger permission sync using the configured PBIRS service account.
     """
     if not request.user.role or request.user.role.name != "admin":
         messages.error(request, "Permission denied. Admin access required.")
         return redirect('home')
     
     try:
-        # Use session password if available for better access scope
-        ldap_password = request.session.get('ldap_password')
-        
         users_synced, permissions_count = sync_all_user_permissions(
             triggered_by=request.user,
-            user_for_auth=request.user,
-            password_for_auth=ldap_password
         )
         messages.success(request, f"Permissions synced successfully. {users_synced} users updated, {permissions_count} permissions created.")
         log_history(request.user, f"Synced permissions: {users_synced} users, {permissions_count} permissions")
@@ -2938,7 +2964,7 @@ def sync_permissions(request):
 def custom_folders_list(request, view_type='business', folder_id=None):
     """
     Display custom folders and reports for a specific view type.
-    Filters based on PBIRS permissions.
+    Filters based on the local PBIRS permission cache.
     """
     # Validate view type
     if view_type not in ['business', 'department', 'biblio', 'anomalie']:
@@ -2972,10 +2998,10 @@ def custom_folders_list(request, view_type='business', folder_id=None):
     if current_folder:
         breadcrumbs = current_folder.get_breadcrumbs()
     
-    # Get all reports for assignment modal (admin only)
+    # Get all reports for assignment modal (admin only) from the local sync cache.
     all_reports = []
     if request.user.is_superuser:
-        all_reports = _get_assignable_reports_from_pbirs(request)
+        all_reports = list(ReportRef.objects.all().order_by('name'))
     
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
@@ -2983,13 +3009,13 @@ def custom_folders_list(request, view_type='business', folder_id=None):
     
     view_titles = {
         'business': 'CBI',
-        'department': 'Rapports par PÃ´le',
-        'biblio': 'BibliothÃ¨que',
+        'department': 'Rapports par Pole',
+        'biblio': 'Bibliotheque',
         'anomalie': 'Anomalie',
     }
     view_title = view_titles.get(view_type, 'Dossiers personnalisÃ©s')
     
-    log_history(request.user, f"Viewed custom folders ({view_type})")
+    log_history(request.user, f"A consulté les dossiers personnalisés ({view_type})")
     
     return render(request, 'powerbi_report/custom_folders_list.html', {
         'view_type': view_type,
@@ -3234,7 +3260,7 @@ def get_available_reports_json(request):
     if not request.user.is_superuser:
         return JsonResponse({'error': 'Unauthorized'}, status=403)
     
-    reports = _get_assignable_reports_from_pbirs(request)
+    reports = ReportRef.objects.all().order_by('name')
     report_list = [
         {
             'id': r.id,
@@ -3280,11 +3306,7 @@ def delete_powerbi_report_server(request, report_id):
                     message=f"Le rapport (ID : {report_id}) a Ã©tÃ© supprimÃ© du serveur par {request.user.username}."
                 )
             
-            # Trigger permission sync to update local cache (remove deleted report permissions)
-            try:
-                sync_all_user_permissions(triggered_by=request.user)
-            except Exception as e:
-                logger.error(f"Auto-sync permissions failed after delete: {e}")
+            # Deleting the local ReportRef cascades local UserReportPermission rows.
                 
         except requests.exceptions.RequestException as e:
             messages.error(request, f"Failed to delete report: {str(e)}")
@@ -3300,10 +3322,9 @@ def embed_custom_report(request, view_type, folder_id, report_id):
     folder = get_object_or_404(CustomFolder, id=folder_id)
     report_ref = get_object_or_404(ReportRef, id=report_id)
     
-    # Check permissions logic
-    visible_ids = get_visible_report_ids(request)
-    if report_ref.pbirs_id not in visible_ids:
-         return render(request, '403_custom.html', {'message': "You do not have permission to view this report."})
+    # Check permissions from the local DB cache.
+    if not _user_can_access_report(request.user, report_ref):
+         return HttpResponse("You do not have permission to view this report.", status=403)
 
     context = {
         'report_id': report_ref.pbirs_id,

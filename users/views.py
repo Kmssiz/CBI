@@ -128,20 +128,22 @@ def login_view(request):
             login(request, user)
             log_history(user, "Utilisateur connecté via compte de service PBIRS")
             
-            # Sync user permissions from PBIRS using their credentials
-            try:
-                permissions_synced = sync_user_permissions_on_login(user, password)
-                logger.info(
-                    "Synced %s report permissions for user %s",
-                    permissions_synced,
-                    user.username,
-                )
-            except Exception as e:
-                logger.error(
-                    "Failed to sync permissions for %s: %s",
-                    user.username,
-                    e,
-                )
+            # Normal navigation reads local ReportRef/UserReportPermission cache.
+            # Keep login fast; use manual/admin-triggered/hourly PBIRS sync instead.
+            if getattr(settings, "PBIRS_SYNC_ON_LOGIN", False):
+                try:
+                    permissions_synced = sync_user_permissions_on_login(user, password)
+                    logger.info(
+                        "Synced %s report permissions for user %s",
+                        permissions_synced,
+                        user.username,
+                    )
+                except Exception as e:
+                    logger.error(
+                        "Failed to sync permissions for %s: %s",
+                        user.username,
+                        e,
+                    )
             
             # Clear cached data to ensure fresh fetch for this user
             cache.delete(f"powerbi_reports_cache_{user.id}")

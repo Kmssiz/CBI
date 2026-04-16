@@ -19,3 +19,7 @@ SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 SECURE_HSTS_SECONDS = 0
+
+# Keep unit tests isolated from real multi-server PBIRS configuration.
+POWERBI_REPORT_SERVER_URL = "http://test-pbirs.local"
+POWERBI_REPORT_SERVER_URLS = [POWERBI_REPORT_SERVER_URL]

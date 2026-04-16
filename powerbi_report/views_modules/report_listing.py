@@ -15,25 +15,29 @@ def report_list_flat_view(
     context_root_folders: dict[str, str],
     reports_getter: Callable,
     permissions_getter: Callable,
+    local_reports_getter: Callable | None = None,
 ):
     """Render flat Power BI report listing."""
-    pbirs_reports = reports_getter(request, endpoint="CatalogItems")
-    base_embed_url = f"{report_server_url}/Reports/powerbi/"
-    reports = []
-    for report in pbirs_reports:
-        path = report.get("Path", "")
-        clean_path = path.strip("/")
-        encoded_path = quote(clean_path, safe="/")
-        embed_url = f"{base_embed_url}{encoded_path}?rs:embed=true"
-        reports.append(
-            {
-                "Id": report.get("Id"),
-                "Name": report.get("Name", "Unnamed"),
-                "Path": path,
-                "Type": "PowerBIReport",
-                "embed_url": embed_url,
-            }
-        )
+    if local_reports_getter is not None:
+        reports = local_reports_getter(request.user, request=request)
+    else:
+        pbirs_reports = reports_getter(request, endpoint="CatalogItems")
+        base_embed_url = f"{report_server_url}/Reports/powerbi/"
+        reports = []
+        for report in pbirs_reports:
+            path = report.get("Path", "")
+            clean_path = path.strip("/")
+            encoded_path = quote(clean_path, safe="/")
+            embed_url = f"{base_embed_url}{encoded_path}?rs:embed=true"
+            reports.append(
+                {
+                    "Id": report.get("Id"),
+                    "Name": report.get("Name", "Unnamed"),
+                    "Path": path,
+                    "Type": "PowerBIReport",
+                    "embed_url": embed_url,
+                }
+            )
 
     context_param = request.GET.get("context", "").strip()
     root_folder = context_root_folders.get(context_param)

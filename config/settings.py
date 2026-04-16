@@ -82,6 +82,18 @@ LDAP_SERVER_ALTERNATES = [
 LDAP_SERVICE_USERNAME = config("LDAP_SERVICE_USERNAME", default="")
 LDAP_SERVICE_PASSWORD = config("LDAP_SERVICE_PASSWORD", default="")
 
+# Report permission sync should normally be handled by manual/admin-triggered
+# sync or an external hourly scheduler, not by every login.
+PBIRS_SYNC_ON_LOGIN = _config_bool("PBIRS_SYNC_ON_LOGIN", default=False)
+PBIRS_REFRESH_STATUS_LIVE = _config_bool("PBIRS_REFRESH_STATUS_LIVE", default=False)
+PBIRS_REFRESH_STATUS_MAX_REPORTS = config("PBIRS_REFRESH_STATUS_MAX_REPORTS", default=40, cast=int)
+PBIRS_REFRESH_STATUS_TIMEOUT = config("PBIRS_REFRESH_STATUS_TIMEOUT", default=2, cast=int)
+PBIRS_REFRESH_STATUS_MAX_SECONDS = config("PBIRS_REFRESH_STATUS_MAX_SECONDS", default=20, cast=int)
+PBIRS_SYNC_POLICY_TIMEOUT = config("PBIRS_SYNC_POLICY_TIMEOUT", default=15, cast=int)
+PBIRS_SYNC_POLICY_RETRIES = config("PBIRS_SYNC_POLICY_RETRIES", default=2, cast=int)
+PBIRS_SYNC_POLICY_RETRY_DELAY = config("PBIRS_SYNC_POLICY_RETRY_DELAY", default=1.5, cast=float)
+PBIRS_SYNC_POLICY_REQUEST_DELAY = config("PBIRS_SYNC_POLICY_REQUEST_DELAY", default=0.05, cast=float)
+
 # Role names (centralized to avoid hardcoded strings)
 ADMIN_ROLE_NAME = "admin"
 USER_ROLE_NAME = "user"
