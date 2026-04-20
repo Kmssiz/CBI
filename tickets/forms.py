@@ -28,13 +28,19 @@ class TicketForm(forms.ModelForm):
 class TicketMessageForm(forms.ModelForm):
     class Meta:
         model = TicketMessage
-        fields = ["content"]
+        fields = ["content", "attachment"]
         widgets = {
             "content": forms.Textarea(
                 attrs={
                     "class": "w-full bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all resize-y",
                     "rows": 3,
                     "placeholder": "Ecrivez votre message...",
+                }
+            ),
+            "attachment": forms.FileInput(
+                attrs={
+                    "class": "block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer pt-2",
+                    "accept": "image/*",
                 }
             ),
         }

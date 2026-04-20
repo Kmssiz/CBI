@@ -7,6 +7,7 @@ class Ticket(models.Model):
         ("bug", "Signalement de bug"),
         ("dashboard", "Demande de dashboard"),
         ("refresh", "Demande d'actualisation"),
+        ("access", "Demande d'accès"),
         ("other", "Autre"),
     )
 
@@ -63,6 +64,7 @@ class TicketMessage(models.Model):
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="messages")
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     content = models.TextField()
+    attachment = models.ImageField(upload_to="ticket_messages_attachments/", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

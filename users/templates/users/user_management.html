@@ -69,10 +69,6 @@
                 <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span> Rôles
             </button>
             {% endif %}
-            
-            <a href="{% url 'users_view' %}" class="p-2 bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-all" id="showAll">
-                <span class="material-symbols-outlined text-[20px]">refresh</span>
-            </a>
         </div>
     </div>
     </form>
@@ -159,33 +155,41 @@
         </div>
 
         <!-- Pagination -->
-        <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-black/20">
-            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Affichage de {{ users.start_index }} à {{ users.end_index }} sur {{ users.paginator.count }} utilisateurs</p>
-            <div class="flex items-center gap-2">
+        <div class="pagination-footer">
+            <div class="pagination-meta-container">
+                <span class="pagination-total-badge">Total: {{ users.paginator.count }}</span>
+                <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+                <p class="pagination-meta-text">
+                    Affichage {{ users.start_index }}-{{ users.end_index }} sur {{ users.paginator.count }}
+                </p>
+            </div>
+            <div class="pagination-nav">
                 {% if users.has_previous %}
-                <a href="?page={{ users.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if societe_filter %}&societe={{ societe_filter }}{% endif %}" class="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700">
+                <a href="?page={{ users.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if societe_filter %}&societe={{ societe_filter }}{% endif %}" class="pagination-btn pagination-btn-default">
                     <span class="material-symbols-outlined text-[18px]">chevron_left</span>
                 </a>
                 {% else %}
-                <button class="size-8 rounded-lg bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-800 opacity-50 cursor-not-allowed" disabled>
+                <button class="pagination-btn pagination-btn-disabled" disabled>
                     <span class="material-symbols-outlined text-[18px]">chevron_left</span>
                 </button>
                 {% endif %}
 
-                {% for i in users.paginator.page_range %}
+                {% for i in page_range %}
                     {% if users.number == i %}
-                        <span class="size-8 rounded-lg bg-primary flex items-center justify-center text-white text-[11px] font-bold border border-primary shadow-lg shadow-primary/30">{{ i }}</span>
-                    {% elif i > users.number|add:'-3' and i < users.number|add:'3' %}
-                        <a href="?page={{ i }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if societe_filter %}&societe={{ societe_filter }}{% endif %}" class="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 text-[11px] font-bold border border-slate-200 dark:border-slate-700 transition-all">{{ i }}</a>
+                        <span class="pagination-btn pagination-btn-active">{{ i }}</span>
+                    {% elif i == users.paginator.ELLIPSIS %}
+                        <span class="pagination-ellipsis">{{ i }}</span>
+                    {% else %}
+                        <a href="?page={{ i }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if societe_filter %}&societe={{ societe_filter }}{% endif %}" class="pagination-btn pagination-btn-default">{{ i }}</a>
                     {% endif %}
                 {% endfor %}
 
                 {% if users.has_next %}
-                <a href="?page={{ users.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if societe_filter %}&societe={{ societe_filter }}{% endif %}" class="size-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700">
+                <a href="?page={{ users.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if societe_filter %}&societe={{ societe_filter }}{% endif %}" class="pagination-btn pagination-btn-default">
                     <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                 </a>
                 {% else %}
-                <button class="size-8 rounded-lg bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-800 opacity-50 cursor-not-allowed" disabled>
+                <button class="pagination-btn pagination-btn-disabled" disabled>
                     <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                 </button>
                 {% endif %}
@@ -322,11 +326,6 @@
   function filterNoPermission() {
     window.location.href = "{% url 'powerbi_report:users_no_reports_view' %}?no_permission=true";
   }
-
-  // Show all rows button
-  document.getElementById('showAll').addEventListener('click', function () {
-    window.location.href = "{% url 'users_view' %}";
-  });
 </script>
 <script>
   setTimeout(function () {

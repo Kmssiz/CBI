@@ -92,7 +92,7 @@ def ticket_detail(request, ticket_id):
         return redirect("tickets:ticket_list")
 
     if request.method == "POST":
-        message_form = TicketMessageForm(request.POST)
+        message_form = TicketMessageForm(request.POST, request.FILES)
         if _save_ticket_message(request, ticket, message_form):
             return redirect("tickets:ticket_detail", ticket_id=ticket.id)
 
@@ -196,7 +196,7 @@ def add_message(request, ticket_id):
         return redirect("tickets:ticket_list")
 
     if request.method == "POST":
-        form = TicketMessageForm(request.POST)
+        form = TicketMessageForm(request.POST, request.FILES)
         if _save_ticket_message(request, ticket, form):
             return redirect("tickets:ticket_detail", ticket_id=ticket.id)
 

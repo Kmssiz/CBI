@@ -30,6 +30,7 @@ class ReportRef(models.Model):
         help_text="Base URL of the PBIRS server this report belongs to",
     )
     embed_url = models.URLField(max_length=2048, blank=True, null=True)
+    description = models.TextField(blank=True, null=True, help_text="Report description from PBIRS")
     last_synced = models.DateTimeField(auto_now=True)
     modified_at = models.DateTimeField(null=True, blank=True)
     modified_by = models.ForeignKey(

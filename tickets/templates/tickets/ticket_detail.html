@@ -91,7 +91,14 @@
               </div>
               <span class="text-xs text-slate-500">{{ ticket_message.created_at|date:"d/m/Y H:i" }}</span>
             </div>
-            <p class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{{ ticket_message.content }}</p>
+            <p class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap mb-3">{{ ticket_message.content }}</p>
+            {% if ticket_message.attachment %}
+            <div class="mt-2">
+              <a href="{{ ticket_message.attachment.url }}" target="_blank" rel="noopener noreferrer" class="block rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700/50 max-w-sm">
+                <img src="{{ ticket_message.attachment.url }}" alt="Piece jointe" class="w-full h-auto object-cover bg-slate-50 dark:bg-surface-dark">
+              </a>
+            </div>
+            {% endif %}
           </article>
           {% empty %}
           <div class="p-4 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 text-sm text-slate-500">
@@ -100,12 +107,16 @@
           {% endfor %}
         </div>
 
-        <form action="{% url 'tickets:add_message' ticket.id %}" method="post" class="space-y-3">
+        <form action="{% url 'tickets:add_message' ticket.id %}" method="post" enctype="multipart/form-data" class="space-y-3">
           {% csrf_token %}
           <label for="{{ message_form.content.id_for_label }}" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nouveau message</label>
           {{ message_form.content }}
           {% if message_form.content.errors %}
           <p class="text-xs text-red-500">{{ message_form.content.errors|join:", " }}</p>
+          {% endif %}
+          {{ message_form.attachment }}
+          {% if message_form.attachment.errors %}
+          <p class="text-xs text-red-500">{{ message_form.attachment.errors|join:", " }}</p>
           {% endif %}
           <div class="flex justify-end">
             <button type="submit" class="px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-bold text-sm transition-all flex items-center gap-2">

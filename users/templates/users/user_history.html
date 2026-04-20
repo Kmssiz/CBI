@@ -97,54 +97,56 @@
         
         <!-- Pagination -->
         {% if history.has_other_pages %}
-        <div class="px-8 py-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 dark:bg-black/20">
-            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest order-2 sm:order-1">
-                Affichage {{ history.start_index }}-{{ history.end_index }} sur {{ history.paginator.count }}
-            </span>
+        <div class="pagination-footer">
+            <div class="pagination-meta-container">
+                <span class="pagination-total-badge">Total: {{ history.paginator.count }}</span>
+                <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+                <p class="pagination-meta-text">
+                    Affichage {{ history.start_index }}-{{ history.end_index }} sur {{ history.paginator.count }}
+                </p>
+            </div>
             
-            <div class="flex items-center gap-1 order-1 sm:order-2">
+            <div class="pagination-nav">
                 <!-- Previous Page -->
                 {% if history.has_previous %}
                 <a href="?page={{ history.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_action %}&action={{ selected_action }}{% endif %}" 
-                   class="size-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-white hover:bg-slate-800 hover:border-slate-700 transition-all mr-1">
-                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                   class="pagination-btn pagination-btn-default">
+                    <span class="material-symbols-outlined text-[18px]">chevron_left</span>
                 </a>
                 {% else %}
-                <span class="size-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-50 mr-1">
-                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
-                </span>
+                <button class="pagination-btn pagination-btn-disabled" disabled>
+                    <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                </button>
                 {% endif %}
 
                 <!-- Page Numbers -->
                 {% for i in page_range %}
                     {% if history.number == i %}
-                        <span class="size-8 flex items-center justify-center rounded-lg bg-primary text-white text-xs font-bold border border-primary shadow-lg shadow-primary/20">
+                        <span class="pagination-btn pagination-btn-active">
+                            {{ i }}
+                        </span>
+                    {% elif i == history.paginator.ELLIPSIS %}
+                        <span class="pagination-ellipsis">
                             {{ i }}
                         </span>
                     {% else %}
-                        {% if i == history.paginator.ELLIPSIS %}
-                            <span class="size-8 flex items-center justify-center text-slate-500 text-xs">
-                                {{ i }}
-                            </span>
-                        {% else %}
                         <a href="?page={{ i }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_action %}&action={{ selected_action }}{% endif %}" 
-                           class="size-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-white hover:bg-slate-800 hover:border-slate-700 transition-all text-xs font-bold">
-                                {{ i }}
-                            </a>
-                        {% endif %}
+                           class="pagination-btn pagination-btn-default">
+                            {{ i }}
+                        </a>
                     {% endif %}
                 {% endfor %}
-
+                
                 <!-- Next Page -->
                 {% if history.has_next %}
                 <a href="?page={{ history.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_action %}&action={{ selected_action }}{% endif %}" 
-                   class="size-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-white hover:bg-slate-800 hover:border-slate-700 transition-all ml-1">
-                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                   class="pagination-btn pagination-btn-default">
+                    <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                 </a>
                 {% else %}
-                <span class="size-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-50 ml-1">
-                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
-                </span>
+                <button class="pagination-btn pagination-btn-disabled" disabled>
+                    <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                </button>
                 {% endif %}
             </div>
         </div>

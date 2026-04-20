@@ -38,7 +38,18 @@
             <input type="text" name="q" id="reportSearch" value="{{ query }}" class="block w-full sm:w-[400px] pl-11 pr-4 py-3 card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-xl text-theme text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all shadow-sm" placeholder="Rechercher des rapports par nom...">
         </form>
         
-     
+        <div class="flex items-center gap-3">
+            {% if user.is_superuser %}
+            <a href="{% url 'powerbi_report:sync_reports' %}" id="syncPbirsBtn" class="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-500 border border-yellow-500/20 rounded-lg text-sm font-bold transition-all"
+                title="Sync reports from PBIRS">
+                <span class="material-symbols-outlined text-[20px]">sync</span> Synchroniser PBIRS
+            </a>
+            <a href="{% url 'powerbi_report:sync_permissions' %}" id="syncPermissionsBtn" class="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 rounded-lg text-sm font-bold transition-all"
+                title="Sync user permissions from PBIRS">
+                <span class="material-symbols-outlined text-[20px]">group</span> Synchroniser Permission
+            </a>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Report List Section -->
@@ -115,45 +126,46 @@
         </div>
         
         <!-- Pagination -->
-        <div class="px-6 py-4 bg-slate-50 dark:bg-black/20 flex items-center justify-between border-t border-slate-200 dark:border-slate-800">
-            {% if reports.has_other_pages %}
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                Page {{ reports.number }} sur {{ reports.paginator.num_pages }}
-            </span>
-            <div class="flex items-center gap-2">
+        <div class="pagination-footer">
+            <div class="pagination-meta-container">
+                <span class="pagination-total-badge">Total: {{ reports.paginator.count }}</span>
+                <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+                <p class="pagination-meta-text">
+                    Affichage {{ reports.start_index }}-{{ reports.end_index }} sur {{ reports.paginator.count }}
+                </p>
+            </div>
+            
+            <div class="pagination-nav">
                 {% if reports.has_previous %}
-                <a href="?page={{ reports.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="size-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-primary transition-all">
+                <a href="?page={{ reports.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="pagination-btn pagination-btn-default">
                     <span class="material-symbols-outlined text-[18px]">chevron_left</span>
                 </a>
                 {% else %}
-                <button class="size-8 rounded-lg border border-slate-200 dark:border-slate-800 opacity-50 cursor-not-allowed flex items-center justify-center text-slate-400" disabled>
+                <button class="pagination-btn pagination-btn-disabled" disabled>
                     <span class="material-symbols-outlined text-[18px]">chevron_left</span>
                 </button>
                 {% endif %}
 
-                {% for i in reports.paginator.page_range %}
+                {% for i in page_range %}
                     {% if reports.number == i %}
-                        <span class="size-8 rounded-lg bg-primary text-white text-xs font-bold flex items-center justify-center shadow-lg shadow-primary/30">{{ i }}</span>
-                    {% elif i > reports.number|add:'-3' and i < reports.number|add:'3' %}
-                        <a href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}" class="size-8 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-all">{{ i }}</a>
+                        <span class="pagination-btn pagination-btn-active">{{ i }}</span>
+                    {% elif i == reports.paginator.ELLIPSIS %}
+                        <span class="pagination-ellipsis">{{ i }}</span>
+                    {% else %}
+                        <a href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}" class="pagination-btn pagination-btn-default">{{ i }}</a>
                     {% endif %}
                 {% endfor %}
 
                 {% if reports.has_next %}
-                <a href="?page={{ reports.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="size-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-primary transition-all">
+                <a href="?page={{ reports.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="pagination-btn pagination-btn-default">
                     <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                 </a>
                 {% else %}
-                <button class="size-8 rounded-lg border border-slate-200 dark:border-slate-800 opacity-50 cursor-not-allowed flex items-center justify-center text-slate-400" disabled>
+                <button class="pagination-btn pagination-btn-disabled" disabled>
                     <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                 </button>
                 {% endif %}
             </div>
-            {% else %}
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                {{ reports.count }} rapport{% if reports.count > 1 %}s{% endif %}
-            </span>
-            {% endif %}
         </div>
     </div>
     {% else %}
@@ -171,6 +183,15 @@
 </div>
 
 
+<!-- Loading Prompt -->
+<div id="loadingPrompt" class="loading-overlay" style="display: none;">
+  <div class="loading-content">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p>Processing request... Please wait.</p>
+  </div>
+</div>
 
 <style>
   .search-glow:focus-within {
@@ -192,6 +213,50 @@
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(100, 116, 139, 1); 
+  }
+  .loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+  }
+  .loading-content {
+      text-align: center;
+      background: rgba(255, 255, 255, 0.9);
+      color: #007bff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  .spinner-border {
+      width: 3rem;
+      height: 3rem;
+      margin-bottom: 10px;
+      color: #007bff !important;
+      border: 4px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spinner-border 0.75s linear infinite;
+  }
+  @keyframes spinner-border {
+      to { transform: rotate(360deg); }
+  }
+  .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
   }
 </style>
 
@@ -227,7 +292,28 @@
     }
 
 
-    
+    const loadingPrompt = document.getElementById('loadingPrompt');
+    const syncPbirsBtn = document.getElementById('syncPbirsBtn');
+    const syncPermissionsBtn = document.getElementById('syncPermissionsBtn');
+
+    if (syncPbirsBtn) {
+        syncPbirsBtn.addEventListener('click', function() {
+            if(loadingPrompt) loadingPrompt.style.display = 'flex';
+        });
+    }
+
+    if (syncPermissionsBtn) {
+        syncPermissionsBtn.addEventListener('click', function() {
+            if(loadingPrompt) loadingPrompt.style.display = 'flex';
+        });
+    }
+
+    window.addEventListener('load', function() {
+      if (loadingPrompt) {
+        loadingPrompt.style.display = 'none';
+      }
+    });
+
     // Auto-close alerts
     setTimeout(function () {
       let alerts = document.querySelectorAll('.alert');

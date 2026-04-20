@@ -6,10 +6,10 @@
 <div class="max-w-7xl mx-auto w-full">
     <div class="p-4 lg:p-8">
         <!-- Breadcrumb -->
-        <div class="flex items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-500 mb-2">
-            <a href="{% url 'home' %}" class="hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer transition-colors">Accueil</a>
+        <div class="flex items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2">
+            <a href="{% url 'home' %}" class="hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer transition-colors">Accueil</a>
             <span class="material-symbols-outlined text-[14px]">chevron_right</span>
-            <span class="text-slate-400 dark:text-slate-400">Notifications</span>
+            <span class="text-slate-400 dark:text-slate-500">Notifications</span>
         </div>
         <h1 class="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-6 lg:mb-8">Notifications</h1>
 
@@ -52,7 +52,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="notificationsContainer">
             {% if notifications %}
             {% for notification in notifications %}
-            <div class="bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-800/60 rounded-xl p-5 hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col gap-4 notification-card group shadow-sm" 
+            <div class="card-theme bg-white border border-slate-200 dark:border-slate-800/60 rounded-xl p-5 hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col gap-4 notification-card group shadow-sm" 
                  id="notification-{{ notification.id }}" 
                  data-id="{{ notification.id }}">
                  
@@ -63,10 +63,10 @@
                         <span class="text-orange-500 status-text">NON LU</span>
                         {% else %}
                         <span class="size-2 rounded-full bg-slate-500 status-dot"></span>
-                        <span class="text-slate-500 status-text">LU</span>
+                        <span class="text-slate-500 dark:text-slate-400 status-text">LU</span>
                         {% endif %}
                     </div>
-                    <span class="text-[11px] font-medium text-slate-500">{{ notification.created_at|date:"d M Y, H:i" }}</span>
+                    <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">{{ notification.created_at|date:"d M Y, H:i" }}</span>
                 </div>
                 
                 <p class="text-sm leading-relaxed text-slate-600 dark:text-slate-300 group-hover:text-primary dark:group-hover:text-white transition-colors cursor-pointer" 
@@ -86,8 +86,8 @@
             {% endfor %}
             {% else %}
             <div class="col-span-1 lg:col-span-2 flex flex-col items-center justify-center h-96">
-                 <span class="material-symbols-outlined text-slate-700 text-[60px] mb-4">notifications_off</span>
-                 <p class="text-slate-500 font-medium">Aucune notification</p>
+                 <span class="material-symbols-outlined text-slate-700 dark:text-slate-600 text-[60px] mb-4">notifications_off</span>
+                 <p class="text-slate-500 dark:text-slate-400 font-medium">Aucune notification</p>
             </div>
             {% endif %}
         </div>
@@ -227,7 +227,9 @@
 
     // Filter cards
     cards.forEach(card => {
-        const isUnread = card.querySelector('.status-text').innerText.toLowerCase().includes('non lu');
+        const statusTextNode = card.querySelector('.status-text');
+        if (!statusTextNode) return;
+        const isUnread = statusTextNode.innerText.toLowerCase().includes('non lu');
         
         if (filter === 'all') {
             card.style.display = '';
@@ -356,7 +358,7 @@
     })
       .then(response => {
         if (response.ok) {
-          document.getElementById('notificationsContainer').innerHTML = '<div class="col-span-1 lg:col-span-2 flex flex-col items-center justify-center p-8"><span class="material-symbols-outlined text-slate-700 text-[60px] mb-4">notifications_off</span><p class="text-slate-500 font-medium">Aucune notification</p></div>';
+          document.getElementById('notificationsContainer').innerHTML = '<div class="col-span-1 lg:col-span-2 flex flex-col items-center justify-center p-8"><span class="material-symbols-outlined text-slate-700 dark:text-slate-600 text-[60px] mb-4">notifications_off</span><p class="text-slate-500 dark:text-slate-400 font-medium">Aucune notification</p></div>';
           closeClearAllConfirmation();
         } else {
           alert('Échec de la suppression des notifications.');
@@ -435,28 +437,42 @@
       transition: opacity 0.15s linear;
   }
   
-  /* Back to Top Button Styles */
-  .back-to-top {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    display: none;
-    background: #17a2b8; /* Keep original color or match new theme? keeping blue as per code */
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    font-size: 1.2rem;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: opacity 0.3s ease, background 0.3s ease;
-    z-index: 1000;
-  }
-
-  .back-to-top:hover {
-    background: #138496;
-  }
+   /* Back to Top Button Styles */
+   .back-to-top {
+     position: fixed;
+     bottom: 20px;
+     right: 20px;
+     display: none;
+     background: #137fec; /* Using primary color */
+     color: white;
+     border: none;
+     border-radius: 50%;
+     width: 50px;
+     height: 50px;
+     font-size: 1.2rem;
+     cursor: pointer;
+     box-shadow: 0 4px 12px rgba(19, 127, 236, 0.3);
+     transition: all 0.3s ease;
+     z-index: 1000;
+   }
+ 
+   .back-to-top:hover {
+     background: #0d6efd;
+     transform: translateY(-5px);
+     box-shadow: 0 6px 16px rgba(19, 127, 236, 0.4);
+   }
+   
+   .dark .back-to-top {
+     background: #1e293b;
+     color: #137fec;
+     border: 1px solid rgba(19, 127, 236, 0.3);
+     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+   }
+ 
+   .dark .back-to-top:hover {
+     background: #334155;
+     border-color: #137fec;
+   }
   
   /* Transition for filter active state */
   .active-filter {

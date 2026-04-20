@@ -106,10 +106,7 @@ def edit_powerbi_report_name_view(
         for admin in admin_users:
             Notification.objects.create(
                 user=admin,
-                message=(
-                    f"Le rapport (ID : '{report_id}') a ete renomme en '{new_name}' "
-                    f"par {request.user.username}."
-                ),
+                message=f"Le rapport '{new_name}' a été renommé par {request.user.username}.",
             )
         logger.info(
             "Sent rename notification for report %s to %s admins.",
@@ -118,7 +115,7 @@ def edit_powerbi_report_name_view(
         )
 
         _clear_user_report_cache(request)
-        metadata_updater(report_id, request.user)
+        metadata_updater(report_id, request.user, name=new_name)
 
     except requests.exceptions.HTTPError as exc:
         if exc.response is not None and exc.response.status_code == 403:
@@ -172,7 +169,7 @@ def edit_powerbi_report_path_view(
         response.raise_for_status()
         _clear_user_report_cache(request)
         messages.success(request, "Report path updated successfully!")
-        metadata_updater(report_id, request.user)
+        metadata_updater(report_id, request.user, path=new_path)
     except requests.exceptions.RequestException as exc:
         messages.error(request, f"Failed to update report path: {exc}")
 
@@ -211,7 +208,7 @@ def edit_powerbi_report_description_view(
         response.raise_for_status()
         _clear_user_report_cache(request)
         messages.success(request, "Report description updated successfully!")
-        metadata_updater(report_id, request.user)
+        metadata_updater(report_id, request.user, description=new_description)
 
         report_name = info.get("name") if info else report_id
         report_path = info.get("path") if info else ""
@@ -224,12 +221,16 @@ def edit_powerbi_report_description_view(
             ),
         )
 
+        # Get report name for notification
+        report_info = get_powerbi_report_info_data(request, report_id, auth_getter)
+        report_name = report_info.get("name") if report_info else report_id
+
         admin_users = CustomUser.objects.filter(is_superuser=True)
         for admin in admin_users:
             Notification.objects.create(
                 user=admin,
                 message=(
-                    f"Description mise a jour pour le rapport (ID : {report_id}) "
+                    f"Description mise à jour pour le rapport '{report_name}' "
                     f"avec la description '{new_description}' par {request.user.username}."
                 ),
             )

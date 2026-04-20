@@ -10,7 +10,9 @@ from django.core.cache import cache
 from django.http import StreamingHttpResponse
 from django.shortcuts import redirect
 
+from notifications.models import Notification
 from powerbi_report.models import ReportRef
+from users.models import CustomUser
 
 logger = logging.getLogger("powerbi_report")
 
@@ -88,8 +90,8 @@ def replace_powerbi_report_view(
         response.raise_for_status()
 
         report_name = report_path.split("/")[-1]
-        messages.success(request, f"Le rapport '{report_name}' a ete remplace avec succes.")
-        history_logger(request.user, f"Rapport Power BI remplace : {report_path}")
+        messages.success(request, f"Le rapport '{report_name}' a été remplacé avec succès.")
+        history_logger(request.user, f"Rapport Power BI remplacé : {report_path}")
 
         _clear_user_report_cache(request)
         metadata_updater(report_id, request.user)
@@ -99,7 +101,7 @@ def replace_powerbi_report_view(
             if admin.id != request.user.id:
                 Notification.objects.create(
                     user=admin,
-                    message=f"Le rapport '{report_name}' a ete remplace par {request.user.username}.",
+                    message=f"Le rapport '{report_name}' a été remplacé par {request.user.username}.",
                 )
         logger.info("Sent notifications to admin users about replacing report '%s'.", report_name)
 

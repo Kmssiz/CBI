@@ -336,6 +336,12 @@ def user_management(request):
     page_number = request.GET.get('page')
     users = paginator.get_page(page_number)
     
+    # Calculate page range for pagination UI
+    try:
+        page_range = paginator.get_elided_page_range(users.number, on_each_side=2, on_ends=1)
+    except:
+        page_range = []
+    
     roles = Role.objects.all()
     # log_history(request.user, "Page de gestion des utilisateurs consultée")
 
@@ -345,6 +351,7 @@ def user_management(request):
         'notifications': notifications,
         'unread': unread_count,
         'users': users,
+        'page_range': page_range,
         'roles': roles,
         'societes': societes,
         'permissions': permissions,

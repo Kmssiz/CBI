@@ -144,15 +144,24 @@ def delete_powerbi_folder_view(
         session.auth = auth
 
         try:
+            # Try to get folder name before deletion for better notifications
+            folder_name = folder_id
+            try:
+                info_response = session.get(url, timeout=5)
+                if info_response.status_code == 200:
+                    folder_name = info_response.json().get("Name", folder_id)
+            except Exception:
+                pass
+
             response = session.delete(url)
             response.raise_for_status()
-            history_logger(request.user, f"Dossier avec ID '{folder_id}' supprimÃ©")
+            history_logger(request.user, f"Dossier '{folder_name}' supprimé")
 
             admin_users = CustomUser.objects.filter(is_superuser=True)
             for admin in admin_users:
                 Notification.objects.create(
                     user=admin,
-                    message=f"Le dossier (ID : '{folder_id}') a Ã©tÃ© supprimÃ© par {request.user.username}.",
+                    message=f"Le dossier '{folder_name}' a été supprimé par {request.user.username}.",
                 )
 
             return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
