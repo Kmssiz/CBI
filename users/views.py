@@ -266,12 +266,12 @@ def home_view(request):
     if request.user.role and request.user.role.name.lower() == settings.USER_ROLE_NAME:
         # Check default view preference
         if hasattr(request.user, 'default_view'):
-            if request.user.default_view == 'business':
-                # log_history(request.user, "Vue Business consultée (Accueil)")
-                return redirect('powerbi_report:custom_business')
-            elif request.user.default_view == 'department':
+            if request.user.default_view == 'direction':
+                # log_history(request.user, "Vue Direction consultée (Accueil)")
+                return redirect('powerbi_report:custom_direction')
+            elif request.user.default_view == 'pole':
                 # log_history(request.user, "Vue Pôle consultée (Accueil)")
-                return redirect('powerbi_report:custom_department')
+                return redirect('powerbi_report:custom_pole')
         
         # Fallback
         # log_history(request.user, "Page report_list_hierarchy consultée")
@@ -303,7 +303,7 @@ def user_management(request):
     search_query = request.GET.get('search', '').strip()
     role_filter = request.GET.get('role', '').strip()
     status_filter = request.GET.get('status', '').strip()
-    societe_filter = request.GET.get('societe', '').strip()
+    direction_filter = request.GET.get('direction', '').strip()
     
     if search_query:
         from django.db.models import Q
@@ -321,15 +321,15 @@ def user_management(request):
     if status_filter:
         users_list = users_list.filter(status__iexact=status_filter)
     
-    if societe_filter:
-        users_list = users_list.filter(societe__iexact=societe_filter)
+    if direction_filter:
+        users_list = users_list.filter(direction__iexact=direction_filter)
     
-    # Get distinct sociétés for the filter dropdown
-    societes = CustomUser.objects.exclude(
-        societe__isnull=True
+    # Get distinct directions for the filter dropdown
+    directions = CustomUser.objects.exclude(
+        direction__isnull=True
     ).exclude(
-        societe=''
-    ).values_list('societe', flat=True).distinct().order_by('societe')
+        direction=''
+    ).values_list('direction', flat=True).distinct().order_by('direction')
     
     # Pagination
     paginator = Paginator(users_list, 10)  # Show 10 users per page
@@ -353,12 +353,12 @@ def user_management(request):
         'users': users,
         'page_range': page_range,
         'roles': roles,
-        'societes': societes,
+        'directions': directions,
         'permissions': permissions,
         'search_query': search_query,
         'role_filter': role_filter,
         'status_filter': status_filter,
-        'societe_filter': societe_filter,
+        'direction_filter': direction_filter,
     })
 
 #################################################################################################################
@@ -625,7 +625,8 @@ def sync_users(request):
                 user = CustomUser(
                     username=sam_account,  
                     ad2000=ad2000,
-                    societe=ldap_user.get("company", "").strip(),
+                    pole=ldap_user.get("company", "").strip(),
+                    direction=ldap_user.get("department", "").strip(),
                     first_name=ldap_user.get("name", "").split(' ')[0],
                     last_name=" ".join(ldap_user.get("name", "").split(' ')[1:]),
                     email=ldap_user.get("mail", "").strip(),
@@ -643,8 +644,11 @@ def sync_users(request):
             update_fields = {}
 
             company = ldap_user.get("company", "").strip()
-            if not user.societe and company:
-                update_fields["societe"] = company
+            department = ldap_user.get("department", "").strip()
+            if not user.pole and company:
+                update_fields["pole"] = company
+            if not user.direction and department:
+                update_fields["direction"] = department
 
             if ldap_groups:
                 existing_groups = _normalize_ad_groups(user.ad_groups)
@@ -706,7 +710,7 @@ def user_edit(request, user_id):
     if request.method == 'POST':
         new_role_id = request.POST.get('role')  # Get the selected role ID
         new_role = get_object_or_404(Role, id=new_role_id) if new_role_id else None  # Fetch the role object
-        new_default_view = request.POST.get('default_view', 'business')  # Get the default view
+        new_default_view = request.POST.get('default_view', 'direction')  # Get the default view
 
         if new_role:
             # Remove all existing permissions
@@ -731,7 +735,7 @@ def user_edit(request, user_id):
         if new_role:
             log_history(request.user, f"Rôle mis à jour pour {user.username} vers {new_role.name}")
         if old_view != new_default_view:
-            view_label = 'Business View' if new_default_view == 'business' else 'Department View'
+            view_label = 'Vue Direction' if new_default_view == 'direction' else 'Vue Pôle'
             log_history(request.user, f"Vue par défaut mise à jour pour {user.username} vers {view_label}")
 
         # Notify the user
@@ -741,7 +745,7 @@ def user_edit(request, user_id):
                 message=f"Votre rôle a été mis à jour : {new_role.name}."
             )
         if old_view != new_default_view:
-            view_label = 'Business View' if new_default_view == 'business' else 'Department View'
+            view_label = 'Vue Direction' if new_default_view == 'direction' else 'Vue Pôle'
             Notification.objects.create(
                 user=user,
                 message=f"Votre vue par défaut a été modifiée : {view_label}."

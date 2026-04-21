@@ -175,20 +175,19 @@
         </div>
       </div>
 
-      <!-- Users by Company -->
       <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-5 shadow-sm dark:shadow-none">
-        <h3 class="text-sm font-bold text-theme text-slate-900 mb-4">Utilisateurs par société</h3>
-        {% if users_by_company %}
+        <h3 class="text-sm font-bold text-theme text-slate-900 mb-4">Utilisateurs par Pôle</h3>
+        {% if users_by_direction %}
         <div class="space-y-3">
-          {% for company in users_by_company %}
+          {% for direction in users_by_direction %}
           <div class="flex items-center gap-3">
             <div class="flex-1">
               <div class="flex items-center justify-between mb-1">
-                <span class="text-xs text-slate-600 dark:text-slate-400 truncate">{{ company.societe|default:"Non renseigné" }}</span>
-                <span class="text-xs font-bold text-theme text-slate-900">{{ company.count }}</span>
+                <span class="text-xs text-slate-600 dark:text-slate-400 truncate">{{ direction.direction|default:"Non renseigné" }}</span>
+                <span class="text-xs font-bold text-theme text-slate-900">{{ direction.count }}</span>
               </div>
               <div class="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-primary to-cyan-400 rounded-full" style="width: {% widthratio company.count users_by_company.0.count 100 %}%"></div>
+                <div class="h-full bg-gradient-to-r from-primary to-cyan-400 rounded-full" style="width: {% widthratio direction.count users_by_direction.0.count 100 %}%"></div>
               </div>
             </div>
           </div>
@@ -196,7 +195,7 @@
         </div>
         {% else %}
         <div class="py-6 text-center">
-          <span class="material-symbols-outlined text-[28px] text-slate-400 dark:text-slate-700 mb-2">business</span>
+          <span class="material-symbols-outlined text-[28px] text-slate-400 dark:text-slate-700 mb-2">account_tree</span>
           <p class="text-xs text-slate-500">Données non disponibles</p>
         </div>
         {% endif %}
@@ -625,9 +624,8 @@
 
     function buildChart(data) {
       const labels = [...new Set(data.map(d => d.period))];
-      // Combine business + department as "CBI"
       const cbiCounts = labels.map(l => {
-        return data.filter(d => d.period === l && (d.type === 'business' || d.type === 'department'))
+        return data.filter(d => d.period === l && (d.type === 'direction' || d.type === 'department'))
                    .reduce((sum, d) => sum + d.count, 0);
       });
       const anomalieCounts = labels.map(l => {

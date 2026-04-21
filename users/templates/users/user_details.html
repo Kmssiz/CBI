@@ -92,6 +92,14 @@
                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Rôle Système</label>
                                 <p class="text-slate-700 dark:text-slate-200 font-medium">{{ user_detail.role.name|default:"N/A" }}</p>
                             </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pôle</label>
+                                <p class="text-slate-700 dark:text-slate-200 font-medium">{{ user_detail.pole|default:"Non renseigné" }}</p>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Direction</label>
+                                <p class="text-slate-700 dark:text-slate-200 font-medium">{{ user_detail.direction|default:"Non renseigné" }}</p>
+                            </div>
                         </div>
 
                         <div class="h-px bg-slate-200 dark:bg-slate-800/50 my-8"></div>
@@ -128,7 +136,7 @@
                         </div>
                     </div>
                     <span class="px-4 py-1.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-full text-xs font-bold uppercase tracking-widest">
-                        {% if user_detail.default_view == 'business' %}Métier{% else %}Département{% endif %}
+                        {% if user_detail.default_view == 'direction' %}Direction{% else %}Pôle{% endif %}
                     </span>
                 </div>
                 {% endif %}

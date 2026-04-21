@@ -6,8 +6,8 @@
 
 {% block breadcrumbs_footer %}
   <span class="material-symbols-outlined text-[14px]">chevron_right</span>
-  {% if view_type == 'business' %}
-    <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_business' %}">CBI</a>
+  {% if view_type == 'direction' %}
+    <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_direction' %}">CBI</a>
   {% elif view_type == 'biblio' %}
     <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_biblio' %}">Bibliothèque</a>
   {% else %}

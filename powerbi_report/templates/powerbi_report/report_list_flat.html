@@ -24,8 +24,8 @@
                 {% endif %}
             </form>
             
-            {% if request.GET.context == 'department' %}
-            <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white">
+            {% if request.GET.context == 'pole' %}
+            <a href="{% url 'powerbi_report:custom_pole' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white">
                 <span class="material-symbols-outlined text-[18px]">account_tree</span> Vue Hiérarchique
             </a>
             {% elif request.GET.context == 'biblio' %}
@@ -37,7 +37,7 @@
                 <span class="material-symbols-outlined text-[18px]">account_tree</span> Vue Hiérarchique
             </a>
             {% else %}
-            <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white">
+            <a href="{% url 'powerbi_report:custom_direction' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white">
                 <span class="material-symbols-outlined text-[18px]">account_tree</span> Vue Hiérarchique
             </a>
             {% endif %}

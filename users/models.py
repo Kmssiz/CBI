@@ -10,20 +10,22 @@ class Role(models.Model):
 
 class CustomUser(AbstractUser):
     VIEW_CHOICES = [
-        ('business', 'Business View'),
-        ('department', 'Department View'),
+        ('direction', 'Direction View'),
+        ('pole', 'Pôle View'),
     ]
     
     ad2000 = models.CharField(max_length=255,blank=True, null=True, unique=True,help_text="AD2000 identifier from LDAP")
-    societe = models.CharField(max_length=255, blank=True, null=True, help_text="Company/Société from LDAP")
+    direction = models.CharField(max_length=255, blank=True, null=True, help_text="Direction from LDAP")
+    pole = models.CharField(max_length=255, blank=True, null=True, help_text="Pôle from LDAP")
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, default='Not Active')
     profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
     user_permissions = models.ManyToManyField(Permission, blank=True)
+    can_view_consolide = models.BooleanField(default=False, help_text="Accès à la page des rapports consolidés")
     default_view = models.CharField(
         max_length=20, 
         choices=VIEW_CHOICES, 
-        default='business',
+        default='direction',
         help_text="Default view for this user (set by admin)"
     ) 
     ad_groups = models.JSONField(default=list, blank=True, help_text="Cached list of AD groups") 

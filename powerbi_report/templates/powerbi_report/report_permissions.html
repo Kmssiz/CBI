@@ -100,7 +100,11 @@
                     <thead>
                         <tr class="bg-slate-50 dark:bg-slate-900/50 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800/50">
                             <th class="px-6 py-4 w-12 text-center">
-                                <input type="checkbox" id="selectAll" class="rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-primary focus:ring-offset-white dark:focus:ring-offset-slate-900 focus:ring-primary h-4 w-4 transition-all">
+                                <div class="flex items-center justify-center relative">
+                                    <input type="checkbox" id="selectAll" class="peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 checked:!bg-primary checked:!border-primary dark:checked:!bg-blue-600 dark:checked:!border-blue-600 cursor-pointer transition-all">
+                                    <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+                                    <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-indeterminate:opacity-100 transition-opacity">remove</span>
+                                </div>
                             </th>
                             <th class="px-6 py-4">Nom</th>
                             <th class="px-6 py-4">Type</th>
@@ -112,7 +116,10 @@
                         {% for policy in policies %}
                         <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-all group">
                              <td class="px-6 py-4 text-center">
-                                <input type="checkbox" class="user-checkbox rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-primary focus:ring-offset-white dark:focus:ring-offset-slate-900 focus:ring-primary h-4 w-4 transition-all" name="selected_users" value="{{ policy.GroupUserName|default:policy.UserName }}">
+                                <div class="flex items-center justify-center relative">
+                                    <input type="checkbox" class="user-checkbox peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 checked:!bg-primary checked:!border-primary dark:checked:!bg-blue-600 dark:checked:!border-blue-600 cursor-pointer transition-all" name="selected_users" value="{{ policy.GroupUserName|default:policy.UserName }}">
+                                    <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+                                </div>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
@@ -322,11 +329,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const text = row.textContent.toLowerCase();
         row.style.display = text.includes(searchValue) ? "" : "none";
       });
+      updateSelectAllState();
     });
 
     // Checkbox logic
     const selectAllCheckbox = document.getElementById("selectAll");
-    const userCheckboxes = document.querySelectorAll(".user-checkbox");
     const removeSelectedButton = document.getElementById("removeSelected");
     const permissionsForm = document.getElementById("permissionsForm");
 
@@ -341,17 +348,56 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
 
+    function getVisibleCheckboxes() {
+      const rows = document.querySelectorAll("tbody tr");
+      const visibleCheckboxes = [];
+      rows.forEach(row => {
+        if (row.style.display !== 'none') {
+          const cb = row.querySelector('.user-checkbox');
+          if (cb) visibleCheckboxes.push(cb);
+        }
+      });
+      return visibleCheckboxes;
+    }
+
+    function updateSelectAllState() {
+      const visibleCheckboxes = getVisibleCheckboxes();
+      
+      if (visibleCheckboxes.length === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+        return;
+      }
+
+      const checkedCount = visibleCheckboxes.filter(cb => cb.checked).length;
+      
+      if (checkedCount === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+      } else if (checkedCount === visibleCheckboxes.length) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+      } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+      }
+    }
+
     if (selectAllCheckbox) {
       selectAllCheckbox.addEventListener("change", function () {
-        userCheckboxes.forEach((checkbox) => {
+        const visibleCheckboxes = getVisibleCheckboxes();
+        visibleCheckboxes.forEach((checkbox) => {
           checkbox.checked = this.checked;
         });
         toggleRemoveButton();
       });
     }
 
-    userCheckboxes.forEach((checkbox) => {
-      checkbox.addEventListener("change", toggleRemoveButton);
+    document.querySelectorAll(".user-checkbox").forEach((checkbox) => {
+      checkbox.addEventListener("change", function() {
+        updateSelectAllState();
+        toggleRemoveButton();
+      });
     });
 
     if (removeSelectedButton) {

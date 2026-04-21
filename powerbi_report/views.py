@@ -306,6 +306,11 @@ def get_local_reports_for_user(user, request=None):
             'ParentFolderPath': parent_folder_path,
             'modified_at': ref.modified_at,
             'modified_by': ref.modified_by,
+            'pole': ref.pole,
+            'direction': ref.direction,
+            'societe': ref.societe,
+            'is_consolide': ref.is_consolide,
+            'report_type': ref.report_type,
         })
 
     return reports
@@ -636,10 +641,11 @@ def download_report(request, report_id):
 
 # Mapping of context values to their PBIRS root folder paths.
 CONTEXT_ROOT_FOLDERS = {
-    'business': '/CBI',
-    'department': '/CBI',
+    'direction': '/CBI',
+    'pole': '/CBI',
     'biblio': '/BI',
     'anomalie': '/Anomalie',
+    'consolide': '/CBI',
 }
 
 @login_required
@@ -828,6 +834,233 @@ def upload_powerbi_report(request):
 
 
 #################################################################################################################
+#                   Adds a new report to PBIRS and stores local metadata in ReportRef                         #
+#################################################################################################################
+
+@login_required
+def add_report_local(request):
+    """Upload a .pbix to PBIRS and save local metadata (pole, direction, type).
+    Returns a JSON response so the frontend can display inline feedback.
+    """
+    from powerbi_report.models import ReportRef, REPORT_TYPE_CHOICES
+    from django.http import JsonResponse
+
+    def _err(msg, code=400):
+        return JsonResponse({'success': False, 'error': msg}, status=code)
+
+    permissions = get_user_permissions(request.user)
+    if not permissions.get('add_powerbireport'):
+        return _err("Vous n'avez pas la permission d'ajouter des rapports.", 403)
+
+    if request.method != 'POST':
+        return _err("Méthode non autorisée.", 405)
+
+    pbix_file = request.FILES.get('pbix_file')
+    pbirs_path = request.POST.get('pbirs_path', '').strip()
+    server_url = request.POST.get('server_url', '').strip()
+    pole = request.POST.get('pole', '').strip()
+    direction = request.POST.get('direction', '').strip()
+    societe = request.POST.get('societe', '').strip()
+    report_type = request.POST.get('report_type', '').strip()
+    is_consolide = request.POST.get('is_consolide') == 'on'
+
+
+    # ── Input validation ──────────────────────────────────────────────────────
+    if not pbix_file:
+        return _err("Aucun fichier sélectionné. Veuillez choisir un fichier .pbix.")
+    if not pbix_file.name.lower().endswith('.pbix'):
+        return _err("Le fichier doit être au format .pbix.")
+    if not pbirs_path:
+        return _err("Le chemin PBIRS est obligatoire.")
+    if not server_url:
+        return _err("Le serveur PBIRS est obligatoire.")
+
+    valid_servers = getattr(settings, "POWERBI_REPORT_SERVER_URLS", [getattr(settings, "POWERBI_REPORT_SERVER_URL", "")])
+    if server_url not in valid_servers:
+        return _err("Serveur PBIRS non valide ou non configuré.")
+
+    # Normalise path
+    if not pbirs_path.startswith('/'):
+        pbirs_path = '/' + pbirs_path
+
+    # ── Auth ──────────────────────────────────────────────────────────────────
+    auth = get_current_user_auth(request)
+    if not auth:
+        return _err(
+            "Authentification échouée. Votre session a peut-être expiré — "
+            "veuillez vous déconnecter puis vous reconnecter.",
+            401
+        )
+
+    # ── Call PBIRS Model.Upload ───────────────────────────────────────────────
+    encoded_path = pbirs_path.replace("'", "''").replace(" ", "%20")
+    api_url = (
+        f"{server_url}/Reports/api/v2.0"
+        f"/PowerBIReports(path='{encoded_path}')/Model.Upload"
+    )
+
+    session = requests.Session()
+    session.auth = auth
+
+    try:
+        response = session.post(
+            api_url,
+            headers={'Accept': 'application/json'},
+            files={'file': (pbix_file.name, pbix_file.read(), 'application/octet-stream')},
+            timeout=120,  # allow large uploads
+        )
+
+        # ── HTTP-level errors with specific messages ───────────────────────
+        if response.status_code == 400:
+            detail = ""
+            try:
+                detail = response.json().get('Message') or response.json().get('error', {}).get('message', '')
+            except Exception:
+                pass
+            return _err(
+                f"Chemin PBIRS invalide ou paramètre incorrect. "
+                f"Vérifiez que le chemin '{pbirs_path}' est bien formé."
+                + (f" Détail serveur : {detail}" if detail else ""),
+                400
+            )
+
+        if response.status_code == 401:
+            return _err(
+                "Vos identifiants PBIRS ont été refusés. "
+                "Déconnectez-vous et reconnectez-vous puis réessayez.",
+                401
+            )
+
+        if response.status_code == 403:
+            return _err(
+                "Vous n'avez pas les droits pour déposer un rapport dans ce dossier PBIRS sur ce serveur. "
+                "Contactez l'administrateur PBIRS.",
+                403
+            )
+
+        if response.status_code == 404:
+            return _err(
+                f"Le dossier parent du chemin '{pbirs_path}' n'existe pas sur le serveur PBIRS. "
+                "Créez le dossier sur le serveur ou corrigez le chemin.",
+                404
+            )
+
+        if response.status_code == 409:
+            return _err(
+                f"Un rapport existe déjà à l'emplacement '{pbirs_path}' sur ce serveur. "
+                "Choisissez un chemin différent ou supprimez l'existant depuis PBIRS.",
+                409
+            )
+
+        if response.status_code >= 500:
+            return _err(
+                f"Le serveur PBIRS a retourné une erreur interne ({response.status_code}). "
+                "Vérifiez que le serveur est opérationnel et réessayez.",
+                502
+            )
+
+        response.raise_for_status()  # catch any remaining 4xx/5xx
+        data = response.json()
+
+        pbirs_id = data.get('Id', '')
+        report_name = data.get('Name', pbix_file.name.replace('.pbix', ''))
+
+        # ── Persist local metadata ────────────────────────────────────────────
+        ReportRef.objects.update_or_create(
+            pbirs_id=pbirs_id,
+            defaults={
+                'name': report_name,
+                'path': pbirs_path,
+                'server_url': server_url,
+                'is_consolide': is_consolide,
+                # When consolidated, pole/direction/societe are not meaningful
+                'pole': None if is_consolide else (pole or None),
+                'direction': None if is_consolide else (direction or None),
+                'societe': None if is_consolide else (societe or None),
+                'report_type': report_type or None,
+                'modified_by': request.user,
+            }
+        )
+
+
+        cache.delete(f"powerbi_reports_cache_{request.user.id}")
+        log_history(request.user, f"Rapport ajouté : {pbirs_path}")
+        logger.info(
+            "Report '%s' uploaded by %s to PBIRS path '%s'.",
+            report_name, request.user.username, pbirs_path
+        )
+        return JsonResponse({
+            'success': True,
+            'message': f"Rapport « {report_name} » publié avec succès sur PBIRS.",
+        })
+
+    except requests.exceptions.ConnectionError:
+        logger.error("Cannot reach PBIRS server for upload.")
+        return _err(
+            "Impossible de joindre le serveur PBIRS. "
+            "Vérifiez que le serveur est démarré et accessible depuis ce réseau."
+        )
+    except requests.exceptions.Timeout:
+        logger.error("PBIRS upload timed out for path '%s'.", pbirs_path)
+        return _err(
+            "La requête a expiré (timeout). Le fichier est peut-être trop volumineux "
+            "ou le serveur PBIRS est lent. Réessayez ou contactez l'administrateur."
+        )
+    except requests.exceptions.HTTPError as errh:
+        logger.error("Upload HTTP error: %s", errh)
+        return _err(f"Erreur HTTP inattendue : {errh}")
+    except requests.exceptions.RequestException as err:
+        logger.error("Upload request error: %s", err)
+        return _err(f"Erreur réseau : {err}")
+    except Exception as exc:
+        logger.exception("Unexpected error during report upload: %s", exc)
+        return _err("Une erreur inattendue s'est produite. Consultez les logs serveur.")
+
+
+#################################################################################################################
+#                   Updates local metadata of an existing ReportRef (no PBIRS API call)                       #
+#################################################################################################################
+
+@login_required
+def update_report_metadata_local(request, report_id: str):
+    """Update pole, direction, report_type fields stored locally for a given report."""
+    from powerbi_report.models import ReportRef
+
+    permissions = get_user_permissions(request.user)
+    if not permissions.get('change_powerbireport'):
+        messages.error(request, "Vous n'avez pas la permission de modifier les métadonnées.")
+        return redirect('powerbi_report:report_detail', report_id=report_id)
+
+    if request.method != 'POST':
+        return redirect('powerbi_report:report_detail', report_id=report_id)
+
+    report_ref = ReportRef.objects.filter(pbirs_id=report_id).first()
+    if not report_ref:
+        messages.error(request, "Rapport introuvable dans la base de données locale.")
+        return redirect('powerbi_report:report_list')
+
+    is_consolide = request.POST.get('is_consolide') == 'on'
+    report_ref.is_consolide = is_consolide
+
+    if is_consolide:
+        report_ref.pole = None
+        report_ref.direction = None
+        report_ref.societe = None
+    else:
+        report_ref.pole = request.POST.get('pole', '').strip() or None
+        report_ref.direction = request.POST.get('direction', '').strip() or None
+        report_ref.societe = request.POST.get('societe', '').strip() or None
+    
+    report_ref.report_type = request.POST.get('report_type', '').strip() or None
+    report_ref.modified_by = request.user
+    report_ref.save()
+
+    log_history(request.user, f"Métadonnées mises à jour pour le rapport : {report_ref.name}")
+    messages.success(request, "Métadonnées mises à jour avec succès.")
+    return redirect('powerbi_report:report_detail', report_id=report_id)
+
+
+#################################################################################################################
 #                    Lists folders and reports in a specified folder for authenticated users                    #
 #################################################################################################################
 @login_required
@@ -984,9 +1217,12 @@ def report_detail(request, report_id):
         'July', 'August', 'September', 'October', 'November', 'December'
     ]
 
+    from powerbi_report.models import REPORT_TYPE_CHOICES
     return render(request, 'powerbi_report/report_detail.html', {
         'notifications': notifications,
         'report': report,
+        'report_ref': report_ref,
+        'report_type_choices': REPORT_TYPE_CHOICES,
         'refresh_plans': refresh_plans,
         'shared_schedules': shared_schedules,
         'unread': unread,
@@ -1853,7 +2089,12 @@ def user_permission(request, username):
             'Id': perm.report.pbirs_id,
             'Name': perm.report.name,
             'Path': perm.report.path,
-            'is_direct': perm.is_direct
+            'is_direct': perm.is_direct,
+            'pole': perm.report.pole or '',
+            'direction': perm.report.direction or '',
+            'societe': perm.report.societe or '',
+            'report_type': perm.report.report_type or '',
+            'is_consolide': perm.report.is_consolide,
         })
     
     # Sort allowed reports by name
@@ -1938,10 +2179,23 @@ def missing_permissions(request, username):
                 is_allowed = True
                 break
         
-        if not is_allowed:
-            missing_reports.append(report)
+    # Fetch local metadata for these reports to enable better filtering
+    report_refs = {ref.pbirs_id: ref for ref in ReportRef.objects.filter(pbirs_id__in=[r['Id'] for r in missing_reports])}
+    
+    enriched_missing_reports = []
+    for report in missing_reports:
+        ref = report_refs.get(report['Id'])
+        enriched_missing_reports.append({
+            **report,
+            'pole': ref.pole if ref else '',
+            'direction': ref.direction if ref else '',
+            'societe': ref.societe if ref else '',
+            'report_type': ref.report_type if ref else '',
+            'is_consolide': ref.is_consolide if ref else False,
+        })
+    missing_reports = enriched_missing_reports
 
-    log_history(request.user, f"Permissions incomplÃ¨tes consultÃ©es pour l'utilisateur : {username}")
+    log_history(request.user, f"Permissions incomplètes consultées pour l'utilisateur : {username}")
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
@@ -2589,14 +2843,14 @@ def dashboard(request):
     from users.models import UserHistory
     
     # --- KPI: Counts per category ---
-    # Dashboards = business + department view types
+    # Dashboards = direction + pole view types
     dashboard_report_count = FolderReportItem.objects.filter(
-        folder__view_type__in=['business', 'department']
+        folder__view_type__in=['direction', 'pole']
     ).values('report').distinct().count()
     
     # Extraction reports = biblio view type
     extraction_report_count = FolderReportItem.objects.filter(
-        folder__view_type='biblio'
+        folder__view_type__in=['biblio', 'bibliotheque']
     ).values('report').distinct().count()
     
     # Anomaly reports = anomalie view type
@@ -2616,8 +2870,8 @@ def dashboard(request):
             Q(action__icontains='Viewed report') |
             Q(action__icontains='Accessed report') |
             Q(action__icontains='opened report') |
-            Q(action__icontains='Viewed Business') |
-            Q(action__icontains='Viewed Department')
+            Q(action__icontains='Viewed Direction') |
+            Q(action__icontains='Viewed Pôle')
         )
         .values('action')
         .annotate(count=Count('id'))
@@ -2632,25 +2886,25 @@ def dashboard(request):
         .values('user__username', 'action', 'timestamp')
     )
     
-    # Users by company (societe) - only active users (logged in at least once)
-    users_by_company = list(
+    # Users by department (direction) - only active users (logged in at least once)
+    users_by_direction = list(
         CustomUser.objects
         .filter(last_login__isnull=False)
-        .exclude(societe__isnull=True)
-        .exclude(societe='')
-        .values('societe')
+        .exclude(direction__isnull=True)
+        .exclude(direction='')
+        .values('direction')
         .annotate(count=Count('id'))
         .order_by('-count')[:6]
     )
 
-    # --- New reports per folder (anomalie + business) ---
+    # --- New reports per folder (anomalie + direction) ---
     from .models import FolderReportItem as FRI2
     
     # Monthly breakdown for the current year
     reports_per_folder_monthly = list(
         FRI2.objects
         .filter(
-            folder__view_type__in=['business', 'department', 'anomalie'],
+            folder__view_type__in=['direction', 'pole', 'anomalie'],
             report__last_synced__year=current_year
         )
         .annotate(month=TruncMonth('report__last_synced'))
@@ -2663,7 +2917,7 @@ def dashboard(request):
     reports_per_folder_quarterly = list(
         FRI2.objects
         .filter(
-            folder__view_type__in=['business', 'department', 'anomalie'],
+            folder__view_type__in=['direction', 'pole', 'anomalie'],
             report__last_synced__year=current_year
         )
         .annotate(quarter=TruncQuarter('report__last_synced'))
@@ -2676,7 +2930,7 @@ def dashboard(request):
     reports_per_folder_yearly = list(
         FRI2.objects
         .filter(
-            folder__view_type__in=['business', 'department', 'anomalie']
+            folder__view_type__in=['direction', 'pole', 'anomalie', 'biblio', 'consolide']
         )
         .annotate(year=TruncYear('report__last_synced'))
         .values('year', 'folder__view_type')
@@ -2703,7 +2957,7 @@ def dashboard(request):
         'total_synced_reports': total_synced_reports,
         'most_requested': most_requested,
         'recent_activity': recent_activity,
-        'users_by_company': users_by_company,
+        'users_by_direction': users_by_direction,
         'reports_per_folder_monthly': reports_per_folder_monthly,
         'reports_per_folder_quarterly': reports_per_folder_quarterly,
         'reports_per_folder_yearly': reports_per_folder_yearly,
@@ -2932,7 +3186,7 @@ def sync_reports_from_pbirs(request):
     """
     if not request.user.is_superuser:
         messages.error(request, "Only administrators can sync reports.")
-        return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_business'))
+        return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_direction'))
 
     try:
         synced_count, removed_count = sync_report_refs(triggered_by=request.user)
@@ -2975,13 +3229,13 @@ def sync_permissions(request):
 
 
 @login_required
-def custom_folders_list(request, view_type='business', folder_id=None):
+def custom_folders_list(request, view_type='direction', folder_id=None):
     """
     Display custom folders and reports for a specific view type.
     Filters based on the local PBIRS permission cache.
     """
     # Validate view type
-    if view_type not in ['business', 'department', 'biblio', 'anomalie']:
+    if view_type not in ['direction', 'pole', 'biblio', 'anomalie', 'consolide']:
         raise Http404("Invalid view type")
     
     # Get the current folder if specified
@@ -3022,12 +3276,13 @@ def custom_folders_list(request, view_type='business', folder_id=None):
     permissions = get_user_permissions(request.user)
     
     view_titles = {
-        'business': 'CBI',
-        'department': 'Rapports par Pole',
+        'direction': 'CBI',
+        'pole': 'Rapports par Pole',
         'biblio': 'Bibliotheque',
         'anomalie': 'Anomalie',
+        'consolide': 'Consolidé',
     }
-    view_title = view_titles.get(view_type, 'Dossiers personnalisÃ©s')
+    view_title = view_titles.get(view_type, 'Dossiers personnalisés')
     
     log_history(request.user, f"A consulté les dossiers personnalisés ({view_type})")
     

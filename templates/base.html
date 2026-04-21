@@ -313,7 +313,7 @@
         {% endif %}
 
         {% if permissions.view_powerbireport %}
-        <a href="{% url 'powerbi_report:report_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name in 'report_list,report_list_hierarchy,report_list_hierarchy_folder' or request.resolver_match.url_name in 'report_list_flat,embed_report' and request.GET.context != 'department' and request.GET.context != 'biblio' and request.GET.context != 'business' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
+        <a href="{% url 'powerbi_report:report_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name in 'report_list,report_list_hierarchy,report_list_hierarchy_folder' or request.resolver_match.url_name in 'report_list_flat,embed_report' and request.GET.context != 'pole' and request.GET.context != 'biblio' and request.GET.context != 'direction' and request.GET.context != 'consolide' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">folder_managed</span>
           <span class="text-sm font-medium">Gestion Rapports</span>
         </a>
@@ -323,22 +323,22 @@
         <p class="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-2">Navigation</p>
 
         {% if permissions.view_dashboard %}
-          <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/business' in request.path or request.GET.context == 'business' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
+          <a href="{% url 'powerbi_report:custom_direction' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/direction' in request.path or request.GET.context == 'direction' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
             <span class="material-symbols-outlined text-[20px]">business_center</span>
-            <span class="text-sm font-medium">Société</span>
+            <span class="text-sm font-medium">Direction</span>
           </a>
-          <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/department' in request.path or request.GET.context == 'department' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
+          <a href="{% url 'powerbi_report:custom_pole' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/pole' in request.path or request.GET.context == 'pole' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
             <span class="material-symbols-outlined text-[20px]">groups</span>
             <span class="text-sm font-medium">Pôle</span>
           </a>
         {% else %}
-          {% if user.default_view == 'department' %}
-            <a href="{% url 'powerbi_report:custom_department' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/department' in request.path or request.GET.context == 'department' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
+          {% if user.default_view == 'pole' %}
+            <a href="{% url 'powerbi_report:custom_pole' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/pole' in request.path or request.GET.context == 'pole' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
               <span class="material-symbols-outlined text-[20px]">groups</span>
               <span class="text-sm font-medium">Rapport</span>
             </a>
           {% else %}
-            <a href="{% url 'powerbi_report:custom_business' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/business' in request.path or request.GET.context == 'business' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
+            <a href="{% url 'powerbi_report:custom_direction' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/direction' in request.path or request.GET.context == 'direction' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
               <span class="material-symbols-outlined text-[20px]">business_center</span>
               <span class="text-sm font-medium">Rapport</span>
             </a>
@@ -348,6 +348,10 @@
         <a href="{% url 'powerbi_report:custom_biblio' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/biblio' in request.path or request.GET.context == 'biblio' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">library_books</span>
           <span class="text-sm font-medium">Bibliothèque</span>
+        </a>
+        <a href="{% url 'powerbi_report:custom_consolide' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/consolide' in request.path or request.GET.context == 'consolide' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
+          <span class="material-symbols-outlined text-[20px]">layers</span>
+          <span class="text-sm font-medium">Consolidé</span>
         </a>
         <a href="{% url 'powerbi_report:custom_anomalie' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/anomalie' in request.path or request.GET.context == 'anomalie' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">warning</span>

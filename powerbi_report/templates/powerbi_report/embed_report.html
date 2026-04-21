@@ -10,12 +10,12 @@
 
 {% block breadcrumbs_footer %}
   <span class="material-symbols-outlined text-[14px]">chevron_right</span>
-  {% if request.GET.context == 'department' %}
-      <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_department' %}">RAPPORTS</a>
+  {% if request.GET.context == 'pole' %}
+      <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_pole' %}">RAPPORTS</a>
       {% for breadcrumb in breadcrumbs %}
            <span class="material-symbols-outlined text-[14px]">chevron_right</span>
            {% if not forloop.last %}
-            <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_department_folder' folder_path=breadcrumb.url %}">{{ breadcrumb.name }}</a>
+            <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_pole_folder' folder_path=breadcrumb.url %}">{{ breadcrumb.name }}</a>
            {% else %}
             <span class="text-slate-500 dark:text-slate-400">{{ breadcrumb.name }}</span>
            {% endif %}

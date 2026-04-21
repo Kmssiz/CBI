@@ -295,26 +295,29 @@
             <form method="POST" action="{% url 'powerbi_report:assign_report_to_folder' folder_id=current_folder.id %}">
                 {% csrf_token %}
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <input type="text" class="form-control" id="reportSearch"
-                            placeholder="Rechercher des rapports..." onkeyup="filterReports()">
+                    <div class="relative w-full mb-4">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
+                        <input type="text" id="reportSearch" placeholder="Rechercher des rapports..." onkeyup="filterReports()" class="w-full input-theme bg-slate-50 dark:!bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pl-10 pr-4 text-slate-700 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary/50 transition-all outline-none">
                     </div>
-                    <div class="report-list" style="max-height: 400px; overflow-y: auto;">
+                    <div class="report-list space-y-2 pr-2" style="max-height: 400px; overflow-y: auto;">
                         {% if all_reports %}
                         {% for report in all_reports %}
-                        <div class="form-check report-item mb-2 p-2 border rounded">
-                            <input class="form-check-input" type="checkbox" name="report_ids" value="{{ report.id }}"
-                                id="report_{{ report.id }}">
-                            <label class="form-check-label w-100" for="report_{{ report.id }}">
-                                <strong>{{ report.name }}</strong>
-                                <br><small class="text-muted">{{ report.path }}</small>
-                            </label>
-                        </div>
+                        <label class="report-item flex items-center gap-4 p-3 m-0 bg-white dark:!bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-primary/30 dark:hover:border-primary/50 hover:bg-slate-50 dark:hover:!bg-slate-700 cursor-pointer transition-all w-full" for="report_{{ report.id }}">
+                            <div class="flex items-center justify-center relative shrink-0">
+                                <input type="checkbox" name="report_ids" value="{{ report.id }}" id="report_{{ report.id }}" class="modalCheckbox peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 checked:!bg-primary checked:!border-primary dark:checked:!bg-blue-600 dark:checked:!border-blue-600 cursor-pointer transition-all">
+                                <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+                            </div>
+                            <div class="flex flex-col overflow-hidden">
+                                <span class="text-sm font-bold text-slate-900 dark:text-white truncate">{{ report.name }}</span>
+                                <span class="text-xs text-slate-500 font-medium truncate">{{ report.path }}</span>
+                            </div>
+                        </label>
                         {% endfor %}
                         {% else %}
-                        <p class="text-muted">Aucun rapport disponible. <a
-                                href="{% url 'powerbi_report:sync_reports' %}">Synchroniser les rapports depuis
-                                PBIRS</a> d'abord.</p>
+                        <div class="text-center py-8">
+                            <span class="material-symbols-outlined text-[48px] text-slate-300 dark:text-slate-700 mb-3">folder_off</span>
+                            <p class="text-slate-500 dark:text-slate-400">Aucun rapport disponible.<br><a href="{% url 'powerbi_report:sync_reports' %}" class="text-primary hover:underline">Synchroniser les rapports depuis PBIRS</a> d'abord.</p>
+                        </div>
                         {% endif %}
                     </div>
                 </div>
@@ -476,9 +479,9 @@
         const reportItems = document.querySelectorAll('.report-item');
 
         reportItems.forEach(function (item) {
-            const label = item.querySelector('label').textContent.toLowerCase();
-            if (label.includes(searchText)) {
-                item.style.display = '';
+            const textContent = item.textContent.toLowerCase();
+            if (textContent.includes(searchText)) {
+                item.style.display = 'flex'; // Restore as flex container
             } else {
                 item.style.display = 'none';
             }

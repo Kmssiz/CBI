@@ -30,26 +30,129 @@
     {% endif %}
 
     <!-- Actions Section -->
-    <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <form method="GET" action="{% url 'powerbi_report:report_list' %}" class="relative max-w-2xl w-full sm:w-auto search-glow group">
-            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <span class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+    <div class="mb-8 space-y-4">
+        <form method="GET" action="{% url 'powerbi_report:report_list' %}" id="unifiedFilterForm">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:max-w-3xl">
+                    <!-- Main Search Bar -->
+                    <div class="relative flex-1 group search-glow w-full">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <span class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+                        </div>
+                        <input type="text" name="q" id="reportSearch" value="{{ query }}" 
+                               class="block w-full pl-11 pr-4 py-3 card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-xl text-theme text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all shadow-sm" 
+                               placeholder="Rechercher par nom de rapport...">
+                    </div>
+
+                    <!-- Advanced Filter Toggle -->
+                    <button type="button" id="toggleFilters" 
+                            class="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm relative group overflow-hidden w-full sm:w-auto">
+                        <span class="material-symbols-outlined text-[20px] group-hover:rotate-180 transition-transform duration-500">tune</span>
+                        Filtres
+                        {% if active_filters_count > 0 %}
+                        <span class="absolute top-2 right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white shadow-lg border-2 border-white dark:border-slate-900 animate-in zoom-in duration-300">
+                            {{ active_filters_count }}
+                        </span>
+                        {% endif %}
+                    </button>
+
+                    <button type="submit" class="hidden sm:flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all">
+                        Appliquer
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    {% if permissions.add_powerbireport %}
+                    <button type="button" onclick="document.getElementById('addReportModal').classList.remove('hidden')" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-sm font-bold transition-all">
+                        <span class="material-symbols-outlined text-[20px]">add_circle</span> Nouveau
+                    </button>
+                    {% endif %}
+                    
+                    {% if user.is_superuser %}
+                    <div class="flex items-center gap-2">
+                        <a href="{% url 'powerbi_report:sync_reports' %}" class="size-11 flex items-center justify-center bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 border border-yellow-500/20 rounded-xl transition-all" title="Sync Reports">
+                            <span class="material-symbols-outlined">sync</span>
+                        </a>
+                        <a href="{% url 'powerbi_report:sync_permissions' %}" class="size-11 flex items-center justify-center bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 border border-cyan-500/20 rounded-xl transition-all" title="Sync Permissions">
+                            <span class="material-symbols-outlined">group</span>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            <input type="text" name="q" id="reportSearch" value="{{ query }}" class="block w-full sm:w-[400px] pl-11 pr-4 py-3 card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-xl text-theme text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all shadow-sm" placeholder="Rechercher des rapports par nom...">
+
+            <!-- Advanced Filters Panel -->
+            <div id="advancedFiltersPanel" class="{% if not active_filters_count %}hidden{% endif %} mt-4">
+                <div class="card-theme bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 glass-panel">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- Direction -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Direction</label>
+                            <select name="direction" id="directionFilter" class="w-full bg-theme border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-theme focus:ring-2 focus:ring-primary/50 outline-none transition-all">
+                                <option value="">Toutes</option>
+                                {% for d in all_directions %}
+                                <option value="{{ d }}" {% if f_direction == d %}selected{% endif %}>{{ d }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Pôle -->
+                        <div id="poleFilterContainer">
+                            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Pôle</label>
+                            <select name="pole" id="poleFilter" class="w-full bg-theme border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-theme focus:ring-2 focus:ring-primary/50 outline-none transition-all">
+                                <option value="">Tous</option>
+                                {% for p in all_poles %}
+                                <option value="{{ p }}" {% if f_pole == p %}selected{% endif %}>{{ p }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Société -->
+                        <div id="societeFilterContainer">
+                            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Société</label>
+                            <select name="societe" id="societeFilter" class="w-full bg-theme border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-theme focus:ring-2 focus:ring-primary/50 outline-none transition-all">
+                                <option value="">Toutes</option>
+                                {% for s in all_societes %}
+                                <option value="{{ s }}" {% if f_societe == s %}selected{% endif %}>{{ s }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Type -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Type</label>
+                            <select name="type" id="typeFilter" class="w-full bg-theme border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-theme focus:ring-2 focus:ring-primary/50 outline-none transition-all">
+                                <option value="">Tous</option>
+                                <option value="dashboard" {% if f_type == 'dashboard' %}selected{% endif %}>Dashboard</option>
+                                <option value="bibliotheque" {% if f_type == 'bibliotheque' %}selected{% endif %}>Bibliothèque</option>
+                                <option value="anomalie" {% if f_type == 'anomalie' %}selected{% endif %}>Anomalie</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                         <div class="flex items-center gap-4">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <div class="relative">
+                                    <input type="checkbox" name="consolide" id="consolideFilter" {% if f_consolide %}checked{% endif %} class="sr-only peer">
+                                    <div class="w-10 h-5 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:bg-primary transition-all"></div>
+                                    <div class="absolute left-1 top-1 w-3 h-3 bg-white rounded-full peer-checked:translate-x-5 transition-all"></div>
+                                </div>
+                                <span class="text-sm font-semibold text-slate-600 dark:text-slate-400 group-hover:text-primary transition-colors">Afficher uniquement les rapports consolidés</span>
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center gap-3">
+                            <a href="{% url 'powerbi_report:report_list' %}" class="text-sm font-bold text-slate-400 hover:text-red-500 transition-colors px-4">Effacer</a>
+                            <button type="submit" class="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all">
+                                <span class="material-symbols-outlined text-[18px]">filter_alt</span>
+                                Appliquer les filtres
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </form>
-        
-        <div class="flex items-center gap-3">
-            {% if user.is_superuser %}
-            <a href="{% url 'powerbi_report:sync_reports' %}" id="syncPbirsBtn" class="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 dark:text-yellow-500 border border-yellow-500/20 rounded-lg text-sm font-bold transition-all"
-                title="Sync reports from PBIRS">
-                <span class="material-symbols-outlined text-[20px]">sync</span> Synchroniser PBIRS
-            </a>
-            <a href="{% url 'powerbi_report:sync_permissions' %}" id="syncPermissionsBtn" class="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 rounded-lg text-sm font-bold transition-all"
-                title="Sync user permissions from PBIRS">
-                <span class="material-symbols-outlined text-[20px]">group</span> Synchroniser Permission
-            </a>
-            {% endif %}
-        </div>
     </div>
 
     <!-- Report List Section -->
@@ -68,7 +171,9 @@
                     <tr class="bg-slate-50 dark:bg-black/50 border-b border-slate-200 dark:border-slate-800">
                          <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Nom</th>
                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Chemin</th>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Dernière modification</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Pôle</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Direction</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Société</th>
                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
                     </tr>
                 </thead>
@@ -90,16 +195,26 @@
                             </div>
                         </td>
                         <td class="px-6 py-4">
-                            {% if report.modified_at %}
-                            <div class="flex flex-col">
-                                <span class="text-sm text-slate-600 dark:text-slate-300">{{ report.modified_at|date:"d/m/Y H:i" }}</span>
-                                <span class="text-[10px] text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[12px]">person</span>
-                                    {{ report.modified_by.get_full_name|default:report.modified_by.username }}
+                            {% if report.is_consolide %}
+                                <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-violet-500/10 text-violet-500 text-[10px] font-bold uppercase tracking-wider border border-violet-500/20">
+                                    <span class="material-symbols-outlined text-[12px]">hub</span> Consolidé
                                 </span>
-                            </div>
                             {% else %}
-                            <span class="text-xs text-slate-500 dark:text-slate-400 italic">Aucune donnée</span>
+                                <span class="text-sm font-bold text-slate-700 dark:text-slate-300">{{ report.pole|default:"-" }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if report.is_consolide %}
+                                <span class="text-xs text-slate-400 dark:text-slate-500 italic">Multi-Direction</span>
+                            {% else %}
+                                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">{{ report.direction|default:"-" }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if report.is_consolide %}
+                                <span class="text-xs text-slate-400 dark:text-slate-500 italic">M-S</span>
+                            {% else %}
+                                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">{{ report.societe|default:"-" }}</span>
                             {% endif %}
                         </td>
                         <td class="px-6 py-4">
@@ -137,7 +252,7 @@
             
             <div class="pagination-nav">
                 {% if reports.has_previous %}
-                <a href="?page={{ reports.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" class="pagination-btn pagination-btn-default">
+                <a href="?page={{ reports.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if f_direction %}&direction={{ f_direction }}{% endif %}{% if f_pole %}&pole={{ f_pole }}{% endif %}{% if f_societe %}&societe={{ f_societe }}{% endif %}{% if f_type %}&type={{ f_type }}{% endif %}{% if f_consolide %}&consolide=on{% endif %}" class="pagination-btn pagination-btn-default">
                     <span class="material-symbols-outlined text-[18px]">chevron_left</span>
                 </a>
                 {% else %}
@@ -152,12 +267,12 @@
                     {% elif i == reports.paginator.ELLIPSIS %}
                         <span class="pagination-ellipsis">{{ i }}</span>
                     {% else %}
-                        <a href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}" class="pagination-btn pagination-btn-default">{{ i }}</a>
+                        <a href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}{% if f_direction %}&direction={{ f_direction }}{% endif %}{% if f_pole %}&pole={{ f_pole }}{% endif %}{% if f_societe %}&societe={{ f_societe }}{% endif %}{% if f_type %}&type={{ f_type }}{% endif %}{% if f_consolide %}&consolide=on{% endif %}" class="pagination-btn pagination-btn-default">{{ i }}</a>
                     {% endif %}
                 {% endfor %}
 
                 {% if reports.has_next %}
-                <a href="?page={{ reports.next_page_number }}{% if query %}&q={{ query }}{% endif %}" class="pagination-btn pagination-btn-default">
+                <a href="?page={{ reports.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if f_direction %}&direction={{ f_direction }}{% endif %}{% if f_pole %}&pole={{ f_pole }}{% endif %}{% if f_societe %}&societe={{ f_societe }}{% endif %}{% if f_type %}&type={{ f_type }}{% endif %}{% if f_consolide %}&consolide=on{% endif %}" class="pagination-btn pagination-btn-default">
                     <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                 </a>
                 {% else %}
@@ -261,79 +376,610 @@
 </style>
 
 <script>
+  // Metadata relations for cascading filters
+  const metadataRelations = {{ metadata_relations|safe }};
+
   document.addEventListener("DOMContentLoaded", function () {
     const reportTable = document.getElementById('reportTable');
     if (!reportTable) return;
     
-    const rows = reportTable.querySelectorAll('tbody tr');
+    // Restore focus and cursor position after reload
     const reportSearch = document.getElementById('reportSearch');
-    const searchForm = reportSearch ? reportSearch.closest('form') : null;
-    let debounceTimer;
-
-    if (reportSearch && searchForm) {
-        // Restore focus and cursor position after reload
+    if (reportSearch) {
         const queryLength = reportSearch.value.length;
         if (queryLength > 0) {
             reportSearch.focus();
             reportSearch.setSelectionRange(queryLength, queryLength);
         }
+    }
 
-        reportSearch.addEventListener('input', function() {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                searchForm.submit();
-            }, 600); // 600ms debounce
-        });
-
-        // Prevent form submission flash/double-submit
-        searchForm.addEventListener('submit', function() {
-            reportSearch.setAttribute('readonly', true);
+    // Toggle Filters Panel
+    const toggleBtn = document.getElementById('toggleFilters');
+    const filtersPanel = document.getElementById('advancedFiltersPanel');
+    if (toggleBtn && filtersPanel) {
+        toggleBtn.addEventListener('click', () => {
+            filtersPanel.classList.toggle('hidden');
         });
     }
 
+    // Cascading Filters Logic
+    const directionSelect = document.getElementById('directionFilter');
+    const poleSelect = document.getElementById('poleFilter');
+    const societeSelect = document.getElementById('societeFilter');
 
+    if (directionSelect && poleSelect) {
+        directionSelect.addEventListener('change', function() {
+            const dir = this.value;
+            const poles = dir ? (metadataRelations.directions[dir] || []) : [];
+            
+            // Rebuild Pole options
+            poleSelect.innerHTML = '<option value="">Tous</option>';
+            poles.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = p;
+                poleSelect.appendChild(opt);
+            });
+            
+            // Clear Societe
+            if (societeSelect) societeSelect.innerHTML = '<option value="">Toutes</option>';
+        });
+    }
+
+    if (poleSelect && societeSelect) {
+        poleSelect.addEventListener('change', function() {
+            const pole = this.value;
+            const societes = pole ? (metadataRelations.poles[pole] || []) : [];
+            
+            // Rebuild Societe options
+            societeSelect.innerHTML = '<option value="">Toutes</option>';
+            societes.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s;
+                societeSelect.appendChild(opt);
+            });
+        });
+    }
+
+    // Consolide Toggle Logic: Hide Pole/Societe
+    const consolideFilter = document.getElementById('consolideFilter');
+    const poleFilterContainer = document.getElementById('poleFilterContainer');
+    const societeFilterContainer = document.getElementById('societeFilterContainer');
+
+    function updateConsolideVisibility() {
+        if (!consolideFilter || !poleFilterContainer || !societeFilterContainer) return;
+        
+        if (consolideFilter.checked) {
+            poleFilterContainer.classList.add('hidden');
+            societeFilterContainer.classList.add('hidden');
+            // Reset values when hidden
+            if (poleSelect) poleSelect.value = '';
+            if (societeSelect) societeSelect.value = '';
+        } else {
+            poleFilterContainer.classList.remove('hidden');
+            societeFilterContainer.classList.remove('hidden');
+        }
+    }
+
+    if (consolideFilter) {
+        consolideFilter.addEventListener('change', updateConsolideVisibility);
+        // Initial state
+        updateConsolideVisibility();
+    }
+
+    // Sync button loaders
     const loadingPrompt = document.getElementById('loadingPrompt');
-    const syncPbirsBtn = document.getElementById('syncPbirsBtn');
-    const syncPermissionsBtn = document.getElementById('syncPermissionsBtn');
-
-    if (syncPbirsBtn) {
-        syncPbirsBtn.addEventListener('click', function() {
-            if(loadingPrompt) loadingPrompt.style.display = 'flex';
+    const syncButtons = document.querySelectorAll('#syncPbirsBtn, #syncPermissionsBtn');
+    syncButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (loadingPrompt) loadingPrompt.style.display = 'flex';
         });
-    }
-
-    if (syncPermissionsBtn) {
-        syncPermissionsBtn.addEventListener('click', function() {
-            if(loadingPrompt) loadingPrompt.style.display = 'flex';
-        });
-    }
-
-    window.addEventListener('load', function() {
-      if (loadingPrompt) {
-        loadingPrompt.style.display = 'none';
-      }
     });
 
     // Auto-close alerts
     setTimeout(function () {
-      let alerts = document.querySelectorAll('.alert');
+      let alerts = document.querySelectorAll('.flex.items-center.gap-3.p-4.rounded-xl');
       alerts.forEach(alert => {
         try {
-            if (typeof bootstrap !== 'undefined') {
-                let bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
-                bsAlert.close();
-            } else {
-                // Fallback if bootstrap is not available (e.g., using jQuery)
-                alert.classList.remove('show');
-                setTimeout(() => alert.remove(), 150);
-            }
+            alert.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            alert.style.opacity = '0';
+            alert.style.transform = 'translateY(-10px)';
+            setTimeout(() => alert.remove(), 500);
         } catch (e) {
-            console.error("Error closing alert:", e);
-            // Fallback
             alert.remove();
         }
       });
     }, 5000);
   });
 </script>
+{% if permissions.add_powerbireport %}
+<!-- ========== Add Report Modal (Full-screen Slide-in) ========== -->
+<div id="addReportModal" class="hidden fixed inset-0 z-[9999] flex items-stretch justify-end">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="document.getElementById('addReportModal').classList.add('hidden')"></div>
+    <!-- Panel -->
+    <div class="relative z-10 w-full max-w-xl h-full flex flex-col ar-panel border-l border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-slide-in">
+        <!-- Header -->
+        <div class="px-6 py-5 border-b flex items-center justify-between ar-header ar-divider flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="size-10 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                    <span class="material-symbols-outlined text-emerald-500">upload_file</span>
+                </div>
+                <div>
+                    <h5 class="text-base font-bold ar-title tracking-tight">Ajouter un rapport</h5>
+                    <p class="text-xs ar-subtitle">Upload un .pbix et définissez ses métadonnées</p>
+                </div>
+            </div>
+            <button onclick="document.getElementById('addReportModal').classList.add('hidden')" class="ar-close-btn transition-colors p-1 rounded-lg">
+                <span class="material-symbols-outlined text-[24px]">close</span>
+            </button>
+        </div>
+
+        <!-- Form -->
+        <form id="arUploadForm" method="POST" action="{% url 'powerbi_report:add_report_local' %}" enctype="multipart/form-data" class="flex flex-col flex-1 overflow-y-auto" novalidate>
+            {% csrf_token %}
+            <div class="p-6 space-y-6 flex-1 ar-body">
+
+                <!-- Section 1: Fichier & Chemin -->
+                <div>
+                    <h6 class="text-[10px] font-bold ar-section-title uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[14px]">folder_open</span> Fichier &amp; Chemin PBIRS
+                    </h6>
+                    <div class="space-y-4">
+                        <!-- File Drop Zone -->
+                        <div id="dropZone" class="ar-dropzone relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all group">
+                            <input type="file" id="pbixFileInput" name="pbix_file" accept=".pbix" required
+                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                onchange="handleFileSelected(this)">
+                            <div id="dropZoneContent">
+                                <span class="material-symbols-outlined text-[48px] ar-icon group-hover:text-emerald-500 transition-colors">upload_file</span>
+                                <p class="mt-2 text-sm font-semibold ar-text">Déposez votre fichier .pbix ici</p>
+                                <p class="text-xs ar-muted mt-1">ou cliquez pour parcourir</p>
+                            </div>
+                            <div id="fileSelectedInfo" class="hidden">
+                                <span class="material-symbols-outlined text-[48px] text-emerald-500">check_circle</span>
+                                <p id="selectedFileName" class="mt-2 text-sm font-bold text-emerald-500 truncate px-4"></p>
+                                <p class="text-xs ar-muted mt-1">Cliquez pour changer</p>
+                            </div>
+                        </div>
+
+                        <!-- PBIRS Path -->
+                        <div class="space-y-1.5">
+                            <label for="pbirs_path" class="text-xs font-bold ar-label uppercase tracking-widest">Chemin PBIRS <span class="text-red-400">*</span></label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 ar-icon">
+                                    <span class="material-symbols-outlined text-[18px]">folder</span>
+                                </span>
+                                <input type="text" id="pbirs_path" name="pbirs_path" required placeholder="/CBI/Pôle1/MonRapport"
+                                    class="ar-input w-full rounded-xl pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all text-sm font-mono">
+                            </div>
+                            <p class="text-[10px] ar-muted">Chemin complet sur PBIRS, ex: /CBI/Pôle1/MonRapport</p>
+                        </div>
+                        
+                        <!-- PBIRS Server -->
+                        <div class="space-y-1.5">
+                            <label for="server_url" class="text-xs font-bold ar-label uppercase tracking-widest">Serveur PBIRS <span class="text-red-400">*</span></label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 ar-icon">
+                                    <span class="material-symbols-outlined text-[18px]">dns</span>
+                                </span>
+                                <select id="server_url" name="server_url" required
+                                    class="ar-input w-full rounded-xl pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all text-sm appearance-none cursor-pointer">
+                                    {% for url in server_urls %}
+                                        <option value="{{ url }}">{{ url }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+                                    <span class="material-symbols-outlined text-[18px]">expand_more</span>
+                                </span>
+                            </div>
+                            <p class="text-[10px] ar-muted">Sélectionnez le serveur de destination PBIRS.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t ar-divider"></div>
+
+                <!-- Section 2: Métadonnées -->
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h6 class="text-[10px] font-bold ar-section-title uppercase tracking-widest flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[14px]">label</span> Métadonnées locales
+                        </h6>
+                        <!-- Consolidé toggle -->
+                        <label for="is_consolide" class="flex items-center gap-2 cursor-pointer select-none">
+                            <span class="text-[10px] font-bold ar-label uppercase tracking-widest">Consolidé</span>
+                            <div class="relative">
+                                <input type="checkbox" id="is_consolide" name="is_consolide"
+                                    class="sr-only peer"
+                                    onchange="toggleConsolide(this.checked)">
+                                <!-- track -->
+                                <div class="w-9 h-5 rounded-full border transition-all
+                                    bg-slate-200 border-slate-300
+                                    peer-checked:bg-violet-500 peer-checked:border-violet-500
+                                    dark:bg-slate-700 dark:border-slate-600
+                                    dark:peer-checked:bg-violet-500 dark:peer-checked:border-violet-500">
+                                </div>
+                                <!-- thumb -->
+                                <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-all
+                                    peer-checked:translate-x-4">
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Org fields (hidden when Consolidé is on) -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <!-- Pôle -->
+                                <div class="space-y-1.5">
+                                    <label for="add_pole" class="text-xs font-bold ar-label uppercase tracking-widest">Pôle</label>
+                                    <input type="text" id="add_pole" name="pole" placeholder="ex: Finance"
+                                        class="ar-input w-full rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm">
+                                </div>
+                                <!-- Direction -->
+                                <div class="space-y-1.5">
+                                    <label for="add_direction" class="text-xs font-bold ar-label uppercase tracking-widest">Direction</label>
+                                    <input type="text" id="add_direction" name="direction" placeholder="ex: Direction Commerciale"
+                                        class="ar-input w-full rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm">
+                                </div>
+                                <!-- Société -->
+                                <div class="space-y-1.5 col-span-2">
+                                    <label for="add_societe" class="text-xs font-bold ar-label uppercase tracking-widest">Société</label>
+                                    <input type="text" id="add_societe" name="societe" placeholder="ex: CBI"
+                                        class="ar-input w-full rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Consolidé badge (shown when toggle is on) -->
+                        <div id="arConsolideBadge" class="hidden">
+                            <div class="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-violet-500/30 bg-violet-500/8">
+                                <span class="material-symbols-outlined text-[18px] text-violet-400">hub</span>
+                                <div>
+                                    <p class="text-xs font-bold text-violet-400">Rapport Consolidé</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Type -->
+                        <div class="space-y-2">
+                            <label class="text-xs font-bold ar-label uppercase tracking-widest">Type de rapport</label>
+                            <div class="grid grid-cols-3 gap-3">
+                                <label class="type-card cursor-pointer" for="type_anomalie_add">
+                                    <input type="radio" id="type_anomalie_add" name="report_type" value="anomalie" class="sr-only peer">
+                                    <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 ar-type-border peer-checked:border-red-500 peer-checked:bg-red-500/10 hover:border-red-400 hover:bg-red-500/5 transition-all">
+                                        <span class="material-symbols-outlined text-[24px] ar-icon">warning</span>
+                                        <span class="text-xs font-bold ar-text">Anomalie</span>
+                                    </div>
+                                </label>
+                                <label class="type-card cursor-pointer" for="type_biblio_add">
+                                    <input type="radio" id="type_biblio_add" name="report_type" value="bibliotheque" class="sr-only peer">
+                                    <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 ar-type-border peer-checked:border-blue-500 peer-checked:bg-blue-500/10 hover:border-blue-400 hover:bg-blue-500/5 transition-all">
+                                        <span class="material-symbols-outlined text-[24px] ar-icon">menu_book</span>
+                                        <span class="text-xs font-bold ar-text">Bibliothèque</span>
+                                    </div>
+                                </label>
+                                <label class="type-card cursor-pointer" for="type_dashboard_add">
+                                    <input type="radio" id="type_dashboard_add" name="report_type" value="dashboard" class="sr-only peer">
+                                    <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 ar-type-border peer-checked:border-emerald-500 peer-checked:bg-emerald-500/10 hover:border-emerald-400 hover:bg-emerald-500/5 transition-all">
+                                        <span class="material-symbols-outlined text-[24px] ar-icon">dashboard</span>
+                                        <span class="text-xs font-bold ar-text">Dashboard</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inline Feedback (error / success) -->
+            <div id="arFeedback" class="hidden mx-6 mb-2 px-4 py-3 rounded-xl text-sm font-medium flex items-start gap-3 border" role="alert">
+                <span id="arFeedbackIcon" class="material-symbols-outlined text-[20px] flex-shrink-0 mt-0.5"></span>
+                <span id="arFeedbackMsg"></span>
+            </div>
+
+            <!-- Footer -->
+            <div class="ar-footer px-6 py-4 border-t ar-divider flex items-center justify-between flex-shrink-0">
+                <!-- Upload progress bar (hidden by default) -->
+                <div id="arProgressWrap" class="hidden flex-1 mr-4">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs ar-muted">Envoi en cours…</span>
+                        <span id="arProgressPct" class="text-xs font-bold text-emerald-500">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                        <div id="arProgressBar" class="h-full bg-emerald-500 rounded-full transition-all" style="width:0%"></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 ml-auto">
+                    <button type="button" id="arCancelBtn" onclick="closeAddReportModal()" class="px-5 py-2 ar-cancel font-bold text-sm transition-all">Annuler</button>
+                    <button type="submit" id="arSubmitBtn" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-emerald-600/25 flex items-center gap-2">
+                        <span id="arSubmitIcon" class="material-symbols-outlined text-[18px]">cloud_upload</span>
+                        <span id="arSubmitLabel">Publier le rapport</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Upload overlay (inside panel, covers everything during upload) -->
+        <div id="arUploadOverlay" class="hidden absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 ar-overlay">
+            <div class="ar-spinner"></div>
+            <div class="text-center">
+                <p class="text-sm font-bold ar-title" id="arOverlayTitle">Publication en cours…</p>
+                <p class="text-xs ar-subtitle mt-1" id="arOverlaySubtitle">Envoi du fichier vers PBIRS</p>
+            </div>
+            <div class="w-48">
+                <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                    <div id="arOverlayBar" class="h-full bg-emerald-500 rounded-full transition-all" style="width:0%"></div>
+                </div>
+                <p class="text-center text-xs ar-muted mt-2" id="arOverlayPct">0%</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* ===== Slide-in animation ===== */
+@keyframes slide-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+}
+.animate-slide-in { animation: slide-in 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* ===== Add-Report panel — light defaults ===== */
+.ar-panel        { background: #ffffff; }
+.ar-header       { background: #f8fafc; }
+.ar-body         { background: #ffffff; }
+.ar-footer       { background: #f8fafc; }
+.ar-title        { color: #0f172a; }
+.ar-subtitle     { color: #64748b; }
+.ar-close-btn    { color: #94a3b8; }
+.ar-close-btn:hover { color: #0f172a; background: #f1f5f9; }
+.ar-section-title{ color: #94a3b8; }
+.ar-label        { color: #94a3b8; }
+.ar-text         { color: #475569; }
+.ar-muted        { color: #94a3b8; }
+.ar-icon         { color: #94a3b8; }
+.ar-divider      { border-color: #e2e8f0; }
+.ar-dropzone     { border-color: #cbd5e1; background: #f8fafc; }
+.ar-dropzone:hover { border-color: #10b981; background: rgba(16,185,129,0.05); }
+.ar-input        { background: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a; }
+.ar-input::placeholder { color: #94a3b8; }
+.ar-type-border  { border-color: #e2e8f0; }
+.ar-cancel       { color: #64748b; }
+.ar-cancel:hover { color: #0f172a; }
+
+/* ===== Add-Report panel — dark overrides (keyed to html.dark) ===== */
+html.dark .ar-panel        { background: #0f1117; }
+html.dark .ar-header       { background: rgba(255,255,255,0.04); }
+html.dark .ar-body         { background: #0f1117; }
+html.dark .ar-footer       { background: rgba(255,255,255,0.04); }
+html.dark .ar-title        { color: #f1f5f9; }
+html.dark .ar-subtitle     { color: #64748b; }
+html.dark .ar-close-btn    { color: #64748b; }
+html.dark .ar-close-btn:hover { color: #f1f5f9; background: rgba(255,255,255,0.06); }
+html.dark .ar-section-title{ color: #475569; }
+html.dark .ar-label        { color: #475569; }
+html.dark .ar-text         { color: #cbd5e1; }
+html.dark .ar-muted        { color: #475569; }
+html.dark .ar-icon         { color: #475569; }
+html.dark .ar-divider      { border-color: #1e293b; }
+html.dark .ar-dropzone     { border-color: #334155; background: rgba(30,41,59,0.5); }
+html.dark .ar-dropzone:hover { border-color: #10b981; background: rgba(16,185,129,0.08); }
+html.dark .ar-input        { background: rgba(15,23,42,0.7); border: 1px solid #334155; color: #e2e8f0; }
+html.dark .ar-input::placeholder { color: #475569; }
+html.dark .ar-type-border  { border-color: #334155; }
+html.dark .ar-cancel       { color: #64748b; }
+html.dark .ar-cancel:hover { color: #f1f5f9; }
+/* Fix icon inside checked radio card */
+.type-card input:checked ~ div .material-symbols-outlined { color: inherit; }
+
+/* Consolidé badge bg (the Tailwind /8 opacity trick can be purged) */
+#arConsolideBadge > div { background: rgba(139,92,246,0.08); }
+
+/* Org fields collapse animation */
+#arOrgFields { transition: opacity .2s, max-height .25s cubic-bezier(0.4,0,0.2,1); max-height: 400px; overflow: hidden; opacity: 1; }
+#arOrgFields.ar-collapsed { max-height: 0; opacity: 0; pointer-events: none; }
+
+/* Upload overlay */
+#arUploadOverlay.ar-overlay { background: rgba(255,255,255,0.92); }
+html.dark #arUploadOverlay.ar-overlay { background: rgba(15,17,23,0.92); }
+
+/* Spinner */
+.ar-spinner {
+    width: 52px; height: 52px;
+    border: 4px solid rgba(16,185,129,0.2);
+    border-top-color: #10b981;
+    border-radius: 50%;
+    animation: ar-spin .8s linear infinite;
+}
+@keyframes ar-spin { to { transform: rotate(360deg); } }
+</style>
+
+<script>
+/* ── Helpers ───────────────────────────────────────────────────────────────── */
+function closeAddReportModal() {
+    document.getElementById('addReportModal').classList.add('hidden');
+    resetArForm();
+}
+
+function resetArForm() {
+    document.getElementById('arUploadForm').reset();
+    document.getElementById('dropZoneContent').classList.remove('hidden');
+    document.getElementById('fileSelectedInfo').classList.add('hidden');
+    hideFeedback();
+    setSubmitReady();
+    // Reset consolide state
+    toggleConsolide(false);
+}
+
+function toggleConsolide(checked) {
+    const orgFields     = document.getElementById('arOrgFields');
+    const badge         = document.getElementById('arConsolideBadge');
+    const checkbox      = document.getElementById('is_consolide');
+    if (checkbox) checkbox.checked = checked;
+    if (checked) {
+        orgFields.classList.add('ar-collapsed');
+        badge.classList.remove('hidden');
+        // Clear values so they're not submitted
+        ['add_pole','add_direction','add_societe'].forEach(function(id) {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+    } else {
+        orgFields.classList.remove('ar-collapsed');
+        badge.classList.add('hidden');
+    }
+}
+
+
+function handleFileSelected(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('dropZoneContent').classList.add('hidden');
+    document.getElementById('fileSelectedInfo').classList.remove('hidden');
+    document.getElementById('selectedFileName').textContent = file.name;
+    const pathInput = document.getElementById('pbirs_path');
+    if (!pathInput.value) {
+        pathInput.value = '/' + file.name.replace(/\.pbix$/i, '');
+    }
+    hideFeedback();
+}
+
+/* ── Feedback banner ───────────────────────────────────────────────────────── */
+function showError(msg) {
+    const el  = document.getElementById('arFeedback');
+    const ico = document.getElementById('arFeedbackIcon');
+    const txt = document.getElementById('arFeedbackMsg');
+    el.className = 'mx-6 mb-2 px-4 py-3 rounded-xl text-sm font-medium flex items-start gap-3 border bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400';
+    ico.textContent = 'error';
+    ico.style.color = '';
+    txt.textContent = msg;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function showSuccess(msg) {
+    const el  = document.getElementById('arFeedback');
+    const ico = document.getElementById('arFeedbackIcon');
+    const txt = document.getElementById('arFeedbackMsg');
+    el.className = 'mx-6 mb-2 px-4 py-3 rounded-xl text-sm font-medium flex items-start gap-3 border bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400';
+    ico.textContent = 'check_circle';
+    ico.style.color = '';
+    txt.textContent = msg;
+}
+
+function hideFeedback() {
+    document.getElementById('arFeedback').className = 'hidden mx-6 mb-2 px-4 py-3 rounded-xl text-sm font-medium flex items-start gap-3 border';
+}
+
+/* ── Submit button states ───────────────────────────────────────────────────── */
+function setSubmitLoading() {
+    const btn = document.getElementById('arSubmitBtn');
+    btn.disabled = true;
+    document.getElementById('arSubmitIcon').textContent = 'hourglass_top';
+    document.getElementById('arSubmitLabel').textContent = 'Publication…';
+    document.getElementById('arProgressWrap').classList.remove('hidden');
+    document.getElementById('arUploadOverlay').classList.remove('hidden');
+}
+
+function setSubmitReady() {
+    const btn = document.getElementById('arSubmitBtn');
+    btn.disabled = false;
+    document.getElementById('arSubmitIcon').textContent = 'cloud_upload';
+    document.getElementById('arSubmitLabel').textContent = 'Publier le rapport';
+    document.getElementById('arProgressWrap').classList.add('hidden');
+    document.getElementById('arUploadOverlay').classList.add('hidden');
+    setProgress(0);
+}
+
+function setProgress(pct) {
+    document.getElementById('arProgressBar').style.width = pct + '%';
+    document.getElementById('arProgressPct').textContent = pct + '%';
+    document.getElementById('arOverlayBar').style.width = pct + '%';
+    document.getElementById('arOverlayPct').textContent = pct + '%';
+}
+
+/* ── Phase labels shown in the overlay ─────────────────────────────────────── */
+function setOverlayPhase(title, subtitle) {
+    document.getElementById('arOverlayTitle').textContent = title;
+    document.getElementById('arOverlaySubtitle').textContent = subtitle;
+}
+
+/* ── AJAX submit ────────────────────────────────────────────────────────────── */
+document.getElementById('arUploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    hideFeedback();
+
+    const file = document.getElementById('pbixFileInput').files[0];
+    const path = document.getElementById('pbirs_path').value.trim();
+
+    // Client-side pre-validation
+    if (!file) { showError('Veuillez sélectionner un fichier .pbix avant de soumettre.'); return; }
+    if (!path)  { showError('Le chemin PBIRS est obligatoire.'); return; }
+
+    const formData = new FormData(this);
+    const csrfToken = this.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    setSubmitLoading();
+    setOverlayPhase('Envoi du fichier…', 'Transfert vers PBIRS en cours');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', this.action);
+    xhr.setRequestHeader('X-CSRFToken', csrfToken);
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+    /* Upload progress */
+    xhr.upload.addEventListener('progress', function(ev) {
+        if (!ev.lengthComputable) return;
+        const pct = Math.round(ev.loaded / ev.total * 90); // cap at 90 until server replies
+        setProgress(pct);
+        if (pct >= 90) setOverlayPhase('Traitement par PBIRS…', 'Le serveur analyse le rapport');
+    });
+
+    xhr.addEventListener('load', function() {
+        setProgress(100);
+        let data;
+        try { data = JSON.parse(xhr.responseText); } catch(err) {
+            setSubmitReady();
+            showError('Réponse invalide du serveur. Vérifiez les logs.');
+            return;
+        }
+        if (data.success) {
+            setOverlayPhase('Publié avec succès !', data.message || '');
+            setTimeout(function() {
+                setSubmitReady();
+                resetArForm();
+                document.getElementById('addReportModal').classList.add('hidden');
+                // Reload list so the new report appears
+                window.location.reload();
+            }, 1800);
+        } else {
+            setSubmitReady();
+            showError(data.error || 'Une erreur est survenue.');
+        }
+    });
+
+    xhr.addEventListener('error', function() {
+        setSubmitReady();
+        showError('Impossible de contacter le serveur. Vérifiez votre connexion réseau.');
+    });
+
+    xhr.addEventListener('timeout', function() {
+        setSubmitReady();
+        showError('La requête a expiré. Le fichier est peut-être trop volumineux.');
+    });
+
+    xhr.timeout = 180000; // 3 min client-side timeout
+    xhr.send(formData);
+});
+
+/* Close on Escape (only if not uploading) */
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !document.getElementById('arSubmitBtn').disabled) {
+        closeAddReportModal();
+    }
+});
+</script>
+{% endif %}
 {% endblock %}

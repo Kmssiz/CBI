@@ -11,6 +11,17 @@ from users.models import CustomUser
 # Custom Virtual Folder Structure Models
 # ==================================================================================
 
+REPORT_TYPE_ANOMALIE = 'anomalie'
+REPORT_TYPE_BIBLIOTHEQUE = 'bibliotheque'
+REPORT_TYPE_DASHBOARD = 'dashboard'
+
+REPORT_TYPE_CHOICES = [
+    (REPORT_TYPE_ANOMALIE, 'Anomalie'),
+    (REPORT_TYPE_BIBLIOTHEQUE, 'Bibliothèque'),
+    (REPORT_TYPE_DASHBOARD, 'Dashboard'),
+]
+
+
 class ReportRef(models.Model):
     """
     Local cache of PBIRS report metadata.
@@ -41,6 +52,31 @@ class ReportRef(models.Model):
         related_name='modified_reports'
     )
 
+    # Local metadata fields (not synced from PBIRS)
+    pole = models.CharField(
+        max_length=128, blank=True, null=True,
+        help_text="Pôle organisationnel du rapport"
+    )
+    direction = models.CharField(
+        max_length=128, blank=True, null=True,
+        help_text="Direction concernée par le rapport"
+    )
+    societe = models.CharField(
+        max_length=128, blank=True, null=True,
+        help_text="Société concernée par le rapport"
+    )
+    report_type = models.CharField(
+        max_length=20,
+        choices=REPORT_TYPE_CHOICES,
+        blank=True,
+        null=True,
+        help_text="Type de rapport : Anomalie, Bibliothèque ou Dashboard"
+    )
+    is_consolide = models.BooleanField(
+        default=False,
+        help_text="Rapport consolidé (multi-sociétés/pôles — champs pôle/société/direction non applicables)"
+    )
+
     class Meta:
         verbose_name = "Report Reference"
         verbose_name_plural = "Report References"
@@ -66,13 +102,16 @@ class ReportRef(models.Model):
 
 class CustomFolder(models.Model):
     """
-    Virtual folder node supporting View A (business) and View B (department/role).
+    A custom folder organization as an alternative to the PBIRS hierarchy.
+    view_type determines the top-level view: 'direction', 'department', 'anomalie', 'biblio', 'consolide'.
     Parent can be null for root-level folders.
     """
     VIEW_TYPE_CHOICES = [
-        ('business', 'Business Folders'),
-        ('department', 'Department/Role'),
+        ('direction', 'Direction Folders'),
+        ('pole', 'Pôle Folders'),
+        ('biblio', 'Bibliothèque'),
         ('anomalie', 'Anomalie'),
+        ('consolide', 'Consolidé'),
     ]
     
     name = models.CharField(max_length=255)

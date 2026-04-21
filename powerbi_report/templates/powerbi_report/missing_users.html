@@ -64,7 +64,11 @@
                     <thead>
                         <tr class="border-b border-slate-200 dark:border-slate-800/50 bg-slate-50 dark:bg-white/[0.01]">
                             <th class="px-8 py-4 w-12 text-center">
-                                <input type="checkbox" id="selectAll" class="size-5 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 accent-primary cursor-pointer">
+                                <div class="flex items-center justify-center relative">
+                                    <input type="checkbox" id="selectAll" class="peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 checked:!bg-primary checked:!border-primary dark:checked:!bg-blue-600 dark:checked:!border-blue-600 cursor-pointer transition-all">
+                                    <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+                                    <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-indeterminate:opacity-100 transition-opacity">remove</span>
+                                </div>
                             </th>
                             <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Utilisateur</th>
                             <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Adresse E-mail</th>
@@ -74,8 +78,11 @@
                     <tbody class="divide-y divide-slate-200 dark:divide-slate-800/30">
                         {% for user in missing_users %}
                         <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group">
-                            <td class="px-8 py-5 text-center">
-                                <input type="checkbox" class="userCheckbox size-5 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 accent-primary cursor-pointer" name="selected_users" value="{{ user.ad2000|default:user.username }}">
+                             <td class="px-8 py-5 text-center">
+                                <div class="flex items-center justify-center relative">
+                                    <input type="checkbox" class="userCheckbox peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 checked:!bg-primary checked:!border-primary dark:checked:!bg-blue-600 dark:checked:!border-blue-600 cursor-pointer transition-all" name="selected_users" value="{{ user.ad2000|default:user.username }}">
+                                    <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+                                </div>
                             </td>
                             <td class="px-8 py-5">
                                 <div class="flex items-center gap-3">
@@ -141,6 +148,7 @@
                     const text = row.textContent.toLowerCase();
                     row.style.display = text.includes(searchValue) ? '' : 'none';
                 });
+                updateSelectAllState();
             });
         }
 
@@ -153,13 +161,39 @@
             }
         }
 
+        function getVisibleCheckboxes() {
+          return Array.from(checkboxes).filter(cb => cb.closest('tr').style.display !== 'none');
+        }
+
+        function updateSelectAllState() {
+          if (!selectAll) return;
+          const visibleCheckboxes = getVisibleCheckboxes();
+          
+          if (visibleCheckboxes.length === 0) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+            return;
+          }
+
+          const checkedCount = visibleCheckboxes.filter(cb => cb.checked).length;
+          
+          if (checkedCount === 0) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+          } else if (checkedCount === visibleCheckboxes.length) {
+            selectAll.checked = true;
+            selectAll.indeterminate = false;
+          } else {
+            selectAll.checked = false;
+            selectAll.indeterminate = true;
+          }
+        }
+
         if (selectAll) {
             selectAll.addEventListener('change', function() {
-                checkboxes.forEach(cb => {
-                    const row = cb.closest('tr');
-                    if (row.style.display !== 'none') {
-                        cb.checked = this.checked;
-                    }
+                const visibleCheckboxes = getVisibleCheckboxes();
+                visibleCheckboxes.forEach(cb => {
+                    cb.checked = this.checked;
                 });
                 updateAddButton();
             });
@@ -167,10 +201,7 @@
 
         checkboxes.forEach(cb => {
             cb.addEventListener('change', () => {
-                const allVisibleChecked = Array.from(checkboxes)
-                    .filter(c => c.closest('tr').style.display !== 'none')
-                    .every(c => c.checked);
-                if (selectAll) selectAll.checked = allVisibleChecked;
+                updateSelectAllState();
                 updateAddButton();
             });
         });

@@ -39,52 +39,86 @@
 
 
     <div class="card-theme bg-white border border-slate-200 dark:border-slate-800/50 rounded-2xl p-6 mb-8 shadow-sm">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
-        <div class="lg:col-span-3">
-          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Rechercher</label>
-          <div class="relative">
+      <div class="flex flex-col gap-6">
+        <!-- Main row: Search and primary actions -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div class="flex-1 relative max-w-2xl">
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
-            <input type="text" id="reportSearch" placeholder="Nom du rapport..." class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 pl-10 pr-4 text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-primary/50 transition-all outline-none">
+            <input type="text" id="reportSearch" placeholder="Rechercher un rapport par nom..." class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-3 pl-10 pr-4 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none shadow-inner">
           </div>
-        </div>
-
-        <div class="lg:col-span-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Pôle</label>
-            <select id="poleFilter" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-white focus:border-primary/50 transition-all outline-none appearance-none">
-              <option value="">Tous les Pôles</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Société</label>
-            <select id="sousDirectionFilter" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-white focus:border-primary/50 transition-all outline-none appearance-none">
-              <option value="">Toutes les Sociétés</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Direction</label>
-            <select id="directionFilter" class="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-white focus:border-primary/50 transition-all outline-none appearance-none">
-              <option value="">Toutes les Directions</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="lg:col-span-4 grid grid-cols-2 lg:grid-cols-4 gap-2">
-          <button type="button" id="clearFilters" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white border border-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold rounded-xl transition-all dark:border-slate-700" title="Effacer les filtres">
-            <span class="material-symbols-outlined text-[18px]">filter_alt_off</span>
-          </button>
-          <a href="?force_sync=true" id="syncButton" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-bold rounded-xl transition-all border border-cyan-500/20" title="Synchroniser">
-            <span class="material-symbols-outlined text-[18px]">sync</span> <span class="hidden xl:inline">Sync</span>
-          </a>
-          <a href="{% url 'powerbi_report:missing_permissions' selected_user %}" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold rounded-xl transition-all border border-primary/20" title="Ajouter des permissions">
-             <span class="material-symbols-outlined text-[18px]">add</span> <span class="hidden xl:inline">Ajouter</span>
-          </a>
-          <form method="post" action="{% url 'powerbi_report:remove_all_permissions' selected_user %}" class="w-full">
-            {% csrf_token %}
-            <button type="submit" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-red-400/10 hover:bg-red-400/20 text-red-400 text-xs font-bold rounded-xl transition-all border border-red-400/20" title="Tout retirer">
-              <span class="material-symbols-outlined text-[18px]">delete_sweep</span> <span class="hidden xl:inline">Vider</span>
+          
+          <div class="flex items-center gap-2">
+            <!-- Filter toggle -->
+            <button type="button" id="toggleFilters" class="flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold rounded-xl transition-all dark:border-slate-700 group relative">
+              <span class="material-symbols-outlined text-[20px] group-hover:rotate-180 transition-transform duration-500">filter_list</span>
+              <span>Filtres</span>
+              <span id="activeFiltersBadge" class="hidden absolute -top-2 -right-2 size-5 bg-primary text-white text-[10px] items-center justify-center rounded-full shadow-lg border-2 border-white dark:border-slate-900">0</span>
             </button>
-          </form>
+            
+            <div class="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-2"></div>
+            
+            <a href="?force_sync=true" id="syncButton" class="flex items-center gap-2 px-4 py-3 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-bold rounded-xl transition-all border border-cyan-500/20" title="Synchroniser">
+              <span class="material-symbols-outlined text-[18px]">sync</span>
+              <span class="hidden sm:inline">Sync</span>
+            </a>
+            
+            <a href="{% url 'powerbi_report:missing_permissions' selected_user %}" class="flex items-center gap-2 px-4 py-3 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold rounded-xl transition-all border border-primary/20" title="Ajouter des permissions">
+              <span class="material-symbols-outlined text-[18px]">add</span>
+              <span class="hidden sm:inline">Ajouter</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Advanced Filters Panel (Collapsible) -->
+         
+        <div id="advancedFiltersPanel" class="hidden border-t border-slate-100 dark:border-white/5 pt-5 bg-slate-50/50 dark:bg-white/[0.01] -mx-6 px-6 pb-5 rounded-b-2xl">
+
+          <!-- Row 1: dropdowns -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 px-1">Type</label>
+              <select id="reportTypeFilter" class="w-full bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none cursor-pointer">
+                <option value="">Tous les Types</option>
+                <option value="dashboard">Dashboard</option>
+                <option value="bibliotheque">Bibliothèque</option>
+                <option value="anomalie">Anomalie</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 px-1">Direction</label>
+              <select id="directionFilter" class="w-full bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none cursor-pointer">
+                <option value="">Toutes les Directions</option>
+              </select>
+            </div>
+            <div id="poleFilterContainer">
+              <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 px-1">Pôle</label>
+              <select id="poleFilter" class="w-full bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none cursor-pointer">
+                <option value="">Tous les Pôles</option>
+              </select>
+            </div>
+            <div id="societeFilterContainer">
+              <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 px-1">Société</label>
+              <select id="societeFilter" class="w-full bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none cursor-pointer">
+                <option value="">Toutes les Sociétés</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Row 2: toggle left, reset right — always flex -->
+          <div class="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+            <div id="consolideFilterContainer" class="hidden flex items-center gap-3">
+              <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Consolidé</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="consolideFilter" class="sr-only peer">
+                <div class="w-9 h-5 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+            <button type="button" id="clearFilters" class="flex items-center gap-2 px-4 py-2 bg-red-500/5 hover:bg-red-500/10 text-red-500 text-xs font-bold rounded-xl transition-all border border-red-500/10 h-[38px] ml-auto">
+              <span class="material-symbols-outlined text-[16px]">filter_alt_off</span>
+              Reset Filters
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
@@ -107,8 +141,9 @@
               <tr class="bg-slate-50/50 dark:bg-white/[0.01]">
                 <th class="px-6 py-4 border-b border-slate-200 dark:border-white/5 w-12 text-center">
                   <div class="flex items-center justify-center relative">
-                    <input type="checkbox" id="selectAll" class="peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-primary checked:border-primary dark:checked:!bg-blue-600 dark:checked:!border-blue-600 cursor-pointer transition-all">
+                    <input type="checkbox" id="selectAll" class="peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:!bg-primary checked:!border-primary dark:checked:!bg-blue-600 dark:checked:!border-blue-600 cursor-pointer transition-all">
                     <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+                    <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-indeterminate:opacity-100 transition-opacity">remove</span>
                   </div>
                 </th>
                 <th class="px-6 py-4 border-b border-slate-200 dark:border-white/5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nom du Rapport</th>
@@ -118,10 +153,15 @@
             </thead>
               <tbody class="divide-y divide-slate-200 dark:divide-white/5">
                 {% for report in reports %}
-                <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group report-row">
+                <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group report-row" 
+                    data-pole="{{ report.pole }}" 
+                    data-direction="{{ report.direction }}" 
+                    data-societe="{{ report.societe }}" 
+                    data-report-type="{{ report.report_type }}" 
+                    data-is-consolide="{{ report.is_consolide|yesno:'true,false' }}">
                   <td class="px-6 py-4 text-center">
                     <div class="flex items-center justify-center relative">
-                      <input type="checkbox" name="report_ids" value="{{ report.Id }}" class="reportCheckbox peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:bg-primary checked:border-primary dark:checked:!bg-blue-600 dark:checked:!border-blue-600 cursor-pointer transition-all">
+                      <input type="checkbox" name="report_ids" value="{{ report.Id }}" class="reportCheckbox peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 checked:!bg-primary checked:!border-primary dark:checked:!bg-blue-600 dark:checked:!border-blue-600 cursor-pointer transition-all">
                       <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
                     </div>
                   </td>
@@ -219,214 +259,265 @@
     const reportTable = document.getElementById('reportTable');
     const rows = reportTable ? Array.from(reportTable.querySelectorAll('tbody tr.report-row')) : [];
     const poleFilter = document.getElementById('poleFilter');
-    const sousDirectionFilter = document.getElementById('sousDirectionFilter');
     const directionFilter = document.getElementById('directionFilter');
+    const societeFilter = document.getElementById('societeFilter');
     const reportSearch = document.getElementById('reportSearch');
     const selectAllCheckbox = document.getElementById('selectAll');
-    const removeSelectedBtn = document.getElementById('removeSelectedBtn');
     const removeSelectedBtn = document.getElementById('removeSelectedBtn');
     const clearFiltersBtn = document.getElementById('clearFilters');
     const loadingPrompt = document.getElementById('loadingPrompt');
     const syncButton = document.getElementById('syncButton');
+    const toggleFiltersBtn = document.getElementById('toggleFilters');
+    const advancedFiltersPanel = document.getElementById('advancedFiltersPanel');
+    const activeFiltersBadge = document.getElementById('activeFiltersBadge');
 
-    // Data structure to hold relationships
-    const pathData = {};
-    const allSousDirections = new Set();
-    const allDirections = new Set();
-
-    // Extract path components and build relationships
-    rows.forEach(row => {
-      const pathElement = row.querySelector('.report-path');
-      if (!pathElement) return;
-      
-      const path = pathElement.getAttribute('title') || pathElement.textContent;
-      const parts = path.split('/').filter(part => part);
-      const pole = parts[0] || '';
-
-      if (pole) {
-        if (!pathData[pole]) {
-          pathData[pole] = { sousDirections: new Set(), directions: {}, directDirections: new Set() };
-        }
-
-        if (parts[1] && parts[1].toLowerCase().startsWith('direction')) {
-          const direction = parts[1];
-          pathData[pole].directDirections.add(direction);
-          allDirections.add(direction);
-        } else if (parts[1]) {
-          const sousDirection = parts[1];
-          pathData[pole].sousDirections.add(sousDirection);
-          allSousDirections.add(sousDirection);
-          if (parts[2] && parts[2].toLowerCase().startsWith('direction')) {
-            const direction = parts[2];
-            if (!pathData[pole].directions[sousDirection]) {
-              pathData[pole].directions[sousDirection] = new Set();
+    // Toggle Advanced Filters
+    if (toggleFiltersBtn && advancedFiltersPanel) {
+        toggleFiltersBtn.addEventListener('click', function() {
+            const isHidden = advancedFiltersPanel.classList.contains('hidden');
+            if (isHidden) {
+                advancedFiltersPanel.classList.remove('hidden');
+                advancedFiltersPanel.classList.add('animate-in', 'fade-in', 'slide-in-from-top-4');
+            } else {
+                advancedFiltersPanel.classList.add('hidden');
             }
-            pathData[pole].directions[sousDirection].add(direction);
+            
+            const icon = this.querySelector('.material-symbols-outlined');
+            if (icon) {
+                this.classList.toggle('bg-primary/5', !advancedFiltersPanel.classList.contains('hidden'));
+                this.classList.toggle('border-primary/20', !advancedFiltersPanel.classList.contains('hidden'));
+            }
+        });
+    }
+
+    function updateActiveFiltersBadge() {
+        let activeCount = 0;
+        if (directionFilter.value) activeCount++;
+        if (poleFilter.value) activeCount++;
+        if (societeFilter.value) activeCount++;
+        if (reportTypeFilter.value) activeCount++;
+        if (consolideFilter.checked) activeCount++;
+        
+        if (activeCount > 0) {
+            activeFiltersBadge.textContent = activeCount;
+            activeFiltersBadge.classList.remove('hidden');
+            activeFiltersBadge.classList.add('flex');
+        } else {
+            activeFiltersBadge.classList.add('hidden');
+            activeFiltersBadge.classList.remove('flex');
+        }
+    }
+
+    // Extract metadata values for filters
+    const allPoles = new Set();
+    const allDirections = new Set();
+    const allSocietes = new Set();
+    
+    // Build metadata relationships
+    const metadataRelations = {
+        directions: {}, // direction -> { poles: Set }
+        poles: {},      // pole -> { societes: Set }
+    };
+
+    rows.forEach(row => {
+        const pole = row.dataset.pole || '';
+        const direction = row.dataset.direction || '';
+        const societe = row.dataset.societe || '';
+
+        if (direction) {
             allDirections.add(direction);
-          }
+            if (!metadataRelations.directions[direction]) {
+                metadataRelations.directions[direction] = { poles: new Set() };
+            }
+            if (pole) {
+                metadataRelations.directions[direction].poles.add(pole);
+            }
         }
-      }
-    });
-
-    // Populate Pole filter
-    Object.keys(pathData).sort().forEach(pole => {
-      const option = document.createElement('option');
-      option.value = pole;
-      option.textContent = pole;
-      poleFilter.appendChild(option);
-    });
-
-    // Populate all Sociétés and Directions initially
-    Array.from(allSousDirections).sort().forEach(sousDirection => {
-      const option = document.createElement('option');
-      option.value = sousDirection;
-      option.textContent = sousDirection;
-      sousDirectionFilter.appendChild(option);
-    });
-
-    Array.from(allDirections).sort().forEach(direction => {
-      const option = document.createElement('option');
-      option.value = direction;
-      option.textContent = direction;
-      directionFilter.appendChild(option);
-    });
-
-    // Function to populate Société filter based on selected Pole
-    function populateSousDirectionFilter(selectedPole) {
-      const currentValue = sousDirectionFilter.value;
-      sousDirectionFilter.innerHTML = '<option value="">Toutes les Sociétés</option>';
-      
-      if (selectedPole && pathData[selectedPole]) {
-        if (pathData[selectedPole].sousDirections.size > 0) {
-          Array.from(pathData[selectedPole].sousDirections).sort().forEach(sousDirection => {
-            const option = document.createElement('option');
-            option.value = sousDirection;
-            option.textContent = sousDirection;
-            sousDirectionFilter.appendChild(option);
-          });
-          sousDirectionFilter.disabled = false;
-        } else {
-          sousDirectionFilter.disabled = true;
+        
+        if (pole) {
+            allPoles.add(pole);
+            if (!metadataRelations.poles[pole]) {
+                metadataRelations.poles[pole] = { societes: new Set() };
+            }
+            if (societe) {
+                metadataRelations.poles[pole].societes.add(societe);
+            }
         }
-      } else {
-        Array.from(allSousDirections).sort().forEach(sousDirection => {
-          const option = document.createElement('option');
-          option.value = sousDirection;
-          option.textContent = sousDirection;
-          sousDirectionFilter.appendChild(option);
+        
+        if (societe) {
+            allSocietes.add(societe);
+        }
+    });
+
+    // Initial population of filters
+    function initFilters() {
+        // Direction
+        directionFilter.innerHTML = '<option value="">Toutes les Directions</option>';
+        Array.from(allDirections).sort().forEach(d => {
+            directionFilter.add(new Option(d, d));
         });
-        sousDirectionFilter.disabled = false;
-      }
+
+        // Pôle
+        poleFilter.innerHTML = '<option value="">Tous les Pôles</option>';
+        Array.from(allPoles).sort().forEach(p => {
+            poleFilter.add(new Option(p, p));
+        });
+
+        // Société
+        societeFilter.innerHTML = '<option value="">Toutes les Sociétés</option>';
+        Array.from(allSocietes).sort().forEach(s => {
+            societeFilter.add(new Option(s, s));
+        });
     }
 
-    // Function to populate Direction filter based on selected Pole and Société
-    function populateDirectionFilter(selectedPole, selectedSousDirection) {
-      const currentValue = directionFilter.value;
-      directionFilter.innerHTML = '<option value="">Toutes les Directions</option>';
+    initFilters();
 
-      if (selectedPole && pathData[selectedPole]) {
-        if (selectedSousDirection && pathData[selectedPole].directions[selectedSousDirection]) {
-          Array.from(pathData[selectedPole].directions[selectedSousDirection]).sort().forEach(direction => {
-            const option = document.createElement('option');
-            option.value = direction;
-            option.textContent = direction;
-            directionFilter.appendChild(option);
-          });
-          directionFilter.disabled = pathData[selectedPole].directions[selectedSousDirection].size === 0;
-        } else if (!selectedSousDirection) {
-          const allPoleDirections = new Set();
-          pathData[selectedPole].directDirections.forEach(direction => {
-            allPoleDirections.add(direction);
-          });
-          Object.values(pathData[selectedPole].directions).forEach(dirs => {
-            dirs.forEach(dir => allPoleDirections.add(dir));
-          });
-          Array.from(allPoleDirections).sort().forEach(direction => {
-            const option = document.createElement('option');
-            option.value = direction;
-            option.textContent = direction;
-            directionFilter.appendChild(option);
-          });
-          directionFilter.disabled = allPoleDirections.size === 0;
-        } else {
-          directionFilter.disabled = true;
+    // Cascading Filter Logic
+    directionFilter.addEventListener('change', function() {
+        const selectedDir = this.value;
+        const currentPole = poleFilter.value;
+        
+        // Update Pole options
+        poleFilter.innerHTML = '<option value="">Tous les Pôles</option>';
+        let availablePoles = allPoles;
+        if (selectedDir && metadataRelations.directions[selectedDir]) {
+            availablePoles = metadataRelations.directions[selectedDir].poles;
         }
-      } else {
-        Array.from(allDirections).sort().forEach(direction => {
-          const option = document.createElement('option');
-          option.value = direction;
-          option.textContent = direction;
-          directionFilter.appendChild(option);
+        Array.from(availablePoles).sort().forEach(p => {
+            poleFilter.add(new Option(p, p));
         });
-        directionFilter.disabled = allDirections.size === 0;
-      }
+        
+        // Restore previous selection if still available
+        if (Array.from(availablePoles).includes(currentPole)) {
+            poleFilter.value = currentPole;
+        } else {
+            poleFilter.dispatchEvent(new Event('change'));
+        }
+        
+        filterReports();
+    });
+
+    poleFilter.addEventListener('change', function() {
+        const selectedPole = this.value;
+        const currentSociete = societeFilter.value;
+
+        // Update Societe options
+        societeFilter.innerHTML = '<option value="">Toutes les Sociétés</option>';
+        let availableSocietes = allSocietes;
+        if (selectedPole && metadataRelations.poles[selectedPole]) {
+            availableSocietes = metadataRelations.poles[selectedPole].societes;
+        }
+        Array.from(availableSocietes).sort().forEach(s => {
+            societeFilter.add(new Option(s, s));
+        });
+
+        // Restore previous selection if still available
+        if (Array.from(availableSocietes).includes(currentSociete)) {
+            societeFilter.value = currentSociete;
+        }
+        
+        filterReports();
+    });
+
+    const reportTypeFilter = document.getElementById('reportTypeFilter');
+    const consolideFilter = document.getElementById('consolideFilter');
+    const consolideFilterContainer = document.getElementById('consolideFilterContainer');
+
+    reportTypeFilter.addEventListener('change', function() {
+        if (this.value === 'dashboard') {
+            consolideFilterContainer.classList.remove('hidden');
+        } else {
+            consolideFilterContainer.classList.add('hidden');
+            consolideFilter.checked = false;
+        }
+        filterReports();
+    });
+
+    consolideFilter.addEventListener('change', function() {
+        updateConsolideVisibility();
+        filterReports();
+    });
+
+    const poleFilterContainer = document.getElementById('poleFilterContainer');
+    const societeFilterContainer = document.getElementById('societeFilterContainer');
+
+    function updateConsolideVisibility() {
+        if (!consolideFilter || !poleFilterContainer || !societeFilterContainer) return;
+        
+        if (consolideFilter.checked) {
+            poleFilterContainer.classList.add('hidden');
+            societeFilterContainer.classList.add('hidden');
+            // Reset values when hidden for filtration
+            poleFilter.value = '';
+            societeFilter.value = '';
+        } else {
+            poleFilterContainer.classList.remove('hidden');
+            societeFilterContainer.classList.remove('hidden');
+        }
     }
 
-    // Get visible checkboxes
+    societeFilter.addEventListener('change', filterReports);
+
+    // Filter function
+    function filterReports() {
+        const searchValue = reportSearch.value.toLowerCase().trim();
+        const directionValue = directionFilter.value;
+        const poleValue = poleFilter.value;
+        const societeValue = societeFilter.value;
+        const typeValue = reportTypeFilter.value;
+        const isConsolide = consolideFilter.checked;
+
+        rows.forEach(row => {
+            const name = row.querySelector('.report-name').textContent.toLowerCase();
+            const rPole = row.dataset.pole || '';
+            const rDirection = row.dataset.direction || '';
+            const rSociete = row.dataset.societe || '';
+            const rType = row.dataset.reportType || '';
+            const rConsolide = row.dataset.isConsolide === 'true';
+
+            const matchesSearch = !searchValue || name.includes(searchValue);
+            const matchesDirection = !directionValue || rDirection === directionValue;
+            const matchesPole = !poleValue || rPole === poleValue;
+            const matchesSociete = !societeValue || rSociete === societeValue;
+            const matchesType = !typeValue || rType === typeValue;
+            const matchesConsolide = !isConsolide || rConsolide === true;
+
+            const isVisible = matchesSearch && matchesDirection && matchesPole && matchesSociete && matchesType && matchesConsolide;
+            row.style.display = isVisible ? '' : 'none';
+        });
+
+        updateActiveFiltersBadge();
+        updateSelectAllState();
+        updateButtonVisibility();
+    }
+
+    // Clear filters function
+    function clearFilters() {
+        reportSearch.value = '';
+        directionFilter.value = '';
+        poleFilter.value = '';
+        societeFilter.value = '';
+        reportTypeFilter.value = '';
+        consolideFilter.checked = false;
+        consolideFilterContainer.classList.add('hidden');
+        updateConsolideVisibility();
+        
+        initFilters();
+        
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+
+        updateActiveFiltersBadge();
+        updateSelectAllState();
+        updateButtonVisibility();
+    }
+
     function getVisibleCheckboxes() {
       return rows
         .filter(row => row.style.display !== 'none')
         .map(row => row.querySelector('.reportCheckbox'))
         .filter(cb => cb !== null);
-    }
-
-    // Filter function - only shows/hides rows
-    function filterReports() {
-      const searchValue = reportSearch.value.toLowerCase().trim();
-      const poleValue = poleFilter.value;
-      const sousDirectionValue = sousDirectionFilter.value;
-      const directionValue = directionFilter.value;
-
-      rows.forEach(row => {
-        const reportNameElement = row.querySelector('.report-name');
-        const pathElement = row.querySelector('.report-path');
-        
-        if (!reportNameElement || !pathElement) {
-          row.style.display = 'none';
-          return;
-        }
-
-        const reportName = reportNameElement.textContent.toLowerCase();
-        const path = pathElement.getAttribute('title') || pathElement.textContent;
-        const parts = path.split('/').filter(part => part);
-
-        const matchesSearch = !searchValue || reportName.includes(searchValue);
-        const matchesPole = !poleValue || parts[0] === poleValue;
-        
-        let matchesSousDirection = true;
-        let matchesDirection = true;
-
-        if (parts[1] && parts[1].toLowerCase().startsWith('direction')) {
-          matchesSousDirection = !sousDirectionValue;
-          matchesDirection = !directionValue || parts[1] === directionValue;
-        } else {
-          matchesSousDirection = !sousDirectionValue || parts[1] === sousDirectionValue;
-          matchesDirection = !directionValue || (parts[2] && parts[2] === directionValue);
-        }
-
-        const isMatch = matchesSearch && matchesPole && matchesSousDirection && matchesDirection;
-        row.style.display = isMatch ? '' : 'none';
-      });
-
-      updateSelectAllState();
-      updateButtonVisibility();
-    }
-
-    // Clear filters function
-    function clearFilters() {
-      reportSearch.value = '';
-      poleFilter.value = '';
-      sousDirectionFilter.value = '';
-      directionFilter.value = '';
-      populateSousDirectionFilter('');
-      populateDirectionFilter('', '');
-
-      rows.forEach(row => {
-        row.style.display = '';
-      });
-
-      updateSelectAllState();
-      updateButtonVisibility();
     }
 
     // Update the "Select All" checkbox state
@@ -466,18 +557,6 @@
     }
 
     // Event listeners for filters
-    poleFilter.addEventListener('change', function() {
-      populateSousDirectionFilter(this.value);
-      populateDirectionFilter(this.value, '');
-      filterReports();
-    });
-
-    sousDirectionFilter.addEventListener('change', function() {
-      populateDirectionFilter(poleFilter.value, this.value);
-      filterReports();
-    });
-
-    directionFilter.addEventListener('change', filterReports);
     reportSearch.addEventListener('input', filterReports);
     clearFiltersBtn.addEventListener('click', clearFilters);
 
@@ -548,8 +627,6 @@
     });
 
     // Initialize
-    populateSousDirectionFilter('');
-    populateDirectionFilter('', '');
     updateSelectAllState();
     updateButtonVisibility();
   });

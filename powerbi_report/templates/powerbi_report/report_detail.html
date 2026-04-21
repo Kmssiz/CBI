@@ -62,6 +62,11 @@
                 <button type="button" class="px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2" data-bs-toggle="modal" data-bs-target="#editDescriptionModal">
                     <span class="material-symbols-outlined text-[18px]">edit</span> Modifier Description
                 </button>
+                {% if permissions.change_powerbireport %}
+                <button type="button" class="px-4 py-2 bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 border border-violet-500/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2" data-bs-toggle="modal" data-bs-target="#editMetadataModal">
+                    <span class="material-symbols-outlined text-[18px]">label</span> Métadonnées
+                </button>
+                {% endif %}
             </div>
         </div>
         <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -90,6 +95,63 @@
         </div>
     </div>
     <!-- [ Report Details Card ] end -->
+
+    <!-- [ Local Metadata Card ] start -->
+    {% if report_ref.pole or report_ref.direction or report_ref.report_type or report_ref.is_consolide %}
+    <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl dark:shadow-none overflow-hidden glass-panel mb-8">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-violet-500 text-[20px]">label</span>
+                <h5 class="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Métadonnées locales</h5>
+            </div>
+        </div>
+        <div class="px-6 py-4 flex flex-wrap gap-4">
+            {% if report_ref.pole %}
+            <div class="flex flex-col gap-1">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pôle</span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                    <span class="material-symbols-outlined text-[14px] text-slate-400">corporate_fare</span>{{ report_ref.pole }}
+                </span>
+            </div>
+            {% endif %}
+            {% if report_ref.direction %}
+            <div class="flex flex-col gap-1">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Direction</span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                    <span class="material-symbols-outlined text-[14px] text-slate-400">account_tree</span>{{ report_ref.direction }}
+                </span>
+            </div>
+            {% endif %}
+            {% if report_ref.is_consolide %}
+            <div class="flex flex-col gap-1">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">État</span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-500/10 text-sm font-bold text-violet-500 border border-violet-500/20">
+                    <span class="material-symbols-outlined text-[14px]">hub</span>Consolidé
+                </span>
+            </div>
+            {% endif %}
+            {% if report_ref.report_type %}
+            <div class="flex flex-col gap-1">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Type</span>
+                {% if report_ref.report_type == 'anomalie' %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 text-sm font-bold text-red-500 border border-red-500/20">
+                    <span class="material-symbols-outlined text-[14px]">warning</span>Anomalie
+                </span>
+                {% elif report_ref.report_type == 'bibliotheque' %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-sm font-bold text-blue-500 border border-blue-500/20">
+                    <span class="material-symbols-outlined text-[14px]">menu_book</span>Bibliothèque
+                </span>
+                {% elif report_ref.report_type == 'dashboard' %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-sm font-bold text-emerald-500 border border-emerald-500/20">
+                    <span class="material-symbols-outlined text-[14px]">dashboard</span>Dashboard
+                </span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    <!-- [ Local Metadata Card ] end -->
 
     <!-- [ Refresh Plans List ] start -->
     <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl dark:shadow-none overflow-hidden glass-panel">
@@ -446,6 +508,108 @@
 {% endblock %}
 
 {% block modals %}
+{% if permissions.change_powerbireport %}
+<!-- Edit Metadata Modal -->
+<div class="modal fade" id="editMetadataModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-panel">
+      <form method="POST" action="{% url 'powerbi_report:update_report_metadata' report.Id %}">
+        {% csrf_token %}
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+            <div class="flex items-center gap-3">
+                <div class="size-9 rounded-lg bg-violet-500/10 flex items-center justify-center border border-violet-500/20">
+                    <span class="material-symbols-outlined text-violet-500 text-[18px]">label</span>
+                </div>
+                <h5 class="text-base font-bold text-slate-900 dark:text-white tracking-tight">Modifier les métadonnées</h5>
+                <!-- Consolidé toggle -->
+                <label for="meta_is_consolide" class="flex items-center gap-2 cursor-pointer select-none ml-4">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Consolidé</span>
+                    <div class="relative">
+                        <input type="checkbox" id="meta_is_consolide" name="is_consolide"
+                            class="sr-only peer"
+                            {% if report_ref.is_consolide %}checked{% endif %}
+                            onchange="toggleEditConsolide(this.checked)">
+                        <!-- track -->
+                        <div class="w-9 h-5 rounded-full border transition-all
+                            bg-slate-200 border-slate-300
+                            peer-checked:bg-violet-500 peer-checked:border-violet-500
+                            dark:bg-slate-700 dark:border-slate-600
+                            dark:peer-checked:bg-violet-500 dark:peer-checked:border-violet-500">
+                        </div>
+                        <!-- thumb -->
+                        <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-all
+                            peer-checked:translate-x-4">
+                        </div>
+                    </div>
+                </label>
+            </div>
+            <button type="button" class="text-slate-500 hover:text-white transition-colors" data-bs-dismiss="modal">
+                <span class="material-symbols-outlined text-[24px]">close</span>
+            </button>
+        </div>
+        <div class="p-6 space-y-5">
+            <!-- Org fields -->
+            <div id="metaOrgFields" class="space-y-5 {% if report_ref.is_consolide %}ar-collapsed{% endif %}">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label for="meta_direction" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Direction</label>
+                        <input type="text" id="meta_direction" name="direction" value="{{ report_ref.direction|default:'' }}" placeholder="ex: Direction Commerciale"
+                            class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-300 placeholder-slate-400 focus:ring-2 focus:ring-primary outline-none transition-all text-sm">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label for="meta_pole" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Pôle</label>
+                        <input type="text" id="meta_pole" name="pole" value="{{ report_ref.pole|default:'' }}" placeholder="ex: Finance"
+                            class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-300 placeholder-slate-400 focus:ring-2 focus:ring-primary outline-none transition-all text-sm">
+                    </div>
+                    <!-- Société -->
+                    <div class="space-y-1.5 col-span-2">
+                        <label for="meta_societe" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Société</label>
+                        <input type="text" id="meta_societe" name="societe" value="{{ report_ref.societe|default:'' }}" placeholder="ex: CBI"
+                            class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-300 placeholder-slate-400 focus:ring-2 focus:ring-primary outline-none transition-all text-sm">
+                    </div>
+                </div>
+            </div>
+            <!-- Type -->
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Type de rapport</label>
+                <div class="grid grid-cols-3 gap-3">
+                    <label class="cursor-pointer" for="meta_type_anomalie">
+                        <input type="radio" id="meta_type_anomalie" name="report_type" value="anomalie" class="sr-only peer" {% if report_ref.report_type == 'anomalie' %}checked{% endif %}>
+                        <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 peer-checked:border-red-500 peer-checked:bg-red-500/10 hover:border-red-400 hover:bg-red-500/5 transition-all cursor-pointer">
+                            <span class="material-symbols-outlined text-[22px] text-slate-500">warning</span>
+                            <span class="text-xs font-bold text-slate-600 dark:text-slate-300">Anomalie</span>
+                        </div>
+                    </label>
+                    <label class="cursor-pointer" for="meta_type_biblio">
+                        <input type="radio" id="meta_type_biblio" name="report_type" value="bibliotheque" class="sr-only peer" {% if report_ref.report_type == 'bibliotheque' %}checked{% endif %}>
+                        <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 peer-checked:border-blue-500 peer-checked:bg-blue-500/10 hover:border-blue-400 hover:bg-blue-500/5 transition-all cursor-pointer">
+                            <span class="material-symbols-outlined text-[22px] text-slate-500">menu_book</span>
+                            <span class="text-xs font-bold text-slate-600 dark:text-slate-300">Bibliothèque</span>
+                        </div>
+                    </label>
+                    <label class="cursor-pointer" for="meta_type_dashboard">
+                        <input type="radio" id="meta_type_dashboard" name="report_type" value="dashboard" class="sr-only peer" {% if report_ref.report_type == 'dashboard' %}checked{% endif %}>
+                        <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 peer-checked:border-emerald-500 peer-checked:bg-emerald-500/10 hover:border-emerald-400 hover:bg-emerald-500/5 transition-all cursor-pointer">
+                            <span class="material-symbols-outlined text-[22px] text-slate-500">dashboard</span>
+                            <span class="text-xs font-bold text-slate-600 dark:text-slate-300">Dashboard</span>
+                        </div>
+                    </label>
+                </div>
+                <p class="text-[10px] text-slate-500">Laissez vide pour ne pas définir de type.</p>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800/50 flex justify-end gap-3 bg-slate-50 dark:bg-white/5">
+            <button type="button" class="px-5 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white font-bold text-sm transition-all" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="px-6 py-2 bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-violet-500/20 flex items-center gap-2">
+                <span class="material-symbols-outlined text-[16px]">save</span> Enregistrer
+            </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <!-- Error Details Modal -->
 <div class="modal fade" id="errorDetailsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -592,5 +756,33 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+function toggleEditConsolide(checked) {
+    const orgFields = document.getElementById('metaOrgFields');
+    if (checked) {
+        orgFields.classList.add('ar-collapsed');
+        // Clear values
+        ['meta_direction', 'meta_pole', 'meta_societe'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+    } else {
+        orgFields.classList.remove('ar-collapsed');
+    }
+}
 </script>
+
+<style>
+#metaOrgFields { 
+    transition: opacity .2s, max-height .25s cubic-bezier(0.4,0,0.2,1); 
+    max-height: 400px; 
+    overflow: hidden; 
+    opacity: 1; 
+}
+#metaOrgFields.ar-collapsed { 
+    max-height: 0; 
+    opacity: 0; 
+    pointer-events: none; 
+}
+</style>
 {% endblock %}
