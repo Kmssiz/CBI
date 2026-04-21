@@ -46,11 +46,11 @@
 
                     <!-- Advanced Filter Toggle -->
                     <button type="button" id="toggleFilters" 
-                            class="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm relative group overflow-hidden w-full sm:w-auto">
-                        <span class="material-symbols-outlined text-[20px] group-hover:rotate-180 transition-transform duration-500">tune</span>
+                            class="flex items-center gap-2 px-6 py-3 bg-white dark:bg-white border border-slate-200 dark:border-white rounded-xl text-sm font-bold text-black dark:text-black hover:bg-slate-50 dark:hover:bg-slate-100 transition-all shadow-sm relative group overflow-hidden w-full sm:w-auto">
+                        <span class="material-symbols-outlined text-[20px] text-slate-500 dark:text-slate-500 group-hover:rotate-180 transition-all duration-500">tune</span>
                         Filtres
                         {% if active_filters_count > 0 %}
-                        <span class="absolute top-2 right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white shadow-lg border-2 border-white dark:border-slate-900 animate-in zoom-in duration-300">
+                        <span class="absolute top-2 right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white shadow-lg border-2 border-white dark:border-white animate-in zoom-in duration-300">
                             {{ active_filters_count }}
                         </span>
                         {% endif %}
@@ -83,12 +83,12 @@
 
             <!-- Advanced Filters Panel -->
             <div id="advancedFiltersPanel" class="{% if not active_filters_count %}hidden{% endif %} mt-4">
-                <div class="card-theme bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 glass-panel">
+                <div class="bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-2xl shadow-slate-200/50 dark:shadow-black/20">
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         <!-- Direction -->
                         <div>
-                            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Direction</label>
-                            <select name="direction" id="directionFilter" class="w-full bg-theme border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-theme focus:ring-2 focus:ring-primary/50 outline-none transition-all">
+                            <label class="block text-[11px] font-extrabold text-slate-500 dark:text-slate-300 uppercase tracking-widest mb-2.5 ml-1">Direction</label>
+                            <select name="direction" id="directionFilter" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-700 dark:text-white focus:ring-2 focus:ring-primary/40 outline-none transition-all hover:border-primary/30 shadow-inner">
                                 <option value="">Toutes</option>
                                 {% for d in all_directions %}
                                 <option value="{{ d }}" {% if f_direction == d %}selected{% endif %}>{{ d }}</option>
@@ -98,8 +98,8 @@
 
                         <!-- Pôle -->
                         <div id="poleFilterContainer">
-                            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Pôle</label>
-                            <select name="pole" id="poleFilter" class="w-full bg-theme border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-theme focus:ring-2 focus:ring-primary/50 outline-none transition-all">
+                            <label class="block text-[11px] font-extrabold text-slate-500 dark:text-slate-300 uppercase tracking-widest mb-2.5 ml-1">Pôle</label>
+                            <select name="pole" id="poleFilter" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-700 dark:text-white focus:ring-2 focus:ring-primary/40 outline-none transition-all hover:border-primary/30 shadow-inner">
                                 <option value="">Tous</option>
                                 {% for p in all_poles %}
                                 <option value="{{ p }}" {% if f_pole == p %}selected{% endif %}>{{ p }}</option>
@@ -109,8 +109,8 @@
 
                         <!-- Société -->
                         <div id="societeFilterContainer">
-                            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Société</label>
-                            <select name="societe" id="societeFilter" class="w-full bg-theme border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-theme focus:ring-2 focus:ring-primary/50 outline-none transition-all">
+                            <label class="block text-[11px] font-extrabold text-slate-500 dark:text-slate-300 uppercase tracking-widest mb-2.5 ml-1">Société</label>
+                            <select name="societe" id="societeFilter" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-700 dark:text-white focus:ring-2 focus:ring-primary/40 outline-none transition-all hover:border-primary/30 shadow-inner">
                                 <option value="">Toutes</option>
                                 {% for s in all_societes %}
                                 <option value="{{ s }}" {% if f_societe == s %}selected{% endif %}>{{ s }}</option>
@@ -120,8 +120,8 @@
 
                         <!-- Type -->
                         <div>
-                            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Type</label>
-                            <select name="type" id="typeFilter" class="w-full bg-theme border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-theme focus:ring-2 focus:ring-primary/50 outline-none transition-all">
+                            <label class="block text-[11px] font-extrabold text-slate-500 dark:text-slate-300 uppercase tracking-widest mb-2.5 ml-1">Type</label>
+                            <select name="type" id="typeFilter" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-700 dark:text-white focus:ring-2 focus:ring-primary/40 outline-none transition-all hover:border-primary/30 shadow-inner">
                                 <option value="">Tous</option>
                                 <option value="dashboard" {% if f_type == 'dashboard' %}selected{% endif %}>Dashboard</option>
                                 <option value="bibliotheque" {% if f_type == 'bibliotheque' %}selected{% endif %}>Bibliothèque</option>
@@ -130,7 +130,7 @@
                         </div>
                     </div>
 
-                    <div class="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <div class="mt-6 pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
                          <div class="flex items-center gap-4">
                             <label class="flex items-center gap-3 cursor-pointer group">
                                 <div class="relative">
@@ -138,7 +138,7 @@
                                     <div class="w-10 h-5 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:bg-primary transition-all"></div>
                                     <div class="absolute left-1 top-1 w-3 h-3 bg-white rounded-full peer-checked:translate-x-5 transition-all"></div>
                                 </div>
-                                <span class="text-sm font-semibold text-slate-600 dark:text-slate-400 group-hover:text-primary transition-colors">Afficher uniquement les rapports consolidés</span>
+                                <span class="text-sm font-bold text-slate-500 dark:text-slate-400 group-hover:text-primary transition-colors">Afficher uniquement les rapports consolidés</span>
                             </label>
                         </div>
                         
@@ -313,8 +313,7 @@
     filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.3));
   }
   .glass-panel {
-    background: rgba(30, 41, 59, 0.7);
-    backdrop-filter: blur(10px);
+    @apply bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200 dark:border-white/10 shadow-xl;
   }
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;

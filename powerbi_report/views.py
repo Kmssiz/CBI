@@ -673,6 +673,29 @@ def report_list_hierarchy(request, folder_path="", root_scope=None, view_type=No
 
     # Use local DB instead of PBIRS API for listing
     items = get_local_reports_for_user(request.user, request=request)
+
+    # Filter items by metadata if view_type is provided
+    if view_type:
+        allowed_types, req_field, _ = _get_allowed_report_types_for_view(view_type)
+        if allowed_types or req_field:
+            filtered_items = []
+            for item in items:
+                # Keep folder entries
+                if item.get('Type') == 'Folder':
+                    filtered_items.append(item)
+                    continue
+                # Check report type
+                if allowed_types and item.get('report_type') not in allowed_types:
+                    continue
+                # Check specific field
+                if req_field:
+                    if req_field == 'is_consolide':
+                        if not item.get('is_consolide'): continue
+                    else:
+                        if not item.get(req_field): continue
+                filtered_items.append(item)
+            items = filtered_items
+
     # Also include derived folders so the hierarchy builds correctly
     items += get_local_folders_from_reports(items)
     
@@ -3097,15 +3120,46 @@ def get_report_refresh_list(request):
 #                    CUSTOM VIRTUAL FOLDERS - PBIRS Permission-Based                                            #
 #################################################################################################################
 
-def get_visible_report_ids(request):
+def _get_allowed_report_types_for_view(view_type):
+    """
+    Mapping between view types and allowed ReportRef.report_type metadata.
+    Also returns specific field requirements.
+    Returns: (allowed_types_list, required_field_name, field_value)
+    """
+    if view_type == 'pole':
+        return (['dashboard'], 'pole', True) # Required field 'pole' (non-null)
+    elif view_type == 'direction':
+        return (['dashboard'], 'direction', True) # Required field 'direction' (non-null)
+    elif view_type == 'consolide':
+        return (['dashboard'], 'is_consolide', True) # Required boolean 'is_consolide'
+    elif view_type == 'biblio':
+        return (['bibliotheque'], None, None)
+    elif view_type == 'anomalie':
+        return (['anomalie'], None, None)
+    return ([], None, None)
+
+
+def get_visible_report_ids(request, view_type=None):
     """
     Get PBIRS report IDs the current user has access to.
     Reads from local UserReportPermission table (synced at login).
+    If view_type is provided, also filters by report_type and specific fields.
     """
     user = request.user
+    
+    # Filter by metadata if view_type is specified
+    allowed_types, req_field, _ = _get_allowed_report_types_for_view(view_type) if view_type else ([], None, None)
 
     if user.is_superuser:
-        return set(ReportRef.objects.values_list('pbirs_id', flat=True))
+        qs = ReportRef.objects.all()
+        if allowed_types:
+            qs = qs.filter(report_type__in=allowed_types)
+        if req_field:
+            if req_field == 'is_consolide':
+                qs = qs.filter(is_consolide=True)
+            else:
+                qs = qs.exclude(**{f"{req_field}__isnull": True}).exclude(**{req_field: ""})
+        return set(qs.values_list('pbirs_id', flat=True))
 
     # Get from local database only. Normal navigation must not call PBIRS.
     local_permissions = UserReportPermission.objects.filter(user=user).select_related('report')
@@ -3113,9 +3167,23 @@ def get_visible_report_ids(request):
         logger.warning(f"No local permissions found for {user.username}. User may need to log out and log back in.")
         return set()
 
-    # Defensive fallback for historical cache pollution.
+    # Filter reports by permissions and leaf items.
     permission_reports = [perm.report for perm in local_permissions if getattr(perm, "report_id", None)]
     leaf_reports = _filter_reportref_to_leaf_items(permission_reports)
+    
+    # Apply metadata filter if applicable
+    if allowed_types or req_field:
+        filtered_ids = set()
+        for report in leaf_reports:
+            if not report.pbirs_id: continue
+            if allowed_types and report.report_type not in allowed_types: continue
+            if req_field:
+                if req_field == 'is_consolide' and not report.is_consolide: continue
+                val = getattr(report, req_field, None)
+                if not val: continue # Skip if null or empty string
+            filtered_ids.add(report.pbirs_id)
+        return filtered_ids
+    
     return {report.pbirs_id for report in leaf_reports if report.pbirs_id}
 
 
@@ -3124,7 +3192,7 @@ def get_visible_folders(request, view_type):
     Filter custom folders to only show those containing at least one visible report.
     Uses the local UserReportPermission cache as the source of truth.
     """
-    visible_ids = get_visible_report_ids(request)
+    visible_ids = get_visible_report_ids(request, view_type=view_type)
     
     if not visible_ids:
         return []
@@ -3132,11 +3200,24 @@ def get_visible_folders(request, view_type):
     all_folders = list(CustomFolder.objects.filter(view_type=view_type))
     parent_by_id = {folder.id: folder.parent_id for folder in all_folders}
 
+    allowed_types, req_field, _ = _get_allowed_report_types_for_view(view_type)
+    
+    filter_kwargs = {
+        "folder__view_type": view_type,
+        "report__pbirs_id__in": visible_ids,
+    }
+    if allowed_types:
+        filter_kwargs["report__report_type__in"] = allowed_types
+    if req_field:
+        if req_field == 'is_consolide':
+            filter_kwargs["report__is_consolide"] = True
+        else:
+            filter_kwargs[f"report__{req_field}__isnull"] = False
+
     direct_folder_ids = set(
-        FolderReportItem.objects.filter(
-            folder__view_type=view_type,
-            report__pbirs_id__in=visible_ids,
-        ).values_list("folder_id", flat=True)
+        FolderReportItem.objects.filter(**filter_kwargs)
+        .exclude(**{f"report__{req_field}": ""} if req_field and req_field != 'is_consolide' else {})
+        .values_list("folder_id", flat=True)
     )
 
     visible_folder_ids = set()
@@ -3155,7 +3236,7 @@ def get_visible_reports_in_folder(request, folder):
     """
     Get reports in a specific folder that the user has access to locally.
     """
-    visible_ids = get_visible_report_ids(request)
+    visible_ids = get_visible_report_ids(request, view_type=folder.view_type)
     
     # Get reports assigned to this folder
     folder_items = list(FolderReportItem.objects.filter(folder=folder).select_related('report'))
@@ -3164,7 +3245,19 @@ def get_visible_reports_in_folder(request, folder):
     }
     
     visible_reports = []
+    allowed_types, req_field, _ = _get_allowed_report_types_for_view(folder.view_type)
     for item in folder_items:
+        # Check report type
+        if allowed_types and item.report.report_type not in allowed_types:
+            continue
+        # Check specific field (pole, direction, etc)
+        if req_field:
+            if req_field == 'is_consolide':
+                if not item.report.is_consolide: continue
+            else:
+                val = getattr(item.report, req_field, None)
+                if not val: continue # skip null or empty
+
         if item.report.id in leaf_report_ids and item.report.pbirs_id in visible_ids:
             visible_reports.append({
                 'id': item.report.id,
@@ -3267,9 +3360,19 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
         breadcrumbs = current_folder.get_breadcrumbs()
     
     # Get all reports for assignment modal (admin only) from the local sync cache.
+    # Filter by allowed report types and required fields for the current view.
     all_reports = []
     if request.user.is_superuser:
-        all_reports = list(ReportRef.objects.all().order_by('name'))
+        allowed_types, req_field, _ = _get_allowed_report_types_for_view(view_type)
+        qs = ReportRef.objects.all()
+        if allowed_types:
+            qs = qs.filter(report_type__in=allowed_types)
+        if req_field:
+            if req_field == 'is_consolide':
+                qs = qs.filter(is_consolide=True)
+            else:
+                qs = qs.exclude(**{f"{req_field}__isnull": True}).exclude(**{req_field: ""})
+        all_reports = list(qs.order_by('name'))
     
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
@@ -3529,7 +3632,19 @@ def get_available_reports_json(request):
     if not request.user.is_superuser:
         return JsonResponse({'error': 'Unauthorized'}, status=403)
     
-    reports = ReportRef.objects.all().order_by('name')
+    view_type = request.GET.get('view_type')
+    allowed_types, req_field, _ = _get_allowed_report_types_for_view(view_type) if view_type else ([], None, None)
+    
+    reports = ReportRef.objects.all()
+    if allowed_types:
+        reports = reports.filter(report_type__in=allowed_types)
+    if req_field:
+        if req_field == 'is_consolide':
+            reports = reports.filter(is_consolide=True)
+        else:
+            reports = reports.exclude(**{f"{req_field}__isnull": True}).exclude(**{req_field: ""})
+    
+    reports = reports.order_by('name')
     report_list = [
         {
             'id': r.id,

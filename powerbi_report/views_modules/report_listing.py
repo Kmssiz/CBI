@@ -10,6 +10,25 @@ from django.shortcuts import render
 from notifications.models import Notification
 
 
+def get_allowed_report_types_for_view(view_type):
+    """
+    Mapping between view types and allowed ReportRef.report_type metadata.
+    Also returns specific field requirements.
+    Keep in sync with views.py version.
+    """
+    if view_type == 'pole':
+        return (['dashboard'], 'pole') # Required field 'pole'
+    elif view_type == 'direction':
+        return (['dashboard'], 'direction') # Required field 'direction'
+    elif view_type == 'consolide':
+        return (['dashboard'], 'is_consolide') # Required boolean 'is_consolide'
+    elif view_type == 'biblio':
+        return (['bibliotheque'], None)
+    elif view_type == 'anomalie':
+        return (['anomalie'], None)
+    return ([], None)
+
+
 def report_list_flat_view(
     request,
     report_server_url: str,
@@ -44,6 +63,17 @@ def report_list_flat_view(
     root_folder = context_root_folders.get(context_param)
     if root_folder:
         reports = [r for r in reports if r.get("Path", "").startswith(root_folder + "/")]
+    
+    # Strictly enforce metadata mapping for context-driven views
+    if context_param:
+        allowed_types, req_field = get_allowed_report_types_for_view(context_param)
+        if allowed_types:
+            reports = [r for r in reports if r.get("report_type") in allowed_types]
+        if req_field:
+            if req_field == 'is_consolide':
+                reports = [r for r in reports if r.get("is_consolide")]
+            else:
+                reports = [r for r in reports if r.get(req_field)]
 
     query = request.GET.get("q", "").strip()
     if query:

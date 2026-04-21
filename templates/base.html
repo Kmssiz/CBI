@@ -344,14 +344,13 @@
             </a>
           {% endif %}
         {% endif %}
-
+            <a href="{% url 'powerbi_report:custom_consolide' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/consolide' in request.path or request.GET.context == 'consolide' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
+          <span class="material-symbols-outlined text-[20px]">layers</span>
+          <span class="text-sm font-medium">Consolidé</span>
+        </a>
         <a href="{% url 'powerbi_report:custom_biblio' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/biblio' in request.path or request.GET.context == 'biblio' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">library_books</span>
           <span class="text-sm font-medium">Bibliothèque</span>
-        </a>
-        <a href="{% url 'powerbi_report:custom_consolide' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/consolide' in request.path or request.GET.context == 'consolide' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
-          <span class="material-symbols-outlined text-[20px]">layers</span>
-          <span class="text-sm font-medium">Consolidé</span>
         </a>
         <a href="{% url 'powerbi_report:custom_anomalie' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/anomalie' in request.path or request.GET.context == 'anomalie' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">warning</span>
