@@ -31,10 +31,10 @@
                     <div class="relative inline-block mb-6">
                         <div class="size-32 rounded-full border-4 border-primary/20 p-1">
                             {% if user_detail.profile_image %}
-                                <img src="{{ user_detail.profile_image.url }}" alt="Avatar" class="size-full rounded-full object-cover">
+                                <img src="{{ user_detail.profile_image.url }}" alt="{{ user_detail.username }}" class="size-full rounded-full object-cover">
                             {% else %}
-                                <div class="size-full rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                    <span class="material-symbols-outlined text-[48px]">person</span>
+                                <div class="size-full rounded-full flex items-center justify-center text-white text-3xl font-black shadow-inner" style="background-color: {{ user_detail.get_avatar_color }};">
+                                    {{ user_detail.get_initials }}
                                 </div>
                             {% endif %}
                         </div>

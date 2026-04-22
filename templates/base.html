@@ -498,11 +498,11 @@
 
           <!-- Profile -->
           <div class="flex items-center gap-3 p-1 rounded-full text-left">
-            <div class="size-9 rounded-full bg-primary/20 border border-primary/20 flex items-center justify-center text-sm font-bold text-primary">
+            <div class="size-9 rounded-full flex items-center justify-center text-[11px] font-black text-white shadow-sm transition-transform hover:scale-105" style="background-color: {% if not user.profile_image %}{{ user.get_avatar_color }}{% endif %};">
               {% if user.profile_image %}
-                <img src="{{ user.profile_image.url }}" alt="AV" class="size-full rounded-full object-cover">
+                <img src="{{ user.profile_image.url }}" alt="{{ user.username }}" class="size-full rounded-full object-cover">
               {% else %}
-                {{ user.username|slice:":1"|upper }}
+                {{ user.get_initials }}
               {% endif %}
             </div>
             <div class="hidden md:flex flex-col">

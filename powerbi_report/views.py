@@ -665,36 +665,12 @@ def report_list_flat(request):
 #################################################################################################################
 
 @login_required
-def report_list_hierarchy(request, folder_path="", root_scope=None, view_type=None):
+@login_required
+def report_list_hierarchy(request, folder_path=""):
     force_refresh = request.GET.get('force_refresh', 'false').lower() == 'true'
-    # If root_scope is set and no folder_path given, start inside that root folder
-    if root_scope and not folder_path:
-        folder_path = root_scope.strip('/')
 
     # Use local DB instead of PBIRS API for listing
     items = get_local_reports_for_user(request.user, request=request)
-
-    # Filter items by metadata if view_type is provided
-    if view_type:
-        allowed_types, req_field, _ = _get_allowed_report_types_for_view(view_type)
-        if allowed_types or req_field:
-            filtered_items = []
-            for item in items:
-                # Keep folder entries
-                if item.get('Type') == 'Folder':
-                    filtered_items.append(item)
-                    continue
-                # Check report type
-                if allowed_types and item.get('report_type') not in allowed_types:
-                    continue
-                # Check specific field
-                if req_field:
-                    if req_field == 'is_consolide':
-                        if not item.get('is_consolide'): continue
-                    else:
-                        if not item.get(req_field): continue
-                filtered_items.append(item)
-            items = filtered_items
 
     # Also include derived folders so the hierarchy builds correctly
     items += get_local_folders_from_reports(items)
@@ -773,8 +749,6 @@ def report_list_hierarchy(request, folder_path="", root_scope=None, view_type=No
         'folder_structure': current_folder,
         'breadcrumbs': breadcrumbs,
         'current_path': folder_path,
-        'root_scope': root_scope or '',
-        'view_type': view_type or '',
         'notifications': notifications,
         'unread': unread,
         'permissions': permissions,
@@ -2890,11 +2864,11 @@ def dashboard(request):
     most_requested = list(
         UserHistory.objects
         .filter(
-            Q(action__icontains='Viewed report') |
-            Q(action__icontains='Accessed report') |
-            Q(action__icontains='opened report') |
-            Q(action__icontains='Viewed Direction') |
-            Q(action__icontains='Viewed Pôle')
+           Q(action__icontains='Rapport consulté') |
+           Q(action__icontains='Rapport accédé') |
+           Q(action__icontains='Rapport ouvert') |
+           Q(action__icontains='Direction consultée') |
+           Q(action__icontains='Pôle consulté')
         )
         .values('action')
         .annotate(count=Count('id'))
@@ -3728,8 +3702,7 @@ def embed_custom_report(request, view_type, folder_id, report_id):
     breadcrumbs = folder.get_breadcrumbs()
     context['breadcrumbs'] = breadcrumbs
     
-    log_history(request.user, f"Viewed report '{report_ref.name}' in folder '{folder.name}'")
-
+    log_history(request.user, f"Rapport consulté '{report_ref.name}' dans le dossier '{folder.name}'")
     return render(request, 'powerbi_report/embed_custom_report.html', context)
 
 

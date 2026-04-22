@@ -64,8 +64,12 @@
 
         <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800/50 flex items-center justify-between text-sm text-slate-500">
           <div class="flex items-center gap-2">
-            <div class="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
-              {{ ticket.created_by.username|slice:":1"|upper }}
+            <div class="size-8 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-sm" style="background-color: {% if not ticket.created_by.profile_image %}{{ ticket.created_by.get_avatar_color }}{% endif %};">
+              {% if ticket.created_by.profile_image %}
+                <img src="{{ ticket.created_by.profile_image.url }}" alt="{{ ticket.created_by.username }}" class="size-full rounded-full object-cover">
+              {% else %}
+                {{ ticket.created_by.get_initials }}
+              {% endif %}
             </div>
             <span>Cree par <span class="text-slate-900 dark:text-white font-medium">{{ ticket.created_by.get_full_name|default:ticket.created_by.username }}</span></span>
           </div>
@@ -84,8 +88,12 @@
           <article class="p-4 rounded-lg border {% if ticket_message.sender_id == user.id %}bg-primary/5 border-primary/20{% else %}bg-slate-50 dark:bg-surface-dark border-slate-200 dark:border-slate-700/50{% endif %}">
             <div class="flex items-center justify-between gap-3 mb-2">
               <div class="flex items-center gap-2">
-                <div class="size-7 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-[11px]">
-                  {{ ticket_message.sender.username|slice:":1"|upper }}
+                <div class="size-7 rounded-full flex items-center justify-center text-white font-bold text-[10px] shadow-sm" style="background-color: {% if not ticket_message.sender.profile_image %}{{ ticket_message.sender.get_avatar_color }}{% endif %};">
+                  {% if ticket_message.sender.profile_image %}
+                    <img src="{{ ticket_message.sender.profile_image.url }}" alt="{{ ticket_message.sender.username }}" class="size-full rounded-full object-cover">
+                  {% else %}
+                    {{ ticket_message.sender.get_initials }}
+                  {% endif %}
                 </div>
                 <span class="text-sm font-semibold text-slate-900 dark:text-white">{{ ticket_message.sender.get_full_name|default:ticket_message.sender.username }}</span>
               </div>
@@ -213,8 +221,12 @@
           <div>
             <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Assigne a</span>
             <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-surface-dark rounded-lg border border-slate-200 dark:border-slate-800">
-              <div class="size-6 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-[10px]">
-                {{ ticket.assigned_to.username|slice:":1"|upper }}
+              <div class="size-6 rounded-full flex items-center justify-center text-white font-bold text-[9px] shadow-sm" style="background-color: {% if not ticket.assigned_to.profile_image %}{{ ticket.assigned_to.get_avatar_color }}{% endif %};">
+                {% if ticket.assigned_to.profile_image %}
+                  <img src="{{ ticket.assigned_to.profile_image.url }}" alt="{{ ticket.assigned_to.username }}" class="size-full rounded-full object-cover">
+                {% else %}
+                  {{ ticket.assigned_to.get_initials }}
+                {% endif %}
               </div>
               <span class="text-sm font-medium text-slate-900 dark:text-white">{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}</span>
             </div>

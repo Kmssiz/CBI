@@ -30,6 +30,42 @@ class CustomUser(AbstractUser):
     ) 
     ad_groups = models.JSONField(default=list, blank=True, help_text="Cached list of AD groups") 
 
+    def get_initials(self) -> str:
+        """Returns user initials (e.g., A.D for Abdelkader Djemil)."""
+        if self.first_name and self.last_name:
+            return f"{self.first_name[0].upper()}.{self.last_name[0].upper()}"
+        
+        # Fallback to AD2000 first character if available
+        if self.ad2000:
+            return self.ad2000[:1].upper()
+            
+        # Fallback if first/last name and AD2000 are not set
+        if self.username:
+            if len(self.username) >= 2:
+                return f"{self.username[0].upper()}.{self.username[1].upper()}"
+            return self.username[:1].upper()
+        return "?"
+
+    def get_avatar_color(self) -> str:
+        """Returns a deterministic hex color based on the username."""
+        colors = [
+            '#137fec', # Primary Blue
+            '#059669', # Emerald
+            '#7c3aed', # Violet
+            '#db2777', # Pink
+            '#d97706', # Amber
+            '#2563eb', # Blue
+            '#4f46e5', # Indigo
+            '#0891b2', # Cyan
+            '#be185d', # Rose
+            '#c026d3', # Fuchsia
+        ]
+        import hashlib
+        # Use ad2000 if available, otherwise username
+        seed = self.ad2000 or self.username or "default"
+        hash_val = int(hashlib.md5(seed.encode()).hexdigest(), 16)
+        return colors[hash_val % len(colors)]
+
     def __str__(self):
         return self.username
     

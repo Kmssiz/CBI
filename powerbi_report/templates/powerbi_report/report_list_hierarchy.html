@@ -6,18 +6,10 @@
 
 {% block breadcrumbs_footer %}
   <span class="material-symbols-outlined text-[14px]">chevron_right</span>
-  {% if view_type == 'pole' %}
-  <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_pole' %}">Pôle</a>
-  {% else %}
   <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:report_list_hierarchy' %}">Rapports</a>
-  {% endif %}
   {% for breadcrumb in breadcrumbs %}
     <span class="material-symbols-outlined text-[14px]">chevron_right</span>
-    {% if view_type == 'pole' %}
-    <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_pole_folder' folder_path=breadcrumb.url %}">{{ breadcrumb.name }}</a>
-    {% else %}
     <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=breadcrumb.url %}">{{ breadcrumb.name }}</a>
-    {% endif %}
   {% endfor %}
 {% endblock %}
 
@@ -43,33 +35,20 @@
 
 
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-      {% if current_path and current_path != root_scope %}
-      {% if view_type == 'pole' %}
-      <a href="javascript:window.history.length > 1 ? history.back() : '{% url 'powerbi_report:custom_pole' %}'"
-        class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 dark:!bg-slate-800 dark:!border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-bold rounded-lg transition-all shadow-sm">
-        <span class="material-symbols-outlined text-[18px]">arrow_back</span> Retour
-      </a>
-      {% else %}
+      {% if current_path %}
       <a href="javascript:window.history.length > 1 ? history.back() : '{% url 'powerbi_report:report_list_hierarchy' %}'"
         class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 dark:!bg-slate-800 dark:!border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-bold rounded-lg transition-all shadow-sm">
         <span class="material-symbols-outlined text-[18px]">arrow_back</span> Retour
       </a>
-      {% endif %}
       {% else %}
       <div></div>
       {% endif %}
 
       <div class="flex flex-wrap gap-3">
-        {% if not current_path or current_path == root_scope %}
-        {% if 'custom_pole' in request.resolver_match.url_name %}
-        <a href="{% url 'powerbi_report:report_list_flat' %}?context=pole" class="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary text-sm font-bold rounded-lg transition-all border border-primary/20">
-          <span class="material-symbols-outlined text-[20px]">list</span> Vue Liste
-        </a>
-        {% else %}
+        {% if not current_path %}
         <a href="{% url 'powerbi_report:report_list_flat' %}" class="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary text-sm font-bold rounded-lg transition-all border border-primary/20">
           <span class="material-symbols-outlined text-[20px]">list</span> Vue Liste
         </a>
-        {% endif %}
         {% endif %}
       </div>
     </div>
@@ -142,11 +121,7 @@
       {% if contents.type == 'Folder' %}
       <!-- Folder Card -->
       <div class="group relative card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-6 hover:border-primary/30 transition-all duration-300">
-        {% if 'custom_pole' in request.resolver_match.url_name %}
-            <a href="{% if current_path %}{% url 'powerbi_report:custom_pole_folder' folder_path=current_path|add:'/'|add:folder %}{% else %}{% url 'powerbi_report:custom_pole_folder' folder_path=folder %}{% endif %}" class="block">
-        {% else %}
-            <a href="{% if current_path %}{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=current_path|add:'/'|add:folder %}{% else %}{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=folder %}{% endif %}" class="block">
-        {% endif %}
+        <a href="{% if current_path %}{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=current_path|add:'/'|add:folder %}{% else %}{% url 'powerbi_report:report_list_hierarchy_folder' folder_path=folder %}{% endif %}" class="block">
           <div class="size-14 rounded-xl bg-yellow-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <span class="material-symbols-outlined text-[32px] text-yellow-500">folder</span>
           </div>
@@ -157,11 +132,7 @@
       {% else %}
       <!-- Report Card -->
       <div class="group relative card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-6 hover:border-primary/30 transition-all duration-300">
-        {% if 'custom_pole' in request.resolver_match.url_name %}
-            <a href="{% url 'powerbi_report:embed_report' report_path=current_path|add:'/'|add:folder %}?context=pole" class="block">
-        {% else %}
-            <a href="{% url 'powerbi_report:embed_report' report_path=current_path|add:'/'|add:folder %}" class="block">
-        {% endif %}
+        <a href="{% url 'powerbi_report:embed_report' report_path=current_path|add:'/'|add:folder %}" class="block">
           <div class="size-14 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
             <span class="material-symbols-outlined text-[32px]">bar_chart</span>
           </div>

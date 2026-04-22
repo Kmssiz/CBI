@@ -97,8 +97,12 @@
                     <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-all group" data-permission="true" data-user-id="{{ user.id }}" data-user-role="{{ user.role|lower }}" data-user-view="{{ user.default_view }}" data-user-status="{{ user.status|lower }}">
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary border border-primary/20">
-                                    {{ user.username|slice:":1"|upper }}
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm" style="background-color: {% if not user.profile_image %}{{ user.get_avatar_color }}{% endif %};">
+                                    {% if user.profile_image %}
+                                        <img src="{{ user.profile_image.url }}" alt="{{ user.username }}" class="w-full h-full rounded-full object-cover">
+                                    {% else %}
+                                        {{ user.get_initials }}
+                                    {% endif %}
                                 </div>
                                 <div class="flex flex-col">
                                     <span class="text-sm font-bold text-theme text-slate-900">{{ user.AD2000|default:user.get_full_name }}</span>

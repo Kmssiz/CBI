@@ -59,17 +59,15 @@ urlpatterns = [
 
     path('folders/json/', views.get_folder_list, name='folder_list'),
 
-    # Custom Virtual Folder Views
+    # Custom Virtual Folder Views (Local management)
     path('custom/direction/', views.custom_folders_list, {'view_type': 'direction'}, name='custom_direction'),
     path('custom/biblio/', views.custom_folders_list, {'view_type': 'biblio'}, name='custom_biblio'),
     path('custom/consolide/', views.custom_folders_list, {'view_type': 'consolide'}, name='custom_consolide'),
     path('custom/anomalie/', views.custom_folders_list, {'view_type': 'anomalie'}, name='custom_anomalie'),
+    path('custom/pole/', views.custom_folders_list, {'view_type': 'pole'}, name='custom_pole'),
+    
     path('custom/<str:view_type>/<int:folder_id>/', views.custom_folders_list, name='custom_folder_detail'),
     path('custom/folder/<str:view_type>/<int:folder_id>/report/<int:report_id>/', views.embed_custom_report, name='embed_custom_report'),
-    # Pole view uses the same view as Reports page (report_list_hierarchy)
-    # root_scope='CBI' pre-navigates into the /CBI folder so top-level shows Pôles
-    path('custom/pole/', views.report_list_hierarchy, {'root_scope': 'CBI', 'view_type': 'pole'}, name='custom_pole'),
-    path('custom/pole/<path:folder_path>/', views.report_list_hierarchy, {'root_scope': 'CBI', 'view_type': 'pole'}, name='custom_pole_folder'),
 
     # Custom Folder Management (Admin)
     path('custom/folder/create/<str:view_type>/', views.create_custom_folder, name='create_custom_folder'),
