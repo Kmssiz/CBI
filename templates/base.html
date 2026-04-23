@@ -415,6 +415,12 @@
             <span class="material-symbols-outlined text-[20px]" id="theme-icon">light_mode</span>
           </button>
 
+          {% if user.is_admin %}
+          <a href="{% url 'powerbi_report:server_management_list' %}" class="size-9 flex items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/20 transition-all" title="Gérer les serveurs PBIRS">
+            <span class="material-symbols-outlined text-[20px]">settings</span>
+          </a>
+          {% endif %}
+
           <!-- Notifications -->
           <div class="dropdown">
             <button class="relative flex items-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" data-bs-toggle="dropdown">

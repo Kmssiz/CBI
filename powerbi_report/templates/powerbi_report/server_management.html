@@ -1,0 +1,315 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gestion des Serveurs PBIRS{% endblock %}
+
+{% block header_title %}Serveurs PBIRS{% endblock %}
+{% block header_subtitle %}Gérez les instances de Power BI Report Server{% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <span class="text-slate-400">Gestion des Serveurs</span>
+{% endblock %}
+
+{% block content %}
+<div class="px-4 lg:px-8 py-6 max-w-7xl mx-auto">
+    
+    {% if messages %}
+    <div class="mb-6 space-y-2">
+        {% for message in messages %}
+        <div class="p-4 rounded-xl flex items-center gap-3 {% if message.tags == 'error' %}bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20{% else %}bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20{% endif %} animate-fade-in-up">
+            <span class="material-symbols-outlined">{% if message.tags == 'error' %}error{% else %}check_circle{% endif %}</span>
+            <p class="text-sm font-medium">{{ message }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Serveurs Configurés</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Ajoutez, modifiez ou supprimez les connexions aux serveurs PBIRS.</p>
+        </div>
+        <button onclick="openModal('addServerModal')" class="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 transition-all font-bold text-sm tracking-wide">
+            <span class="material-symbols-outlined text-[20px]">add</span>
+            Nouveau Serveur
+        </button>
+    </div>
+
+    <!-- Servers Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {% for server in servers %}
+        <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden group hover:shadow-md transition-all">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[24px]">dns</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider {% if server.is_active %}bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400{% endif %}">
+                            <span class="size-1.5 rounded-full {% if server.is_active %}bg-emerald-500{% else %}bg-slate-400{% endif %}"></span>
+                            {{ server.is_active|yesno:"Actif,Inactif" }}
+                        </span>
+                        
+                        <!-- Dropdown Actions -->
+                        <div class="relative dropdown">
+                            <button data-bs-toggle="dropdown" class="size-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-slate-300 dark:hover:bg-slate-800 transition-colors">
+                                <span class="material-symbols-outlined text-[20px]">more_vert</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end p-2 card-theme !bg-white dark:!bg-surface-dark border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl w-48">
+                                <button onclick="editServer('{{ server.id }}', '{{ server.name|escapejs }}', '{{ server.base_url|escapejs }}', '{{ server.admin_username|escapejs }}', '{{ server.is_active|yesno:'true,false' }}')" class="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors">
+                                    <span class="material-symbols-outlined text-[18px]">edit</span> Modifier
+                                </button>
+                                <div class="h-px bg-slate-200 dark:bg-slate-800 my-1"></div>
+                                <button onclick="deleteServer('{{ server.id }}', '{{ server.name|escapejs }}')" class="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg flex items-center gap-2 transition-colors">
+                                    <span class="material-symbols-outlined text-[18px]">delete</span> Supprimer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">{{ server.name }}</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5 truncate" title="{{ server.base_url }}">
+                    <span class="material-symbols-outlined text-[16px]">link</span>
+                    {{ server.base_url }}
+                </p>
+                
+                <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/50 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-slate-400 text-[16px]">person</span>
+                        <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ server.admin_username }}</span>
+                    </div>
+                    <span class="text-[10px] font-bold text-slate-400 tracking-wider">ID: {{ server.id }}</span>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full py-16 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-white/5">
+            <div class="size-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-4">
+                <span class="material-symbols-outlined text-[32px]">dns</span>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">Aucun Serveur PBIRS</h3>
+            <p class="text-slate-500 text-sm max-w-md text-center mb-6">Il semble que vous n'ayez configuré aucun serveur PBIRS. Ajoutez votre premier serveur pour commencer la synchronisation des rapports.</p>
+            <button onclick="openModal('addServerModal')" class="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all font-bold text-sm">
+                <span class="material-symbols-outlined text-[20px]">add</span> Ajouter un Serveur
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block modals %}
+<!-- Add Server Modal -->
+<div id="addServerModal" class="fixed inset-0 z-[1060] hidden">
+    <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="closeModal('addServerModal')"></div>
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-2xl card-theme bg-white dark:bg-surface-dark text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200 dark:border-slate-800 animate-slide-up">
+                <form action="{% url 'powerbi_report:server_create' %}" method="POST">
+                    {% csrf_token %}
+                    <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[20px]">dns</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Nouveau Serveur</h3>
+                        </div>
+                        <button type="button" onclick="closeModal('addServerModal')" class="text-slate-400 hover:text-slate-500 dark:hover:text-slate-300 transition-colors">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    
+                    <div class="px-6 py-6 space-y-5">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Nom du serveur</label>
+                            <input type="text" name="name" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white" placeholder="ex: PBIRS Production">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">URL de Base</label>
+                            <input type="url" name="base_url" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white" placeholder="ex: http://powerbi.mycompany.local">
+                            <p class="text-[11px] text-slate-500 mt-1.5">L'URL racine du serveur (sans /reports ou /api/v2.0)</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Compte de Service</label>
+                                <input type="text" name="admin_username" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white" placeholder="DOMAIN\user">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Mot de passe</label>
+                                <input type="password" name="admin_password" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white" placeholder="••••••••">
+                            </div>
+                        </div>
+                        <div class="pt-2">
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <div class="relative flex items-center">
+                                    <input type="checkbox" name="is_active" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
+                                </div>
+                                <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Serveur Actif</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-white/5 flex justify-end gap-3">
+                        <button type="button" onclick="closeModal('addServerModal')" class="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">Annuler</button>
+                        <button type="submit" class="px-5 py-2.5 text-sm font-bold bg-primary text-white rounded-xl hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 transition-all">Ajouter le serveur</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Server Modal -->
+<div id="editServerModal" class="fixed inset-0 z-[1060] hidden">
+    <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="closeModal('editServerModal')"></div>
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-2xl card-theme bg-white dark:bg-surface-dark text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200 dark:border-slate-800 animate-slide-up">
+                <form id="editServerForm" method="POST">
+                    {% csrf_token %}
+                    <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="size-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[20px]">edit</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Modifier le Serveur</h3>
+                        </div>
+                        <button type="button" onclick="closeModal('editServerModal')" class="text-slate-400 hover:text-slate-500 dark:hover:text-slate-300 transition-colors">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    
+                    <div class="px-6 py-6 space-y-5">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Nom du serveur</label>
+                            <input type="text" id="edit_name" name="name" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">URL de Base</label>
+                            <input type="url" id="edit_base_url" name="base_url" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Compte de Service</label>
+                                <input type="text" id="edit_admin_username" name="admin_username" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Mot de passe</label>
+                                <input type="password" name="admin_password" class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white" placeholder="Laisser vide pour ne pas changer">
+                            </div>
+                        </div>
+                        <div class="pt-2">
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <div class="relative flex items-center">
+                                    <input type="checkbox" id="edit_is_active" name="is_active" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
+                                </div>
+                                <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Serveur Actif</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-white/5 flex justify-end gap-3">
+                        <button type="button" onclick="closeModal('editServerModal')" class="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">Annuler</button>
+                        <button type="submit" class="px-5 py-2.5 text-sm font-bold bg-blue-500 text-white rounded-xl hover:bg-blue-600 hover:shadow-lg hover:shadow-blue-500/30 transition-all">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Server Modal -->
+<div id="deleteServerModal" class="fixed inset-0 z-[1060] hidden">
+    <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="closeModal('deleteServerModal')"></div>
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-2xl card-theme bg-white dark:bg-surface-dark text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-slate-200 dark:border-slate-800 animate-slide-up">
+                <form id="deleteServerForm" method="POST">
+                    {% csrf_token %}
+                    <div class="px-6 py-6 text-center flex flex-col items-center">
+                        <div class="size-16 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center mb-4">
+                            <span class="material-symbols-outlined text-[32px]">warning</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">Supprimer le serveur ?</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Êtes-vous sûr de vouloir supprimer le serveur <span id="delete_server_name" class="font-bold text-slate-700 dark:text-slate-300"></span> ? Cette action est irréversible et pourrait impacter la synchronisation des rapports.</p>
+                        
+                        <div class="flex gap-3 w-full">
+                            <button type="button" onclick="closeModal('deleteServerModal')" class="flex-1 py-3 text-sm font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors">Annuler</button>
+                            <button type="submit" class="flex-1 py-3 text-sm font-bold bg-red-500 text-white hover:bg-red-600 hover:shadow-lg hover:shadow-red-500/30 rounded-xl transition-all">Oui, supprimer</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .animate-slide-up {
+        animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .animate-fade-in-up {
+        animation: fadeInUp 0.4s ease-out forwards;
+    }
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    function openModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    function editServer(id, name, baseUrl, adminUsername, isActive) {
+        const form = document.getElementById('editServerForm');
+        form.action = "{% url 'powerbi_report:server_edit' 999999 %}".replace('999999', id);
+        
+        document.getElementById('edit_name').value = name;
+        document.getElementById('edit_base_url').value = baseUrl;
+        document.getElementById('edit_admin_username').value = adminUsername;
+        document.getElementById('edit_is_active').checked = (isActive === 'true');
+        
+        openModal('editServerModal');
+    }
+
+    function deleteServer(id, name) {
+        const form = document.getElementById('deleteServerForm');
+        form.action = "{% url 'powerbi_report:server_delete' 999999 %}".replace('999999', id);
+        
+        document.getElementById('delete_server_name').textContent = name;
+        openModal('deleteServerModal');
+    }
+    
+    // Auto-dismiss alerts after 5 seconds
+    setTimeout(() => {
+        const alerts = document.querySelectorAll('.animate-fade-in-up');
+        alerts.forEach(alert => {
+            alert.style.opacity = '0';
+            alert.style.transform = 'translateY(-10px)';
+            alert.style.transition = 'all 0.4s ease-in-out';
+            setTimeout(() => alert.remove(), 400);
+        });
+    }, 5000);
+</script>
+{% endblock %}

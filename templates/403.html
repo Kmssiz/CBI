@@ -4,115 +4,552 @@
 {% block title %}Accès Refusé | CBI{% endblock %}
 
 {% block content %}
-<div class="forbidden-container">
+<div class="forbidden-wrapper">
+    <!-- Animated background particles -->
+    <div class="forbidden-particles" aria-hidden="true">
+        <div class="particle particle-1"></div>
+        <div class="particle particle-2"></div>
+        <div class="particle particle-3"></div>
+        <div class="particle particle-4"></div>
+        <div class="particle particle-5"></div>
+        <div class="particle particle-6"></div>
+    </div>
+
+    <!-- Glow ring behind the card -->
+    <div class="forbidden-glow" aria-hidden="true"></div>
+
     <div class="forbidden-card">
-        <div class="forbidden-icon">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 10.18 4.6 8.51 5.62 7.16L16.84 18.38C15.49 19.4 13.82 20 12 20ZM18.38 16.84L7.16 5.62C8.51 4.6 10.18 4 12 4C16.41 4 20 7.59 20 12C20 13.82 19.4 15.49 18.38 16.84Z" fill="currentColor"/>
-            </svg>
+        <!-- Shield icon with animated ring -->
+        <div class="forbidden-icon-wrapper">
+            <div class="icon-ring"></div>
+            <div class="forbidden-icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1Z" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.3"/>
+                    <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1Z" stroke="currentColor" stroke-width="1.5" fill="none" class="shield-outline"/>
+                    <path d="M10 14.5L7.5 12L6.09 13.41L10 17.32L18 9.32L16.59 7.91L10 14.5Z" fill="none"/>
+                    <line x1="8" y1="8" x2="16" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="x-line-1"/>
+                    <line x1="16" y1="8" x2="8" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="x-line-2"/>
+                </svg>
+            </div>
         </div>
-        <h1 class="forbidden-title">403</h1>
+
+        <!-- Error code with glitch effect -->
+        <div class="error-code-wrapper">
+            <h1 class="error-code" data-text="403">403</h1>
+        </div>
+
         <h2 class="forbidden-subtitle">Accès Refusé</h2>
+
+        <div class="divider">
+            <span class="divider-dot"></span>
+            <span class="divider-line"></span>
+            <span class="divider-dot"></span>
+        </div>
+
         <p class="forbidden-text">
-            Désolé, vous n'avez pas les permissions nécessaires pour accéder à cette page. 
-            Si vous pensez qu'il s'agit d'une erreur, veuillez contacter l'administrateur système.
+            Vous n'avez pas les permissions nécessaires pour accéder à cette ressource.
+            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
         </p>
+
+        <!-- Info chips -->
+        <div class="info-chips">
+            <div class="chip">
+                <svg class="chip-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                <span>Erreur d'autorisation</span>
+            </div>
+            <div class="chip">
+                <svg class="chip-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                </svg>
+                <span id="currentTime"></span>
+            </div>
+        </div>
+
+        <!-- Actions -->
         <div class="forbidden-actions">
-            <a href="{% url 'home' %}" class="btn-premium">
-                <i class="fas fa-home"></i> Retour à l'accueil
+            <a href="{% url 'home' %}" class="btn-primary">
+                <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                </svg>
+                Retour à l'accueil
             </a>
+            <button onclick="history.back()" class="btn-secondary">
+                <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                </svg>
+                Page précédente
+            </button>
         </div>
     </div>
 </div>
 
 <style>
-    .forbidden-container {
+    /* ========== Layout ========== */
+    .forbidden-wrapper {
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 70vh;
+        min-height: 78vh;
         padding: 2rem;
+        position: relative;
+        overflow: hidden;
     }
 
+    /* ========== Ambient Glow ========== */
+    .forbidden-glow {
+        position: absolute;
+        width: 420px;
+        height: 420px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(239, 68, 68, 0.08) 0%, transparent 70%);
+        pointer-events: none;
+        z-index: 0;
+        animation: glowPulse 4s ease-in-out infinite;
+    }
+
+    .dark .forbidden-glow {
+        background: radial-gradient(circle, rgba(239, 68, 68, 0.12) 0%, transparent 70%);
+    }
+
+    /* ========== Floating Particles ========== */
+    .forbidden-particles {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .particle {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.15;
+    }
+
+    .particle-1 {
+        width: 6px; height: 6px;
+        background: #ef4444;
+        top: 20%; left: 15%;
+        animation: floatParticle 8s ease-in-out infinite;
+    }
+    .particle-2 {
+        width: 4px; height: 4px;
+        background: #f97316;
+        top: 60%; left: 80%;
+        animation: floatParticle 10s ease-in-out infinite 1s;
+    }
+    .particle-3 {
+        width: 8px; height: 8px;
+        background: #ef4444;
+        top: 75%; left: 25%;
+        animation: floatParticle 12s ease-in-out infinite 2s;
+    }
+    .particle-4 {
+        width: 3px; height: 3px;
+        background: #f59e0b;
+        top: 30%; left: 70%;
+        animation: floatParticle 9s ease-in-out infinite 0.5s;
+    }
+    .particle-5 {
+        width: 5px; height: 5px;
+        background: #ef4444;
+        top: 45%; left: 10%;
+        animation: floatParticle 11s ease-in-out infinite 3s;
+    }
+    .particle-6 {
+        width: 4px; height: 4px;
+        background: #f97316;
+        top: 15%; left: 55%;
+        animation: floatParticle 7s ease-in-out infinite 1.5s;
+    }
+
+    .dark .particle { opacity: 0.25; }
+
+    /* ========== Card ========== */
     .forbidden-card {
-        background: var(--card-bg, rgba(255, 255, 255, 0.05));
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 24px;
-        padding: 3rem;
-        max-width: 500px;
+        position: relative;
+        z-index: 1;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(24px) saturate(1.6);
+        -webkit-backdrop-filter: blur(24px) saturate(1.6);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 28px;
+        padding: 3rem 2.5rem 2.5rem;
+        max-width: 480px;
         width: 100%;
         text-align: center;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        animation: fadeIn 0.6s ease-out;
+        box-shadow:
+            0 4px 6px -1px rgba(0, 0, 0, 0.05),
+            0 20px 50px -12px rgba(0, 0, 0, 0.08),
+            0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+        animation: cardEnter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .dark .forbidden-card {
+        background: rgba(15, 23, 42, 0.75);
+        border-color: rgba(51, 65, 85, 0.5);
+        box-shadow:
+            0 4px 6px -1px rgba(0, 0, 0, 0.3),
+            0 20px 50px -12px rgba(0, 0, 0, 0.5),
+            0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+            0 0 80px -20px rgba(239, 68, 68, 0.08);
+    }
+
+    /* ========== Icon ========== */
+    .forbidden-icon-wrapper {
+        position: relative;
+        width: 88px;
+        height: 88px;
+        margin: 0 auto 1.5rem;
+    }
+
+    .icon-ring {
+        position: absolute;
+        inset: -6px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        border-top-color: #ef4444;
+        border-right-color: rgba(239, 68, 68, 0.3);
+        animation: spinRing 3s linear infinite;
     }
 
     .forbidden-icon {
-        width: 80px;
-        height: 80px;
-        margin: 0 auto 1.5rem;
-        color: #ff4d4d;
-        animation: pulse 2s infinite;
+        width: 88px;
+        height: 88px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(249, 115, 22, 0.06) 100%);
+        border: 1px solid rgba(239, 68, 68, 0.15);
+        color: #ef4444;
     }
 
-    .forbidden-title {
-        font-size: 5rem;
-        font-weight: 800;
+    .dark .forbidden-icon {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(249, 115, 22, 0.08) 100%);
+        border-color: rgba(239, 68, 68, 0.25);
+    }
+
+    .forbidden-icon svg {
+        width: 40px;
+        height: 40px;
+    }
+
+    .shield-outline {
+        stroke-dasharray: 80;
+        stroke-dashoffset: 80;
+        animation: drawShield 1.5s ease-out 0.4s forwards;
+    }
+
+    .x-line-1 {
+        stroke-dasharray: 12;
+        stroke-dashoffset: 12;
+        animation: drawX 0.4s ease-out 1.2s forwards;
+    }
+
+    .x-line-2 {
+        stroke-dasharray: 12;
+        stroke-dashoffset: 12;
+        animation: drawX 0.4s ease-out 1.4s forwards;
+    }
+
+    /* ========== Error Code ========== */
+    .error-code-wrapper {
+        position: relative;
+        margin-bottom: 0.25rem;
+    }
+
+    .error-code {
+        font-size: 5.5rem;
+        font-weight: 900;
+        letter-spacing: -4px;
+        line-height: 1;
         margin: 0;
-        background: linear-gradient(135deg, #ff4d4d 0%, #ff0000 100%);
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 40%, #f97316 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        line-height: 1;
+        background-clip: text;
+        position: relative;
+        animation: codeEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
     }
 
+    .error-code::after {
+        content: attr(data-text);
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 40%, #f97316 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        opacity: 0.08;
+        filter: blur(12px);
+    }
+
+    /* ========== Subtitle ========== */
     .forbidden-subtitle {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin: 0.5rem 0 1.5rem;
-        color: var(--text-primary, #ffffff);
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin: 0.5rem 0 1.25rem;
+        color: #1e293b;
+        letter-spacing: -0.025em;
+        animation: textFade 0.5s ease-out 0.35s both;
     }
 
+    .dark .forbidden-subtitle {
+        color: #f1f5f9;
+    }
+
+    /* ========== Divider ========== */
+    .divider {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 1.25rem;
+        animation: textFade 0.5s ease-out 0.4s both;
+    }
+
+    .divider-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #ef4444;
+        opacity: 0.5;
+    }
+
+    .divider-line {
+        width: 48px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.3), transparent);
+    }
+
+    .dark .divider-line {
+        background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.4), transparent);
+    }
+
+    /* ========== Text ========== */
     .forbidden-text {
-        font-size: 1rem;
-        color: var(--text-secondary, rgba(255, 255, 255, 0.7));
-        line-height: 1.6;
-        margin-bottom: 2rem;
+        font-size: 0.9rem;
+        color: #64748b;
+        line-height: 1.7;
+        margin-bottom: 1.5rem;
+        animation: textFade 0.5s ease-out 0.45s both;
     }
 
-    .btn-premium {
+    .dark .forbidden-text {
+        color: #94a3b8;
+    }
+
+    /* ========== Info Chips ========== */
+    .info-chips {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 2rem;
+        animation: textFade 0.5s ease-out 0.5s both;
+    }
+
+    .chip {
         display: inline-flex;
         align-items: center;
-        gap: 0.75rem;
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 100px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        background: rgba(239, 68, 68, 0.06);
+        color: #dc2626;
+        border: 1px solid rgba(239, 68, 68, 0.12);
+    }
+
+    .dark .chip {
+        background: rgba(239, 68, 68, 0.1);
+        color: #fca5a5;
+        border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .chip-icon {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+    }
+
+    /* ========== Buttons ========== */
+    .forbidden-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+        animation: textFade 0.5s ease-out 0.55s both;
+    }
+
+    .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         color: white;
-        padding: 0.75rem 1.5rem;
-        border-radius: 12px;
+        padding: 11px 22px;
+        border-radius: 14px;
+        font-size: 0.85rem;
         font-weight: 600;
         text-decoration: none;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25);
+        border: none;
+        cursor: pointer;
     }
 
-    .btn-premium:hover {
+    .btn-primary:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
-        filter: brightness(1.1);
+        box-shadow: 0 8px 24px rgba(239, 68, 68, 0.35);
+        filter: brightness(1.08);
     }
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+    .btn-primary:active {
+        transform: translateY(0);
     }
 
-    @keyframes pulse {
-        0% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.1); opacity: 0.8; }
-        100% { transform: scale(1); opacity: 1; }
+    .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        color: #64748b;
+        padding: 11px 22px;
+        border-radius: 14px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(100, 116, 139, 0.2);
+        cursor: pointer;
     }
 
-    /* Dark mode adjustments if base.html doesn't handle it */
-    [data-theme='dark'] .forbidden-card {
-        background: rgba(30, 30, 40, 0.8);
+    .btn-secondary:hover {
+        background: rgba(100, 116, 139, 0.06);
+        border-color: rgba(100, 116, 139, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .dark .btn-secondary {
+        color: #94a3b8;
+        border-color: rgba(148, 163, 184, 0.15);
+    }
+
+    .dark .btn-secondary:hover {
+        background: rgba(148, 163, 184, 0.08);
+        border-color: rgba(148, 163, 184, 0.25);
+    }
+
+    .btn-icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+    }
+
+    /* ========== Animations ========== */
+    @keyframes cardEnter {
+        from {
+            opacity: 0;
+            transform: translateY(30px) scale(0.96);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @keyframes codeEnter {
+        from {
+            opacity: 0;
+            transform: scale(0.8);
+            filter: blur(8px);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+            filter: blur(0);
+        }
+    }
+
+    @keyframes textFade {
+        from {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes spinRing {
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes drawShield {
+        to { stroke-dashoffset: 0; }
+    }
+
+    @keyframes drawX {
+        to { stroke-dashoffset: 0; }
+    }
+
+    @keyframes glowPulse {
+        0%, 100% { opacity: 0.6; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.08); }
+    }
+
+    @keyframes floatParticle {
+        0%, 100% { transform: translateY(0) translateX(0); }
+        25% { transform: translateY(-20px) translateX(10px); }
+        50% { transform: translateY(-8px) translateX(-8px); }
+        75% { transform: translateY(-25px) translateX(5px); }
+    }
+
+    /* ========== Responsive ========== */
+    @media (max-width: 480px) {
+        .forbidden-card {
+            padding: 2rem 1.5rem 1.75rem;
+            border-radius: 20px;
+        }
+
+        .error-code {
+            font-size: 4rem;
+            letter-spacing: -2px;
+        }
+
+        .forbidden-subtitle {
+            font-size: 1.15rem;
+        }
+
+        .forbidden-actions {
+            flex-direction: column;
+        }
+
+        .btn-primary, .btn-secondary {
+            width: 100%;
+            justify-content: center;
+        }
     }
 </style>
+
+<script>
+    // Display current time in the chip
+    function updateTime() {
+        const el = document.getElementById('currentTime');
+        if (el) {
+            const now = new Date();
+            el.textContent = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+    }
+    updateTime();
+    setInterval(updateTime, 1000);
+</script>
 {% endblock %}

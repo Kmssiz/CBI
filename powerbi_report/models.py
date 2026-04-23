@@ -5,8 +5,20 @@ from users.models import CustomUser
 
 # Unused models removed for cleanup
 
+class PBIRSServer(models.Model):
+    name = models.CharField(max_length=255, unique=True, help_text="A display name for this PBIRS instance")
+    base_url = models.URLField(max_length=512, help_text="Base URL for the PBIRS API (e.g., http://server/Reports/api/v2.0)")
+    admin_username = models.CharField(max_length=255, help_text="Admin username (e.g., DOMAIN\\User)")
+    admin_password = models.CharField(max_length=255, help_text="Admin password")
+    is_active = models.BooleanField(default=True, help_text="Whether this server is currently active")
 
+    class Meta:
+        verbose_name = "PBIRS Server"
+        verbose_name_plural = "PBIRS Servers"
+        ordering = ['name']
 
+    def __str__(self):
+        return f"{self.name} ({self.base_url})"
 # ==================================================================================
 # Custom Virtual Folder Structure Models
 # ==================================================================================

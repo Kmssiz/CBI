@@ -179,10 +179,15 @@ def login_view(request):
 #                    Displays user history for a specific user                                                  #
 #################################################################################################################
 @admin_required
-def user_history(request):
+def user_history(request, user_id=None):
 
     # Base query
-    history_query = UserHistory.objects.all().select_related('user').order_by('-timestamp')
+    if user_id:
+        history_query = UserHistory.objects.filter(user_id=user_id).select_related('user').order_by('-timestamp')
+        selected_user = get_object_or_404(CustomUser, id=user_id)
+    else:
+        history_query = UserHistory.objects.all().select_related('user').order_by('-timestamp')
+        selected_user = None
     
     # Search filtering
     search_query = request.GET.get('search', '').strip()
@@ -232,7 +237,8 @@ def user_history(request):
      'permissions': permissions,
      'search_query': search_query,
      'actions': actions,
-     'selected_action': action_filter
+     'selected_action': action_filter,
+     'selected_user': selected_user
      })
 
 #################################################################################################################
@@ -591,6 +597,7 @@ def sync_users(request):
                 user = CustomUser(
                     username=sam_account,  
                     ad2000=ad2000,
+                    societe=ldap_user.get("company", "").strip(),
                     pole=ldap_user.get("company", "").strip(),
                     direction=ldap_user.get("department", "").strip(),
                     first_name=ldap_user.get("name", "").split(' ')[0],
@@ -612,9 +619,14 @@ def sync_users(request):
             company = ldap_user.get("company", "").strip()
             department = ldap_user.get("department", "").strip()
             if not user.pole and company:
+                user.pole = company
                 update_fields["pole"] = company
             if not user.direction and department:
+                user.direction = department
                 update_fields["direction"] = department
+            if not user.societe and company:
+                user.societe = company
+                update_fields["societe"] = company
 
             if ldap_groups:
                 existing_groups = _normalize_ad_groups(user.ad_groups)

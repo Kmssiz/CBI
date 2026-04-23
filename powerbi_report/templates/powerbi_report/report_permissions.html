@@ -109,6 +109,7 @@
                             <th class="px-6 py-4">Nom</th>
                             <th class="px-6 py-4">Type</th>
                             <th class="px-6 py-4">Identifiant</th>
+                            <th class="px-6 py-4 text-center">Source</th>
                             <th class="px-6 py-4 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -116,10 +117,16 @@
                         {% for policy in policies %}
                         <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-all group">
                              <td class="px-6 py-4 text-center">
+                                {% if policy.IsGroup %}
+                                <div class="flex items-center justify-center" title="Accès par groupe LDAP — suppression non autorisée">
+                                    <span class="material-symbols-outlined text-slate-300 dark:text-slate-600 text-[20px]">lock</span>
+                                </div>
+                                {% else %}
                                 <div class="flex items-center justify-center relative">
                                     <input type="checkbox" class="user-checkbox peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 checked:!bg-primary checked:!border-primary dark:checked:!bg-blue-600 dark:checked:!border-blue-600 cursor-pointer transition-all" name="selected_users" value="{{ policy.GroupUserName|default:policy.UserName }}">
                                     <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
                                 </div>
+                                {% endif %}
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
@@ -153,6 +160,17 @@
                                     {{ policy.GroupUserName|default:policy.UserName }}
                                 </code>
                             </td>
+                            <td class="px-6 py-4 text-center">
+                                {% if policy.IsGroup %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                    <span class="material-symbols-outlined text-[14px]">group</span> Groupe LDAP
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-blue-600 dark:text-blue-400">
+                                    <span class="material-symbols-outlined text-[14px]">person</span> Direct
+                                </span>
+                                {% endif %}
+                            </td>
                             <td class="px-6 py-4">
                                 <div class="flex justify-end gap-2">
                                     {% if policy.IsGroup %}
@@ -163,12 +181,16 @@
                                         <span class="material-symbols-outlined text-[14px]">visibility</span> Voir
                                     </button>
                                     <script type="application/json" id="members-{{ policy.GroupUserName|slugify }}">{{ policy.Members|safe }}</script>
-                                    {% endif %}
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-slate-400 dark:text-slate-500 text-xs" title="Géré par groupe LDAP — modification impossible ici">
+                                        <span class="material-symbols-outlined text-[14px]">shield</span> Protégé
+                                    </span>
+                                    {% else %}
                                     <button type="button" 
                                             class="px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 remove-user-btn" 
                                             data-username="{{ policy.GroupUserName|default:policy.UserName|slugify }}">
                                         <span class="material-symbols-outlined text-[14px]">delete</span> Retirer
                                     </button>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -177,11 +199,13 @@
                 </table>
             </form>
             
-            <!-- Hidden forms for individual removal -->
+            <!-- Hidden forms for individual removal (direct users only) -->
             {% for policy in policies %}
+            {% if not policy.IsGroup %}
             <form id="remove-form-{{ policy.GroupUserName|default:policy.UserName|slugify }}" method="post" action="{% url 'powerbi_report:remove_user' report_id policy.GroupUserName|default:policy.UserName %}" style="display:none;">
                 {% csrf_token %}
             </form>
+            {% endif %}
             {% endfor %}
             
             {% else %}

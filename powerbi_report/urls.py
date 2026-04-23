@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import server_views
 
 app_name = 'powerbi_report'
 
@@ -84,4 +85,10 @@ urlpatterns = [
     path('custom/sync-permissions/', views.sync_permissions, name='sync_permissions'),
     path('custom/api/reports/', views.get_available_reports_json, name='available_reports_json'),
     path('refresh-history/<str:plan_id>/', views.get_refresh_plan_history, name='get_refresh_plan_history'),
+
+    # PBIRS Server Management
+    path('servers/', server_views.server_management_list, name='server_management_list'),
+    path('servers/create/', server_views.server_create, name='server_create'),
+    path('servers/edit/<int:server_id>/', server_views.server_edit, name='server_edit'),
+    path('servers/delete/<int:server_id>/', server_views.server_delete, name='server_delete'),
 ]

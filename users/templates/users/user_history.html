@@ -20,7 +20,7 @@
     <!-- [ History Section ] start -->
     <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xl shadow-black/5 dark:shadow-black/20">
         <div class="px-8 py-6 border-b border-slate-200 dark:border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50 dark:bg-white/[0.02]">
-            <h3 class="font-bold text-slate-900 dark:text-white tracking-tight">Journal des Événements</h3>
+            <h3 class="font-bold text-slate-900 dark:text-white tracking-tight">Journal des Événements {% if selected_user %}pour {{ selected_user.username }}{% endif %}</h3>
             
             <div class="flex items-center gap-4 w-full sm:w-auto">
                 <form method="get" class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
@@ -160,7 +160,7 @@
             <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Aucun historique trouvé</h3>
             <p class="text-slate-500 max-w-sm text-center">Aucun résultat ne correspond à votre recherche.</p>
             {% if search_query %}
-            <a href="{% url 'user_history' %}" class="mt-4 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all">  
+            <a href="{% if selected_user %}{% url 'user_history_user' selected_user.id %}{% else %}{% url 'user_history' %}{% endif %}" class="mt-4 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all">  
                 Effacer la recherche
             </a>
             {% endif %}

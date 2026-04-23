@@ -29,6 +29,7 @@ urlpatterns = [
     path('sync_users/', sync_users, name='sync_users'),
     path('edit_user/<int:user_id>/', user_edit, name='user_edit'),
     path('user-history/', user_history, name='user_history'),
+    path('user-history/<int:user_id>/', user_history, name='user_history_user'),
     path('clear-history/<int:user_id>/', clear_history, name='clear_history'),
     path("manage-roles/", manage_roles, name="manage_roles"),
     path('create_role/', create_role, name='create_role'),
