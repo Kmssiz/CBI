@@ -71,6 +71,10 @@ def embed_report_view(
         unread = Notification.objects.filter(user=request.user, is_read=False).count()
         permissions = permissions_getter(request.user)
 
+        from users.utils import log_history
+        report_name = report_ref.name if report_ref else report_path.split("/")[-1]
+        log_history(request.user, f"Rapport consulté : {report_name}")
+
         return render(
             request,
             "powerbi_report/embed_report.html",

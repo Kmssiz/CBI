@@ -1,12 +1,37 @@
+from functools import wraps
+from django.core.exceptions import PermissionDenied
+from django.conf import settings
 from .models import UserHistory, CustomUser, Role
 from django.utils.timezone import now
 from notifications.models import Notification
+
+def admin_required(view_func):
+    """
+    Decorator for views that checks if the user is an admin.
+    Raises PermissionDenied (403) if the user is not an admin.
+    """
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            from django.contrib.auth.views import redirect_to_login
+            return redirect_to_login(request.get_full_path())
+        
+        if not request.user.is_admin:
+            raise PermissionDenied
+            
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
 
 def log_history(user, action):
     """
     Logs user actions in the UserHistory model.
     """
-    if user.is_authenticated:
+    allowed_prefixes = (
+        "Utilisateur connecté",
+        "Rapport consulté",
+        "Ticket créé",
+    )
+    if user.is_authenticated and action.startswith(allowed_prefixes):
         UserHistory.objects.create(user=user, action=action, timestamp=now())
 
 def get_user_permissions(user):

@@ -4,7 +4,7 @@ from .views import (
     home_view, 
     logout_view, 
     user_management, 
- 
+    landing_page,
     user_details, 
     sync_users,
     user_edit,
@@ -22,6 +22,7 @@ urlpatterns = [
     path('', login_view, name='login'),
     path('logout/', logout_view, name='logout'),
     path('home/', home_view, name='home'),
+    path('landing/', landing_page, name='landing'),
     path('users_view/', user_management, name='users_view'),
     path('user_details/', user_details, name='user_details'),
 

@@ -76,6 +76,10 @@ def create_ticket(request):
             ticket.created_by = request.user
             ticket.save()
             messages.success(request, "Ticket cree avec succes.")
+            
+            from users.utils import log_history
+            log_history(request.user, f"Ticket créé : {ticket.title}")
+            
             return redirect("tickets:ticket_list")
     else:
         form = TicketForm()

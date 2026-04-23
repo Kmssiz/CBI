@@ -33,6 +33,7 @@ from django.db import models
 from django.db.models import Count
 from django.db.models.functions import TruncMonth, TruncDay, TruncDate, TruncHour, TruncQuarter, TruncYear
 from django.http import Http404, HttpResponse, JsonResponse, HttpResponseRedirect
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -42,7 +43,7 @@ from django.views.decorators.csrf import csrf_exempt
 from easyaudit.models import LoginEvent, CRUDEvent, RequestEvent
 from notifications.models import Notification
 from users.models import CustomUser, UserHistory, Role
-from users.utils import log_history, get_user_permissions
+from users.utils import log_history, get_user_permissions, admin_required
 
 from .models import ReportRef, CustomFolder, FolderReportItem, UserReportPermission, PermissionSyncLog
 from .services import (
@@ -455,6 +456,7 @@ def _get_assignable_reports_from_pbirs(request):
 #                    Retrieves permissions for a specific Power BI report                                       #
 #################################################################################################################
 
+@admin_required
 def get_report_permissions(request, report_id):
     url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
     auth = get_current_user_auth(request)
@@ -478,6 +480,7 @@ def get_report_permissions(request, report_id):
 #                    Retrieves permissions for a specific folder on the report server                           #
 #################################################################################################################
 
+@admin_required
 def get_folder_permissions(request, folder_id):
     url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/Folders({folder_id})/Policies"
     auth = get_current_user_auth(request)
@@ -504,7 +507,7 @@ def get_folder_permissions(request, folder_id):
 #################################################################################################################
 from django.views.decorators.http import require_GET
 
-@login_required
+@admin_required
 @require_GET
 def get_folders(request):
     return get_folders_response(request, get_current_user_auth)
@@ -533,13 +536,13 @@ def _update_report_metadata(report_id, user, name=None, path=None, description=N
     except Exception as e:
         logger.error(f"Failed to update report metadata for {report_id}: {e}")
 
-@login_required
+@admin_required
 def get_folder_list(request):
     return get_folder_list_response(request, get_current_user_auth)
 #################################################################################################################
 #                    Displays a list of Power BI reports for admin users                                        #
 #################################################################################################################
-@login_required
+@admin_required
 def report_list(request):
     return report_list_view(
         request=request,
@@ -552,12 +555,13 @@ def report_list(request):
 #                    Retrieves information for a specific Power BI report                                       #
 #################################################################################################################
 
+@login_required
 def get_powerbi_report_info(request, report_id):
     return get_powerbi_report_info_data(request, report_id, get_current_user_auth)
 #################################################################################################################
 #                    Updates the name of a Power BI report and notifies admin users                             #
 #################################################################################################################
-@login_required
+@admin_required
 def edit_powerbi_report_name(request, report_id):
     return edit_powerbi_report_name_view(
         request=request,
@@ -571,7 +575,7 @@ def edit_powerbi_report_name(request, report_id):
 #                    Updates the path of a Power BI report                                                      #
 #################################################################################################################
 
-@login_required
+@admin_required
 def edit_powerbi_report_path(request, report_id):
     return edit_powerbi_report_path_view(
         request=request,
@@ -583,7 +587,7 @@ def edit_powerbi_report_path(request, report_id):
 #                    Replaces an existing Power BI report with a new PBIX file                                  #
 #################################################################################################################
 
-@login_required
+@admin_required
 def replace_powerbi_report(request, report_id):
     return replace_powerbi_report_view(
         request=request,
@@ -598,7 +602,7 @@ def replace_powerbi_report(request, report_id):
 #                    Updates the description of a Power BI report and notifies admin users                      #
 #################################################################################################################
 
-@login_required
+@admin_required
 def edit_powerbi_report_description(request, report_id):
     return edit_powerbi_report_description_view(
         request=request,
@@ -625,7 +629,7 @@ def embed_report(request, report_path):
 #                                  download report                                      #
 #########################################################################################
 
-@login_required
+@admin_required
 def download_report(request, report_id):
     return download_report_view(
         request=request,
@@ -648,7 +652,7 @@ CONTEXT_ROOT_FOLDERS = {
     'consolide': '/CBI',
 }
 
-@login_required
+@admin_required
 def report_list_flat(request):
     return report_list_flat_view(
         request=request,
@@ -664,8 +668,7 @@ def report_list_flat(request):
 #                    Displays a hierarchical list of Power BI reports for authenticated users                   #
 #################################################################################################################
 
-@login_required
-@login_required
+@admin_required
 def report_list_hierarchy(request, folder_path=""):
     force_refresh = request.GET.get('force_refresh', 'false').lower() == 'true'
 
@@ -759,7 +762,7 @@ def report_list_hierarchy(request, folder_path=""):
 #                    Uploads a Power BI report to the report server and notifies admin users                    #
 #################################################################################################################
 
-@login_required
+@admin_required
 def upload_powerbi_report(request):
     if not request.user.has_perm('powerbi_report.add_powerbireport'):
         messages.error(request, "You do not have permission to upload reports.")
@@ -834,7 +837,7 @@ def upload_powerbi_report(request):
 #                   Adds a new report to PBIRS and stores local metadata in ReportRef                         #
 #################################################################################################################
 
-@login_required
+@admin_required
 def add_report_local(request):
     """Upload a .pbix to PBIRS and save local metadata (pole, direction, type).
     Returns a JSON response so the frontend can display inline feedback.
@@ -1018,7 +1021,7 @@ def add_report_local(request):
 #                   Updates local metadata of an existing ReportRef (no PBIRS API call)                       #
 #################################################################################################################
 
-@login_required
+@admin_required
 def update_report_metadata_local(request, report_id: str):
     """Update pole, direction, report_type fields stored locally for a given report."""
     from powerbi_report.models import ReportRef
@@ -1060,7 +1063,7 @@ def update_report_metadata_local(request, report_id: str):
 #################################################################################################################
 #                    Lists folders and reports in a specified folder for authenticated users                    #
 #################################################################################################################
-@login_required
+@admin_required
 def report_folders_list(request, folder_path=""):
     return report_folders_list_view(
         request=request,
@@ -1074,7 +1077,7 @@ def report_folders_list(request, folder_path=""):
 #################################################################################################################
 #                    Creates a new folder in the Power BI Report Server and notifies admin users                 #
 #################################################################################################################
-@login_required
+@admin_required
 def add_powerbi_folder(request):
     return add_powerbi_folder_view(
         request=request,
@@ -1085,7 +1088,7 @@ def add_powerbi_folder(request):
 #################################################################################################################
 #                    Deletes a folder from the Power BI Report Server and notifies admin users                   #
 #################################################################################################################
-@login_required
+@admin_required
 def delete_powerbi_folder(request, folder_id):
     return delete_powerbi_folder_view(
         request=request,
@@ -1114,7 +1117,7 @@ def get_shared_schedules(request):
 #################################################################################################################
 
 
-@login_required
+@admin_required
 def report_detail(request, report_id):
     # Use local DB instead of PBIRS API for lookup
     from powerbi_report.models import ReportRef
@@ -1235,7 +1238,7 @@ def report_detail(request, report_id):
 #################################################################################################################
 
 
-@login_required
+@admin_required
 def add_refresh_plan(request, report_id):
     if request.method == 'POST':
         # Define server URL and credentials
@@ -1405,7 +1408,7 @@ def add_refresh_plan(request, report_id):
 #                    Displays permissions for a specific Power BI report                                        #
 ################################################################************************************************#
 
-@login_required
+@admin_required
 def report_permissions(request, report_id):
     reports = get_powerbi_reports(request)
     lookup_id = str(report_id).casefold()
@@ -1521,7 +1524,7 @@ def report_permissions(request, report_id):
 
 from django.core.exceptions import ObjectDoesNotExist
 
-@login_required
+@admin_required
 def add_users_to_report(request, report_id, username):
     
     if request.method == 'POST':
@@ -1612,7 +1615,7 @@ def add_users_to_report(request, report_id, username):
 #################################################################################################################
 #                    Adds multiple selected users to a Power BI report's permissions                            #
 #################################################################################################################
-@login_required
+@admin_required
 def add_selected_users_to_report(request, report_id):
     if request.method == 'POST':
         auth = get_current_user_auth(request)
@@ -1697,7 +1700,7 @@ def add_selected_users_to_report(request, report_id):
 #                    Adds all users to a Power BI report's permissions                                          #
 #################################################################################################################
 
-@login_required
+@admin_required
 def add_all_users_to_report(request, report_id):
    
     if request.method == 'POST':
@@ -1769,7 +1772,7 @@ def add_all_users_to_report(request, report_id):
 
 
 
-@login_required
+@admin_required
 def remove_users_from_report(request, report_id, username):
     if request.method == 'POST':
         auth = get_current_user_auth(request)
@@ -1827,7 +1830,7 @@ def remove_users_from_report(request, report_id, username):
 #                    Removes multiple selected users from a Power BI report's permissions                       #
 #################################################################################################################
 
-@login_required
+@admin_required
 def remove_selected_users_from_report(request, report_id):
     if request.method == 'POST':
         auth = get_current_user_auth(request)
@@ -1908,7 +1911,7 @@ def remove_selected_users_from_report(request, report_id):
 #                    Displays users who do not have access to a specific Power BI report                        #
 #################################################################################################################
 
-@login_required
+@admin_required
 def missing_users(request, report_id):
   
     policies = get_report_permissions(request, report_id)
@@ -1947,7 +1950,7 @@ def missing_users(request, report_id):
 #                    Preloads cache with Power BI reports and their permissions                                 #
 #################################################################################################################
 
-@login_required
+@admin_required
 def load_cache(request):
     cache_key = "powerbi_reports_cache_all_users"
     all_reports = get_powerbi_reports(request)
@@ -1976,7 +1979,7 @@ def load_cache(request):
 #                    Displays Power BI reports a specific user has access to                                    #
 #################################################################################################################
 
-@login_required
+@admin_required
 def user_permission(request, username):
     try:
         selected_user = CustomUser.objects.get(ad2000__iexact=username)
@@ -2120,7 +2123,7 @@ def user_permission(request, username):
 #                    Displays reports a specific user does not have access to                                   #
 #################################################################################################################
 
-@login_required
+@admin_required
 def missing_permissions(request, username):
     try:
         selected_user = CustomUser.objects.get(ad2000__iexact=username)
@@ -2213,7 +2216,7 @@ def missing_permissions(request, username):
 #################################################################################################################
 
 
-@login_required
+@admin_required
 def users_no_reports_view(request):  
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = Notification.objects.filter(user=request.user, is_read=False).count()
@@ -2260,7 +2263,7 @@ def users_no_reports_view(request):
 #################################################################################################################
 #                    Adds permissions for a specific user to a Power BI report                                  #
 #################################################################################################################
-@login_required
+@admin_required
 def add_permission_to_server(request, report_id, username):
     if request.method == 'POST':
         auth = get_current_user_auth(request)
@@ -2349,7 +2352,7 @@ def add_permission_to_server(request, report_id, username):
 #                    Grants a user access to all Power BI reports                                               #
 #################################################################################################################
 
-@login_required
+@admin_required
 def add_all_permissions(request, username):
    
     if request.method == 'POST':
@@ -2425,7 +2428,7 @@ def add_all_permissions(request, username):
 #                    Grants a user access to selected Power BI reports                                          #
 #################################################################################################################
 
-@login_required
+@admin_required
 def add_selected_permissions(request, username):
     if request.method == 'POST':
         auth = get_current_user_auth(request)
@@ -2519,7 +2522,7 @@ def add_selected_permissions(request, username):
 #                    Removes a specific user's permissions from a Power BI report                               #
 #################################################################################################################
 
-@login_required
+@admin_required
 def remove_permission_from_server(request, report_id, username):
     if request.method == 'POST':
         auth = get_current_user_auth(request)
@@ -2585,7 +2588,7 @@ def remove_permission_from_server(request, report_id, username):
 #################################################################################################################
 
 
-@login_required
+@admin_required
 def remove_all_permissions(request, username):
     if request.method == 'POST':
         auth = get_current_user_auth(request)
@@ -2649,7 +2652,7 @@ def remove_all_permissions(request, username):
 #                    Removes a specific user's permissions from selected Power BI reports                       #
 #################################################################################################################
 
-@login_required
+@admin_required
 def remove_selected_permissions(request, username):
     if request.method != 'POST':
         messages.error(request, "Invalid request method. Please use POST to remove user permissions.")
@@ -2730,7 +2733,7 @@ def remove_selected_permissions(request, username):
 #                              Dashboard                                   #
 ############################################################################
 
-@login_required
+@admin_required
 def dashboard(request):
     # log_history(request.user, "Accessed the dashboard")
 
@@ -2970,7 +2973,7 @@ def dashboard(request):
     cache.set(cache_key, context, timeout=500)
     return render(request, 'home.html', context)
 
-@login_required
+@admin_required
 def get_report_refresh_list(request):
     user_id = request.user.id
     cache_key = f"report_refresh_list_{user_id}"
@@ -3245,15 +3248,8 @@ def get_visible_reports_in_folder(request, folder):
     return visible_reports
 
 
-@login_required
+@admin_required
 def sync_reports_from_pbirs(request):
-    """
-    Sync reports from PBIRS to the local ReportRef table.
-    Admin only operation.
-    """
-    if not request.user.is_superuser:
-        messages.error(request, "Only administrators can sync reports.")
-        return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_direction'))
 
     try:
         synced_count, removed_count = sync_report_refs(triggered_by=request.user)
@@ -3272,14 +3268,8 @@ def sync_reports_from_pbirs(request):
     return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_business'))
 
 
-@login_required
+@admin_required
 def sync_permissions(request):
-    """
-    Manually trigger permission sync using the configured PBIRS service account.
-    """
-    if not request.user.role or request.user.role.name != "admin":
-        messages.error(request, "Permission denied. Admin access required.")
-        return redirect('home')
     
     try:
         users_synced, permissions_count = sync_all_user_permissions(
@@ -3304,6 +3294,11 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
     # Validate view type
     if view_type not in ['direction', 'pole', 'biblio', 'anomalie', 'consolide']:
         raise Http404("Invalid view type")
+
+    # Access control: non-admins can only access direction/pole that matches their assigned default_view.
+    if not request.user.is_admin and view_type in ('direction', 'pole'):
+        if request.user.default_view != view_type:
+            raise PermissionDenied
     
     # Get the current folder if specified
     current_folder = None
@@ -3377,14 +3372,11 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
     })
 
 
-@login_required
+@admin_required
 def create_custom_folder(request, view_type):
     """
     Create a new custom folder. Admin only.
     """
-    if not request.user.is_superuser:
-        messages.error(request, "Only administrators can create folders.")
-        return redirect('powerbi_report:custom_' + view_type)
     
     if request.method == 'POST':
         folder_name = request.POST.get('folder_name', '').strip()
@@ -3427,16 +3419,12 @@ def create_custom_folder(request, view_type):
     return redirect('powerbi_report:custom_' + view_type)
 
 
-@login_required
+@admin_required
 def edit_custom_folder(request, folder_id):
     """
     Edit a custom folder. Admin only.
     """
     folder = get_object_or_404(CustomFolder, id=folder_id)
-    
-    if not request.user.is_superuser:
-        messages.error(request, "Only administrators can edit folders.")
-        return redirect('powerbi_report:custom_' + folder.view_type)
     
     if request.method == 'POST':
         folder_name = request.POST.get('folder_name', '').strip()
@@ -3455,16 +3443,12 @@ def edit_custom_folder(request, folder_id):
     return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_' + folder.view_type))
 
 
-@login_required
+@admin_required
 def move_custom_folder(request, folder_id):
     """
-    Move a custom folder to a new parent. Admin only.
+    Move a custom folder to a new parent or view type. Admin only.
     """
     folder = get_object_or_404(CustomFolder, id=folder_id)
-    
-    if not request.user.is_superuser:
-        messages.error(request, "Only administrators can move folders.")
-        return redirect('powerbi_report:custom_' + folder.view_type)
     
     if request.method == 'POST':
         new_parent_id = request.POST.get('new_parent_id')
@@ -3499,7 +3483,7 @@ def move_custom_folder(request, folder_id):
     return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_' + folder.view_type))
 
 
-@login_required
+@admin_required
 def delete_custom_folder(request, folder_id):
     """
     Delete a custom folder. Admin only.
@@ -3507,10 +3491,6 @@ def delete_custom_folder(request, folder_id):
     folder = get_object_or_404(CustomFolder, id=folder_id)
     view_type = folder.view_type
     parent = folder.parent
-    
-    if not request.user.is_superuser:
-        messages.error(request, "Only administrators can delete folders.")
-        return redirect('powerbi_report:custom_' + view_type)
     
     if request.method == 'POST':
         folder_name = folder.name
@@ -3527,16 +3507,12 @@ def delete_custom_folder(request, folder_id):
     return redirect('powerbi_report:custom_' + view_type)
 
 
-@login_required
+@admin_required
 def assign_report_to_folder(request, folder_id):
     """
-    Assign one or more reports to a custom folder. Admin only.
+    Assign a report to a custom folder. Admin only.
     """
     folder = get_object_or_404(CustomFolder, id=folder_id)
-    
-    if not request.user.is_superuser:
-        messages.error(request, "Only administrators can assign reports to folders.")
-        return redirect('powerbi_report:custom_folder_detail', view_type=folder.view_type, folder_id=folder.id)
     
     if request.method == 'POST':
         report_ids = request.POST.getlist('report_ids')
@@ -3573,17 +3549,13 @@ def assign_report_to_folder(request, folder_id):
     return redirect('powerbi_report:custom_folder_detail', view_type=folder.view_type, folder_id=folder.id)
 
 
-@login_required
+@admin_required
 def remove_report_from_folder(request, folder_id, report_id):
     """
     Remove a report from a custom folder. Admin only.
     """
     folder = get_object_or_404(CustomFolder, id=folder_id)
     report = get_object_or_404(ReportRef, id=report_id)
-    
-    if not request.user.is_superuser:
-        messages.error(request, "Only administrators can remove reports from folders.")
-        return redirect('powerbi_report:custom_folder_detail', view_type=folder.view_type, folder_id=folder.id)
     
     if request.method == 'POST':
         deleted_count, _ = FolderReportItem.objects.filter(folder=folder, report=report).delete()
@@ -3597,14 +3569,12 @@ def remove_report_from_folder(request, folder_id, report_id):
     return redirect('powerbi_report:custom_folder_detail', view_type=folder.view_type, folder_id=folder.id)
 
 
-@login_required
+@admin_required
 def get_available_reports_json(request):
     """
     API endpoint to get available reports for assignment.
     Returns reports that are synced from PBIRS.
     """
-    if not request.user.is_superuser:
-        return JsonResponse({'error': 'Unauthorized'}, status=403)
     
     view_type = request.GET.get('view_type')
     allowed_types, req_field, _ = _get_allowed_report_types_for_view(view_type) if view_type else ([], None, None)
@@ -3632,7 +3602,7 @@ def get_available_reports_json(request):
     return JsonResponse({'reports': report_list})
 
 
-@login_required
+@admin_required
 def delete_powerbi_report_server(request, report_id):
     """
     Delete a report from the PBIRS Server. Admin only.
@@ -3706,7 +3676,7 @@ def embed_custom_report(request, view_type, folder_id, report_id):
     return render(request, 'powerbi_report/embed_custom_report.html', context)
 
 
-@login_required
+@admin_required
 def get_refresh_plan_history(request, plan_id):
     return get_refresh_plan_history_response(request, plan_id, get_current_user_auth)
 

@@ -9,10 +9,11 @@ from django.contrib.auth.models import Permission
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .ldap_utils import connexion_ad2000, get_ad_users
-from .utils import log_history, get_user_permissions
+from .utils import log_history, get_user_permissions, admin_required
 from powerbi_report.services import sync_user_permissions_on_login
 from notifications.models import Notification
 from users.models import CustomUser, Role, UserHistory
@@ -150,8 +151,6 @@ def login_view(request):
             cache.delete(f"dashboard_data_{user.id}")
             logger.debug("Cleared login cache for user id=%s", user.id)
 
-            if user.role and user.role.name.lower() == settings.ADMIN_ROLE_NAME:
-                return redirect('powerbi_report:dashboard')
             return redirect('home')
         else:
             # Fallback: Try local Django authentication (for admin/test users not in LDAP)
@@ -170,8 +169,6 @@ def login_view(request):
                     "ad2000": user.ad2000
                 }
                 
-                if user.role and user.role.name.lower() == settings.ADMIN_ROLE_NAME:
-                    return redirect('powerbi_report:dashboard')
                 return redirect('home')
             
             messages.error(request, "Identifiants invalides ou authentification échouée.")
@@ -181,11 +178,8 @@ def login_view(request):
 #################################################################################################################
 #                    Displays user history for a specific user                                                  #
 #################################################################################################################
-@login_required
+@admin_required
 def user_history(request):
-    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
-        messages.error(request, "Permission denied. Admin access required.")
-        return redirect('home')
 
     # Base query
     history_query = UserHistory.objects.all().select_related('user').order_by('-timestamp')
@@ -244,40 +238,33 @@ def user_history(request):
 #################################################################################################################
 #                    Clears user history for a specific user                                                    #
 #################################################################################################################
-@login_required
+@admin_required
 def clear_history(request, user_id):
-    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
-        messages.error(request, "Permission denied. Admin access required.")
-        return redirect('home')
     
     if request.method == "POST":
         UserHistory.objects.filter(user_id=user_id).delete()  
     return redirect('user_history')
 
 #################################################################################################################
-#                    Redirects users to appropriate home page based on role                                     #
+#                    Landing page – shown to every user right after a successful login                          #
 #################################################################################################################
 @login_required
+def landing_page(request):
+    """Landing page shown to all users immediately after login."""
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+    unread = notifications.filter(is_read=False).count()
+    return render(request, 'landing.html', {
+        'notifications': notifications,
+        'unread': unread,
+    })
+
+
+@login_required
 def home_view(request):
-    if request.user.role and request.user.role.name.lower() == settings.ADMIN_ROLE_NAME:
-        # log_history(request.user, "Page d'accueil consultée")
-        return redirect('powerbi_report:dashboard')
-    
-    if request.user.role and request.user.role.name.lower() == settings.USER_ROLE_NAME:
-        # Check default view preference
-        if hasattr(request.user, 'default_view'):
-            if request.user.default_view == 'direction':
-                # log_history(request.user, "Vue Direction consultée (Accueil)")
-                return redirect('powerbi_report:custom_direction')
-            elif request.user.default_view == 'pole':
-                # log_history(request.user, "Vue Pôle consultée (Accueil)")
-                return redirect('powerbi_report:custom_pole')
-        
-        # Fallback
-        # log_history(request.user, "Page report_list_hierarchy consultée")
-        return redirect('powerbi_report:report_list_hierarchy')
-    
-    return redirect('logout')
+    """
+    Traffic controller – redirects every authenticated user to the landing page.
+    """
+    return redirect('landing')
 
 #################################################################################################################
 #                    Retrieves a dictionary of user permissions                                                 #
@@ -287,11 +274,8 @@ def home_view(request):
 #################################################################################################################
 #                             Manages user and their roles                                                      #
 #################################################################################################################
-@login_required
+@admin_required
 def user_management(request):
-    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
-        messages.error(request, "Permission denied. Admin access required.")
-        return redirect('home')
     
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread_count = notifications.filter(is_read=False).count()
@@ -364,11 +348,8 @@ def user_management(request):
 #################################################################################################################
 #                    Manages roles and their associated permissions                                             #
 #################################################################################################################
-@login_required
+@admin_required
 def manage_roles(request):
-    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
-        messages.error(request, "Permission denied. Admin access required.")
-        return redirect('home')
     
     roles = Role.objects.all()
     all_permissions = Permission.objects.all()  
@@ -405,11 +386,8 @@ def manage_roles(request):
 #################################################################################################################
 #                    Creates a new role with specified permissions                                              #
 #################################################################################################################
-@login_required
+@admin_required
 def create_role(request):
-    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
-        messages.error(request, "Permission denied. Admin access required.")
-        return redirect('home')
     
     if request.method == "POST":
         role_name = request.POST.get("role_name", "").strip()
@@ -435,11 +413,8 @@ def create_role(request):
 #################################################################################################################
 #                    Edits an existing role's name and description                                              #
 #################################################################################################################
-@login_required
+@admin_required
 def edit_role(request, role_id):
-    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
-        messages.error(request, "Permission denied. Admin access required.")
-        return redirect('home')
     
     role = get_object_or_404(Role, id=role_id)
     all_permissions = Permission.objects.all()
@@ -468,11 +443,8 @@ def edit_role(request, role_id):
 #################################################################################################################
 #                    Removes a role if not assigned to any users                                                #
 #################################################################################################################
-@login_required
+@admin_required
 def remove_role(request, role_id):
-    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
-        messages.error(request, "Permission denied. Admin access required.")
-        return redirect('home')
     
     role = get_object_or_404(Role, id=role_id)
 
@@ -487,11 +459,8 @@ def remove_role(request, role_id):
 #################################################################################################################
 #                    Manages permissions for a specific role                                                    #
 #################################################################################################################
-@login_required
+@admin_required
 def permissions_list(request, role_id):
-    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
-        messages.error(request, "Permission denied. Admin access required.")
-        return redirect('home')
     
     role = get_object_or_404(Role, id=role_id)
     permissions_list=Permission.objects.all()
@@ -549,11 +518,8 @@ def permissions_list(request, role_id):
 #################################################################################################################
 #                    Synchronizes users with LDAP directory                                                     #
 #################################################################################################################
-@login_required
+@admin_required
 def sync_users(request):
-    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
-        messages.error(request, "You do not have permission to perform this action.")
-        return redirect('powerbi_report:report_list')  
 
     # Use default LDAP service account for user synchronization
     ldap_username = settings.LDAP_SERVICE_USERNAME
@@ -684,6 +650,10 @@ def user_details(request):
 
     if user_id:
         detail_user = get_object_or_404(CustomUser, id=user_id)
+        # Security check: Only admins or the user themselves can view details
+        is_admin = request.user.is_superuser or (request.user.role and request.user.role.name.lower() == settings.ADMIN_ROLE_NAME.lower())
+        if not is_admin and detail_user != request.user:
+            raise PermissionDenied
     else:
         detail_user = request.user
     
@@ -700,11 +670,8 @@ def user_details(request):
 #################################################################################################################
 #                   Edits a user's role and permissions, setting superuser status for admin role                #
 #################################################################################################################
-@login_required
+@admin_required
 def user_edit(request, user_id):
-    if not request.user.role or request.user.role.name.lower() != settings.ADMIN_ROLE_NAME:
-        messages.error(request, "Permission denied. Admin access required.")
-        return redirect("home")
 
     user = get_object_or_404(CustomUser, id=user_id)
     if request.method == 'POST':
@@ -782,6 +749,7 @@ def logout_view(request):
 
     return redirect("login")
 
+@login_required
 def server_status(request):
     """
     Endpoint to check connectivity to all configured PowerBI Report Servers.

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Accès Refusé | CBI{% endblock %}
+
+{% block content %}
+<div class="forbidden-container">
+    <div class="forbidden-card">
+        <div class="forbidden-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 10.18 4.6 8.51 5.62 7.16L16.84 18.38C15.49 19.4 13.82 20 12 20ZM18.38 16.84L7.16 5.62C8.51 4.6 10.18 4 12 4C16.41 4 20 7.59 20 12C20 13.82 19.4 15.49 18.38 16.84Z" fill="currentColor"/>
+            </svg>
+        </div>
+        <h1 class="forbidden-title">403</h1>
+        <h2 class="forbidden-subtitle">Accès Refusé</h2>
+        <p class="forbidden-text">
+            Désolé, vous n'avez pas les permissions nécessaires pour accéder à cette page. 
+            Si vous pensez qu'il s'agit d'une erreur, veuillez contacter l'administrateur système.
+        </p>
+        <div class="forbidden-actions">
+            <a href="{% url 'home' %}" class="btn-premium">
+                <i class="fas fa-home"></i> Retour à l'accueil
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .forbidden-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 70vh;
+        padding: 2rem;
+    }
+
+    .forbidden-card {
+        background: var(--card-bg, rgba(255, 255, 255, 0.05));
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 3rem;
+        max-width: 500px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    .forbidden-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        color: #ff4d4d;
+        animation: pulse 2s infinite;
+    }
+
+    .forbidden-title {
+        font-size: 5rem;
+        font-weight: 800;
+        margin: 0;
+        background: linear-gradient(135deg, #ff4d4d 0%, #ff0000 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1;
+    }
+
+    .forbidden-subtitle {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0.5rem 0 1.5rem;
+        color: var(--text-primary, #ffffff);
+    }
+
+    .forbidden-text {
+        font-size: 1rem;
+        color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+        line-height: 1.6;
+        margin-bottom: 2rem;
+    }
+
+    .btn-premium {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        filter: brightness(1.1);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Dark mode adjustments if base.html doesn't handle it */
+    [data-theme='dark'] .forbidden-card {
+        background: rgba(30, 30, 40, 0.8);
+    }
+</style>
+{% endblock %}

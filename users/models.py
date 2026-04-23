@@ -29,9 +29,10 @@ class CustomUser(AbstractUser):
         help_text="Default view for this user (set by admin)"
     ) 
     ad_groups = models.JSONField(default=list, blank=True, help_text="Cached list of AD groups") 
+    has_seen_onboarding = models.BooleanField(default=False, help_text="Indicates if the user has completed the onboarding guide")
 
     def get_initials(self) -> str:
-        """Returns user initials (e.g., A.D for Abdelkader Djemil)."""
+        """Returns user initials ."""
         if self.first_name and self.last_name:
             return f"{self.first_name[0].upper()}.{self.last_name[0].upper()}"
         
@@ -65,6 +66,12 @@ class CustomUser(AbstractUser):
         seed = self.ad2000 or self.username or "default"
         hash_val = int(hashlib.md5(seed.encode()).hexdigest(), 16)
         return colors[hash_val % len(colors)]
+
+    @property
+    def is_admin(self) -> bool:
+        """Checks if the user is a superuser or has the admin role."""
+        from django.conf import settings
+        return self.is_superuser or (self.role and self.role.name.lower() == settings.ADMIN_ROLE_NAME.lower())
 
     def __str__(self):
         return self.username

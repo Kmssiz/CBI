@@ -294,25 +294,19 @@
     <div class="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
       {% if user.is_authenticated %}
         
-        {% if permissions.view_dashboard or permissions.view_customuser or permissions.view_powerbireport %}
+        {% if user.is_admin %}
         <p class="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-2">Admin</p>
-        {% endif %}
         
-        {% if permissions.view_dashboard or permissions.view_refresh %}
         <a href="{% url 'powerbi_report:dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'dashboard' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">home</span>
           <span class="text-sm font-medium">Dashboard</span>
         </a>
-        {% endif %}
 
-        {% if permissions.view_customuser %}
         <a href="{% url 'users_view' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'users_view' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">group</span>
           <span class="text-sm font-medium">Utilisateurs</span>
         </a>
-        {% endif %}
 
-        {% if permissions.view_powerbireport %}
         <a href="{% url 'powerbi_report:report_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name in 'report_list,report_list_hierarchy,report_list_hierarchy_folder' or request.resolver_match.url_name in 'report_list_flat,embed_report' and request.GET.context != 'pole' and request.GET.context != 'biblio' and request.GET.context != 'direction' and request.GET.context != 'consolide' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">folder_managed</span>
           <span class="text-sm font-medium">Gestion Rapports</span>
@@ -364,27 +358,20 @@
           <span class="text-sm font-medium">Tickets</span>
         </a>
 
-        {% if permissions.view_notification or permissions.view_userhistory or permissions.view_role %}
+        {% if user.is_admin %}
         <div class="h-4"></div>
         <p class="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-2">Paramètres</p>
-        {% endif %}
-
-
-        {% if permissions.view_notification %}
+        
         <a href="{% url 'notifications' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'notifications' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">notifications</span>
           <span class="text-sm font-medium">Notifications</span>
         </a>
-        {% endif %}
 
-        {% if permissions.view_userhistory %}
         <a href="{% url 'user_history' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'user_history' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">history</span>
           <span class="text-sm font-medium">Historique</span>
         </a>
-        {% endif %}
 
-        {% if permissions.view_customuser and permissions.view_role %}
         <a href="{% url 'admin:index' %}" target="_blank" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all group">
           <span class="material-symbols-outlined text-[20px]">admin_panel_settings</span>
           <span class="text-sm font-medium">Admin Panel</span>

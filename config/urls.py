@@ -34,10 +34,10 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from config.views import custom_404_view 
+from config.views import custom_404_view, custom_403_view
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('biadmin/', admin.site.urls),
     path('', include('users.urls')),
     path('notifications/', include('notifications.urls')),
     path('powerbi/', include('powerbi_report.urls', namespace='powerbi_report')),
@@ -54,3 +54,4 @@ urlpatterns += [
 ]
 
 handler404 = custom_404_view
+handler403 = custom_403_view

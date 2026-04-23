@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Accueil | PBI{% endblock %}
+{% block header_title %}Bienvenue sur PBI{% endblock %}
+{% block header_subtitle %}Votre portail centralisé de Business Intelligence{% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <span class="text-slate-400">Accueil</span>
+{% endblock %}
+
+{% block content %}
+<div class="px-6 lg:px-8 py-8 max-w-7xl mx-auto space-y-12">
+
+    <!-- Hero Section -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-background-light to-accent-gold/5 dark:from-primary/20 dark:via-surface-dark dark:to-accent-gold/10 p-8 md:p-12 border border-slate-200/50 dark:border-slate-700/50">
+        <div class="relative z-10 flex flex-col md:flex-row items-center gap-8">
+            <div class="flex-1 space-y-6 text-center md:text-left">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                    </span>
+                    Connexion réussie
+                </div>
+                <h1 class="text-3xl md:text-5xl font-black text-slate-900 dark:text-white leading-tight">
+                    Bonjour, <span class="text-primary">{{ request.user.first_name|default:request.user.username }}</span> !
+                </h1>
+                <p class="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto md:mx-0">
+                    PBI centralise tous vos rapports Power BI et facilite la gestion de vos données stratégiques.
+                    Accédez à vos rapports en un clic.
+                </p>
+                <div class="flex flex-wrap justify-center md:justify-start gap-4 pt-4">
+                    {% if request.user.is_admin %}
+                        <a href="{% url 'powerbi_report:dashboard' %}" class="px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
+                            <span class="material-symbols-outlined">dashboard</span>
+                            Tableau de bord
+                        </a>
+                        <a href="{% url 'powerbi_report:report_list' %}" class="px-8 py-4 bg-white dark:bg-surface-dark hover:bg-slate-50 dark:hover:bg-surface-dark/80 text-slate-700 dark:text-black rounded-xl font-bold transition-all border border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                            <span class="material-symbols-outlined">folder_open</span>
+                            Rapports
+                        </a>
+                    {% else %}
+                        {% if request.user.default_view == 'direction' %}
+                            <a href="{% url 'powerbi_report:custom_direction' %}" class="px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
+                                <span class="material-symbols-outlined">analytics</span>
+                                Accéder à mes rapports
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </a>
+                        {% elif request.user.default_view == 'pole' %}
+                            <a href="{% url 'powerbi_report:custom_pole' %}" class="px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
+                                <span class="material-symbols-outlined">analytics</span>
+                                Accéder à mes rapports
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </a>
+                        {% else %}
+                            <a href="{% url 'powerbi_report:custom_direction' %}" class="px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
+                                <span class="material-symbols-outlined">analytics</span>
+                                Accéder à mes rapports
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="w-full md:w-1/3 flex justify-center">
+                <div class="relative">
+                    <div class="absolute inset-0 bg-primary/20 blur-3xl rounded-full"></div>
+                    <span class="material-symbols-outlined text-[160px] text-primary/40 relative z-10 animate-float">bar_chart</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Access Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        {% if request.user.is_admin %}
+        <!-- Admin: Dashboard -->
+        <a href="{% url 'powerbi_report:dashboard' %}" class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+            <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <span class="material-symbols-outlined text-blue-500">dashboard</span>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3">Tableau de bord</h3>
+            <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                Vue d'ensemble complète : statistiques, activité des utilisateurs et état du système.
+            </p>
+        </a>
+
+        <!-- Admin: User Management -->
+        <a href="{% url 'users_view' %}" class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+            <div class="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <span class="material-symbols-outlined text-violet-500">manage_accounts</span>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3">Gestion des utilisateurs</h3>
+            <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                Gérez les comptes, les rôles et les permissions de tous les utilisateurs de la plateforme.
+            </p>
+        </a>
+
+        <!-- Admin: Reports Hierarchy -->
+        <a href="{% url 'powerbi_report:report_list' %}" class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <span class="material-symbols-outlined text-emerald-500">folder_open</span>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3">Rapports</h3>
+            <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                Parcourez et gérez l'ensemble des rapports Power BI disponibles sur la plateforme.
+            </p>
+        </a>
+
+        {% else %}
+        <!-- User: Rapport (direction or pole depending on default_view) -->
+        {% if request.user.default_view == 'pole' %}
+        <a href="{% url 'powerbi_report:custom_pole' %}" class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+        {% else %}
+        <a href="{% url 'powerbi_report:custom_direction' %}" class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+        {% endif %}
+            <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <span class="material-symbols-outlined text-blue-500">analytics</span>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3">Rapport</h3>
+            <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                Accédez à vos rapports Power BI et consultez vos indicateurs clés de performance.
+            </p>
+        </a>
+
+        <!-- User: Library -->
+        <a href="{% url 'powerbi_report:custom_biblio' %}" class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+            <div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <span class="material-symbols-outlined text-amber-500">menu_book</span>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3">Bibliothèque</h3>
+            <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                Explorez la bibliothèque complète des rapports disponibles selon vos permissions.
+            </p>
+        </a>
+
+        <!-- User: Anomalie -->
+        <a href="{% url 'powerbi_report:custom_anomalie' %}" class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+            <div class="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <span class="material-symbols-outlined text-rose-500">warning</span>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3">Anomalie</h3>
+            <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                Consultez les rapports d'anomalies et suivez les alertes liées à vos données.
+            </p>
+        </a>
+        {% endif %}
+
+    </div>
+
+    <!-- How it works -->
+    <div class="space-y-12 pt-8">
+        <div class="text-center space-y-4">
+            <div class="inline-flex items-center justify-center p-3 bg-primary/10 rounded-2xl mb-2">
+                <span class="material-symbols-outlined text-primary text-3xl">lightbulb</span>
+            </div>
+            <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Comment ça marche ?</h2>
+            <p class="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+                Découvrez comment tirer le meilleur parti de votre plateforme PBI et exploiter vos données en toute simplicité.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Step 1 -->
+            <div class="group relative bg-white dark:bg-gradient-to-b dark:from-surface-dark dark:to-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/10">
+                <div class="absolute -top-5 left-8 w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-blue-600 text-white flex items-center justify-center font-black text-xl shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform duration-300">
+                    1
+                </div>
+                <div class="mt-4 flex flex-col gap-4">
+                    <div class="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <span class="material-symbols-outlined text-2xl">admin_panel_settings</span>
+                    </div>
+                    <h4 class="text-xl font-bold text-slate-900 dark:text-white">Accès Personnalisé</h4>
+                    <p class="text-base text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Votre environnement est préconfiguré. Vous accédez instantanément aux rapports spécifiques de votre direction ou de votre pôle, de manière sécurisée et centralisée.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="group relative bg-white dark:bg-gradient-to-b dark:from-surface-dark dark:to-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/10">
+                <div class="absolute -top-5 left-8 w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-blue-600 text-white flex items-center justify-center font-black text-xl shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform duration-300">
+                    2
+                </div>
+                <div class="mt-4 flex flex-col gap-4">
+                    <div class="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                        <span class="material-symbols-outlined text-2xl">explore</span>
+                    </div>
+                    <h4 class="text-xl font-bold text-slate-900 dark:text-white">Exploration Globale</h4>
+                    <p class="text-base text-slate-600 dark:text-slate-400 leading-relaxed">
+                        En plus de vos rapports dédiés, parcourez la <strong>Bibliothèque</strong> pour découvrir d'autres indicateurs. Vous pouvez également surveiller les alertes critiques depuis l'espace <strong>Anomalie</strong>.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="group relative bg-white dark:bg-gradient-to-b dark:from-surface-dark dark:to-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 hover:border-primary/50 dark:hover:border-primary/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/10">
+                <div class="absolute -top-5 left-8 w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-blue-600 text-white flex items-center justify-center font-black text-xl shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform duration-300">
+                    3
+                </div>
+                <div class="mt-4 flex flex-col gap-4">
+                    <div class="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                        <span class="material-symbols-outlined text-2xl">support_agent</span>
+                    </div>
+                    <h4 class="text-xl font-bold text-slate-900 dark:text-white">Analyse & Assistance</h4>
+                    <p class="text-base text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Interagissez avec vos données dynamiques en temps réel. En cas de blocage ou de question, utilisez le système de <strong>Tickets</strong> intégré pour solliciter notre équipe de support.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-20px); }
+        100% { transform: translateY(0px); }
+    }
+    .animate-float {
+        animation: float 6s ease-in-out infinite;
+    }
+</style>
+{% endblock %}
