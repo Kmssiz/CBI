@@ -19,8 +19,7 @@
   <meta name="author" content="Aid abderrahmane" />
 
   <!-- [Favicon] -->
-  <link rel="icon" href="{% static 'assets/images/logo-cbi.png' %}" />
-  <link rel="icon" href="{% static 'assets/images/logo-cbi-dark.png' %}" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" href="{% static 'assets/images/W_logo-favicon.png' %}" />
 
   <!-- [Fonts & Icons] -->
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;500;700;800&display=swap" rel="stylesheet" />
@@ -345,13 +344,11 @@
 
   <!-- [ Sidebar Menu ] start -->
   <aside class="pc-sidebar sidebar-theme w-64 flex flex-col border-r z-[1050] fixed inset-y-0 left-0 lg:relative lg:inset-auto h-full -translate-x-full lg:translate-x-0 transition-transform duration-300 overflow-hidden" id="sidebar">
-    <div class="p-6 flex items-center gap-3 border-b border-slate-200 dark:border-slate-800/10">
-      <a href="{% url 'home' %}" class="flex items-center gap-2">
-        <div class="h-10 text-primary">
-          <img src="{% static 'assets/images/logo-cbi.png' %}" alt="Portail BI" class="h-full w-auto object-contain dark:hidden" />
-          <img src="{% static 'assets/images/logo-cbi-dark.png' %}" alt="Portail BI" class="h-full w-auto object-contain hidden dark:block" />
-        </div>
-        <span class="logo-title text-lg font-bold tracking-tight">Portail BI</span>
+    <div class="p-6 flex items-center border-b border-slate-200 dark:border-slate-800/10">
+      <a href="{% url 'home' %}" class="flex items-center gap-3">
+        <img src="{% static 'assets/images/logo_W_big-rem.png' %}" alt="Portail BI" class="h-12 w-auto object-contain dark:hidden" />
+        <img src="{% static 'assets/images/logo_Dark-rem.png' %}" alt="Portail BI" class="h-12 w-auto object-contain hidden dark:block" />
+        <span class="logo-title text-lg font-bold tracking-tight text-black dark:text-white">Portail BI</span>
       </a>
     </div>
 

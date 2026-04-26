@@ -102,14 +102,14 @@ class ReportRef(models.Model):
         """Resolve the PBIRS server URL for a given report ID.
         Falls back to the primary server URL if not found.
         """
-        from django.conf import settings
+        from powerbi_report.services.pbirs_servers import get_primary_pbirs_server_url
         try:
             ref = cls.objects.get(pbirs_id=report_id)
             if ref.server_url:
                 return ref.server_url
         except cls.DoesNotExist:
             pass
-        return settings.POWERBI_REPORT_SERVER_URL
+        return get_primary_pbirs_server_url()
 
 
 class CustomFolder(models.Model):

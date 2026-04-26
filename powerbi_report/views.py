@@ -10,6 +10,7 @@ import os
 import json
 import time
 import urllib.parse
+import re
 from collections import Counter
 from datetime import datetime, timedelta
 
@@ -46,10 +47,13 @@ from notifications.models import Notification
 from users.models import CustomUser, UserHistory, Role
 from users.utils import log_history, get_user_permissions, admin_required
 
-from .models import ReportRef, CustomFolder, FolderReportItem, UserReportPermission, PermissionSyncLog
+from .models import ReportRef, CustomFolder, FolderReportItem, UserReportPermission, PermissionSyncLog, PBIRSServer
 from .services import (
     PBIRSClient,
+    get_active_pbirs_server_urls,
     get_group_members,
+    get_pbirs_server_name_map,
+    get_primary_pbirs_server_url,
     sync_all_user_permissions,
     sync_report_permissions,
     sync_report_refs,
@@ -80,8 +84,6 @@ from .views_modules.refresh_api import (
 )
 
 logger = logging.getLogger('powerbi_report')
-
-REPORT_SERVER_URL = settings.POWERBI_REPORT_SERVER_URL
 
 #################################################################################################################
 #                    Retrieves NTLM authentication credentials for the current user                             #
@@ -162,7 +164,9 @@ def _get_pbirs_folder_paths(request) -> set[str]:
     if cached_paths is not None:
         return set(cached_paths)
 
-    server_urls = getattr(settings, 'POWERBI_REPORT_SERVER_URLS', [settings.POWERBI_REPORT_SERVER_URL])
+    server_urls = get_active_pbirs_server_urls()
+    if not server_urls:
+        return set()
 
     auth_candidates = []
     user_auth = get_current_user_auth(request)
@@ -214,7 +218,10 @@ def get_powerbi_reports(request, endpoint="PowerBIReports"):
         )
         return cached_reports
 
-    server_urls = getattr(settings, 'POWERBI_REPORT_SERVER_URLS', [settings.POWERBI_REPORT_SERVER_URL])
+    server_urls = get_active_pbirs_server_urls()
+    if not server_urls:
+        logger.warning("No active PBIRS servers configured; returning empty report list.")
+        return []
     auth = get_current_user_auth(request)
     
     # Handle missing auth (session expired)
@@ -291,7 +298,7 @@ def get_local_reports_for_user(user, request=None):
         path = ref.path or ""
         clean_path = path.lstrip("/")
         encoded_path = urllib.parse.quote(clean_path, safe="/")
-        server_url = ref.server_url or REPORT_SERVER_URL
+        server_url = ref.server_url or get_primary_pbirs_server_url()
         embed_url = ref.embed_url or f"{server_url}/Reports/powerbi/{encoded_path}?rs:embed=true"
 
         # Derive ParentFolderId-like info from path for hierarchy views
@@ -428,7 +435,6 @@ def _get_assignable_reports_from_pbirs(request):
     if not pbirs_reports:
         return []
 
-    base_embed_url = f"{REPORT_SERVER_URL}/Reports/powerbi/"
     valid_pbirs_ids = []
     for report in pbirs_reports:
         pbirs_id = report.get('Id')
@@ -438,20 +444,25 @@ def _get_assignable_reports_from_pbirs(request):
         valid_pbirs_ids.append(pbirs_id)
         name = report.get('Name', 'Unnamed')
         path = report.get('Path', '')
+        server_url = report.get('_server_url') or get_primary_pbirs_server_url()
         clean_path = path.strip('/')
         encoded_path = urllib.parse.quote(clean_path, safe='/')
-        embed_url = f"{base_embed_url}{encoded_path}?rs:embed=true"
+        embed_url = f"{server_url}/Reports/powerbi/{encoded_path}?rs:embed=true"
 
         ReportRef.objects.update_or_create(
             pbirs_id=pbirs_id,
             defaults={
                 'name': name,
                 'path': path,
+                'server_url': server_url,
                 'embed_url': embed_url,
             }
         )
 
     return list(ReportRef.objects.filter(pbirs_id__in=valid_pbirs_ids).order_by('name'))
+
+
+
 
 #################################################################################################################
 #                    Retrieves permissions for a specific Power BI report                                       #
@@ -459,7 +470,10 @@ def _get_assignable_reports_from_pbirs(request):
 
 @admin_required
 def get_report_permissions(request, report_id, server_url=None, timeout=10):
-    base_url = server_url or REPORT_SERVER_URL
+    base_url = server_url or ReportRef.get_server_url(report_id)
+    if not base_url:
+        logger.warning("No PBIRS server configured while fetching permissions for report %s.", report_id)
+        return []
     url = f"{base_url}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
     auth = get_current_user_auth(request)
     if not auth:
@@ -486,7 +500,10 @@ def get_report_permissions(request, report_id, server_url=None, timeout=10):
 
 @admin_required
 def get_folder_permissions(request, folder_id, server_url=None, timeout=10):
-    base_url = server_url or REPORT_SERVER_URL
+    base_url = server_url or get_primary_pbirs_server_url()
+    if not base_url:
+        logger.warning("No PBIRS server configured while fetching permissions for folder %s.", folder_id)
+        return []
     url = f"{base_url}/Reports/api/v2.0/Folders({folder_id})/Policies"
     auth = get_current_user_auth(request)
     if not auth:
@@ -646,7 +663,7 @@ def download_report(request, report_id):
         auth_getter=get_current_user_auth,
         report_info_getter=get_powerbi_report_info,
         report_permissions_getter=get_report_permissions,
-        report_server_url=REPORT_SERVER_URL,
+        report_server_url=get_primary_pbirs_server_url(),
     )
 #################################################################################################################
 #                    Displays a flat list of Power BI reports for authenticated users                           #
@@ -665,7 +682,7 @@ CONTEXT_ROOT_FOLDERS = {
 def report_list_flat(request):
     return report_list_flat_view(
         request=request,
-        report_server_url=REPORT_SERVER_URL,
+        report_server_url=get_primary_pbirs_server_url(),
         context_root_folders=CONTEXT_ROOT_FOLDERS,
         reports_getter=get_powerbi_reports,
         permissions_getter=get_user_permissions,
@@ -790,7 +807,11 @@ def upload_powerbi_report(request):
         # Construct the report path
         report_path = f"/{folder_path}/{report_name}" if folder_path else f"/{report_name}"
         encoded_path = report_path.replace("'", "''").replace(" ", "%20")
-        api_url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports(path='{encoded_path}')/Model.Upload"  # Uses primary server for uploads
+        primary_server_url = get_primary_pbirs_server_url()
+        if not primary_server_url:
+            messages.error(request, "No active PBIRS server is configured.")
+            return redirect('powerbi_report:report_list_hierarchy_folder', folder_path=folder_path)
+        api_url = f"{primary_server_url}/Reports/api/v2.0/PowerBIReports(path='{encoded_path}')/Model.Upload"
 
         # Setup authentication using get_current_user_auth
         auth = get_current_user_auth(request)
@@ -884,7 +905,7 @@ def add_report_local(request):
     if not server_url:
         return _err("Le serveur PBIRS est obligatoire.")
 
-    valid_servers = getattr(settings, "POWERBI_REPORT_SERVER_URLS", [getattr(settings, "POWERBI_REPORT_SERVER_URL", "")])
+    valid_servers = get_active_pbirs_server_urls()
     if server_url not in valid_servers:
         return _err("Serveur PBIRS non valide ou non configuré.")
 
@@ -1538,7 +1559,7 @@ def add_users_to_report(request, report_id, username):
     
     if request.method == 'POST':
         auth = get_current_user_auth(request)
-        url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
+        url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
         
         allowed_account = username  
         try:
@@ -1634,7 +1655,7 @@ def add_selected_users_to_report(request, report_id):
             messages.error(request, "No users selected for addition.")
             return redirect('powerbi_report:missing_users', report_id=report_id)
         
-        url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
+        url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
         
         current_policies = get_report_permissions(request, report_id) or []
         
@@ -1720,7 +1741,7 @@ def add_all_users_to_report(request, report_id):
         if not report:
             return HttpResponse("Report not found", status=404)
         
-        policies_url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
+        policies_url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
         try:
             get_response = requests.get(policies_url, auth=auth)
             get_response.raise_for_status()
@@ -1758,7 +1779,7 @@ def add_all_users_to_report(request, report_id):
             "Policies": current_policies
         }
         headers = {"Content-Type": "application/json"}
-        url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
+        url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
         
         logger.debug("Updating all-user report policies via PUT %s", url)
         
@@ -1786,7 +1807,7 @@ def remove_users_from_report(request, report_id, username):
     if request.method == 'POST':
         auth = get_current_user_auth(request)
 
-        url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
+        url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
         
         current_policies = get_report_permissions(request, report_id)
         if not isinstance(current_policies, list):
@@ -1869,7 +1890,7 @@ def remove_selected_users_from_report(request, report_id):
         headers = {"Content-Type": "application/json"}
         
         try:
-            url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
+            url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
             response = requests.put(url, json=payload, auth=auth, headers=headers)
             response.raise_for_status()
             info = get_powerbi_report_info(request, report_id)  # Pass request here
@@ -2331,7 +2352,7 @@ def users_no_reports_view(request):
 def add_permission_to_server(request, report_id, username):
     if request.method == 'POST':
         auth = get_current_user_auth(request)
-        url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
+        url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
         
         allowed_account = username  
         try:
@@ -2460,7 +2481,7 @@ def add_all_permissions(request, username):
                     "Id": report['Id'],
                     "Policies": policies
                 }
-                url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report['Id']})/Policies"
+                url = f"{ReportRef.get_server_url(report['Id'])}/Reports/api/v2.0/PowerBIReports({report['Id']})/Policies"
                 try:
                     response = requests.put(url, json=payload, auth=auth, headers=headers)
                     response.raise_for_status()
@@ -2536,7 +2557,7 @@ def add_selected_permissions(request, username):
                     "Roles": roles  
                 }
                 policies.append(new_policy)
-                url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
+                url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
                 payload = {"Policies": policies}
                 headers = {"Content-Type": "application/json"}
                 
@@ -2590,7 +2611,7 @@ def add_selected_permissions(request, username):
 def remove_permission_from_server(request, report_id, username):
     if request.method == 'POST':
         auth = get_current_user_auth(request)
-        url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
+        url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
         
         current_policies = cache.get_or_set(
             f"report_permissions_{report_id}",
@@ -2682,7 +2703,7 @@ def remove_all_permissions(request, username):
             if len(updated_policies) == len(policies):
                 continue
             
-            url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
+            url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
             payload = {
                 "Id": report_id,
                 "Policies": updated_policies
@@ -2748,7 +2769,7 @@ def remove_selected_permissions(request, username):
                policy.get("GroupUserName", "").split("\\")[-1].lower() != username.lower()
         ]
         
-        url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
+        url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
         payload = {"Policies": updated_policies}
         headers = {"Content-Type": "application/json"}
         
@@ -2805,16 +2826,8 @@ def dashboard(request):
     cache_key = f"dashboard_data_{user_id}"
     cached_data = cache.get(cache_key)
 
-    refresh_cache_key = f"report_refresh_list_{user_id}"
-    refresh_data = cache.get(refresh_cache_key)
 
     if cached_data:
-        if refresh_data:
-            cached_data.update({
-                'report_refresh_list': refresh_data.get('Report_Refresh_List', []),
-                'completed_refreshes': refresh_data.get('completed_refreshes', 0),
-                'failed_refreshes': refresh_data.get('failed_refreshes', 0),
-            })
         return render(request, 'home.html', cached_data)
 
     # Default dashboard data
@@ -2864,6 +2877,18 @@ def dashboard(request):
         .values('day')
         .annotate(count=Count('id'))
         .order_by('day')
+    )
+
+    quarterly_logins = (
+        LoginEvent.objects
+        .filter(
+            login_type=LoginEvent.LOGIN,
+            datetime__year=current_year
+        )
+        .annotate(quarter=TruncQuarter('datetime'))
+        .values('quarter')
+        .annotate(count=Count('id'))
+        .order_by('quarter')
     )
 
     # Weekly login counts for the last 7 days (Friday to today)
@@ -2927,8 +2952,8 @@ def dashboard(request):
     
     # --- Most requested dashboards and extraction reports (from UserHistory) ---
     from django.db.models import Q
-    
-    most_requested = list(
+
+    raw_most_requested = list(
         UserHistory.objects
         .filter(
            Q(action__icontains='Rapport consulté') |
@@ -2941,22 +2966,37 @@ def dashboard(request):
         .annotate(count=Count('id'))
         .order_by('-count')[:10]
     )
-    
-    # Recent activity (last 10 actions)
-    recent_activity = list(
-        UserHistory.objects
-        .select_related('user')
-        .order_by('-timestamp')[:10]
-        .values('user__username', 'action', 'timestamp')
-    )
-    
-    # Users by department (direction) - only active users (logged in at least once)
-    users_by_direction = list(
+
+    most_requested_counter = Counter()
+    for item in raw_most_requested:
+        action = item.get('action', '')
+        count = item.get('count', 0)
+        match = re.search(r"'([^']+)'", action)
+        if match:
+            report_name = match.group(1).strip()
+        else:
+            cleaned_action = re.sub(
+                r"^(Rapport consult[ée]|Rapport acc[ée]d[ée]|Rapport ouvert|Direction consult[ée]|P[ôo]le consult[ée])\s*",
+                "",
+                action,
+                flags=re.IGNORECASE,
+            ).strip(" :-")
+            report_name = cleaned_action or action
+        if report_name:
+            most_requested_counter[report_name] += count
+
+    most_requested = [
+        {'name': name, 'count': count}
+        for name, count in most_requested_counter.most_common(10)
+    ]
+
+    # Users by company - only active users (logged in at least once)
+    users_by_societe = list(
         CustomUser.objects
         .filter(last_login__isnull=False)
-        .exclude(direction__isnull=True)
-        .exclude(direction='')
-        .values('direction')
+        .exclude(societe__isnull=True)
+        .exclude(societe='')
+        .values('societe')
         .annotate(count=Count('id'))
         .order_by('-count')[:6]
     )
@@ -2968,7 +3008,7 @@ def dashboard(request):
     reports_per_folder_monthly = list(
         FRI2.objects
         .filter(
-            folder__view_type__in=['direction', 'pole', 'anomalie'],
+            folder__view_type__in=['direction', 'pole', 'consolide', 'biblio', 'anomalie'],
             report__last_synced__year=current_year
         )
         .annotate(month=TruncMonth('report__last_synced'))
@@ -2981,7 +3021,7 @@ def dashboard(request):
     reports_per_folder_quarterly = list(
         FRI2.objects
         .filter(
-            folder__view_type__in=['direction', 'pole', 'anomalie'],
+            folder__view_type__in=['direction', 'pole', 'consolide', 'biblio', 'anomalie'],
             report__last_synced__year=current_year
         )
         .annotate(quarter=TruncQuarter('report__last_synced'))
@@ -2993,9 +3033,7 @@ def dashboard(request):
     # Yearly breakdown
     reports_per_folder_yearly = list(
         FRI2.objects
-        .filter(
-            folder__view_type__in=['direction', 'pole', 'anomalie', 'biblio', 'consolide']
-        )
+        .filter(folder__view_type__in=['direction', 'pole', 'anomalie', 'biblio', 'consolide'])
         .annotate(year=TruncYear('report__last_synced'))
         .values('year', 'folder__view_type')
         .annotate(count=Count('report', distinct=True))
@@ -3012,6 +3050,7 @@ def dashboard(request):
         'permissions': permissions,
         'monthly_logins': list(monthly_logins),
         'daily_logins': list(daily_logins),
+        'quarterly_logins': list(quarterly_logins),
         'weekly_logins': list(weekly_logins),
         'hourly_logins': list(hourly_logins),
         # New KPIs
@@ -3020,141 +3059,18 @@ def dashboard(request):
         'anomaly_report_count': anomaly_report_count,
         'total_synced_reports': total_synced_reports,
         'most_requested': most_requested,
-        'recent_activity': recent_activity,
-        'users_by_direction': users_by_direction,
+        'users_by_societe': users_by_societe,
         'reports_per_folder_monthly': reports_per_folder_monthly,
         'reports_per_folder_quarterly': reports_per_folder_quarterly,
         'reports_per_folder_yearly': reports_per_folder_yearly,
     }
 
-    if refresh_data:
-        context.update({
-            'report_refresh_list': refresh_data.get('Report_Refresh_List', []),
-            'completed_refreshes': refresh_data.get('completed_refreshes', 0),
-            'failed_refreshes': refresh_data.get('failed_refreshes', 0),
-        })
+
 
     cache.set(cache_key, context, timeout=500)
     return render(request, 'home.html', context)
 
-@admin_required
-def get_report_refresh_list(request):
-    user_id = request.user.id
-    cache_key = f"report_refresh_list_{user_id}"
-    cached_data = cache.get(cache_key)
 
-    if cached_data:
-        return JsonResponse({
-            'report_refresh_list': cached_data.get('Report_Refresh_List', []),
-            'completed_refreshes': cached_data.get('completed_refreshes', 0),
-            'failed_refreshes': cached_data.get('failed_refreshes', 0),
-        })
-
-    empty_context = {
-        'completed_refreshes': 0,
-        'failed_refreshes': 0,
-        'Report_Refresh_List': [],
-    }
-
-    if not getattr(settings, "PBIRS_REFRESH_STATUS_LIVE", False):
-        cache.set(cache_key, empty_context, timeout=300)
-        return JsonResponse({
-            'report_refresh_list': [],
-            'completed_refreshes': 0,
-            'failed_refreshes': 0,
-        })
-
-    auth = get_current_user_auth(request)
-    if not auth:
-        cache.set(cache_key, empty_context, timeout=300)
-        return JsonResponse({
-            'report_refresh_list': [],
-            'completed_refreshes': 0,
-            'failed_refreshes': 0,
-        })
-
-    now = datetime.now(pytz.timezone("Africa/Algiers"))
-    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    end_of_day = now.replace(hour=23, minute=59, second=59)
-
-    powerbi_reports = get_local_reports_for_user(request.user)
-    max_reports = max(0, getattr(settings, "PBIRS_REFRESH_STATUS_MAX_REPORTS", 40))
-    request_timeout = max(1, getattr(settings, "PBIRS_REFRESH_STATUS_TIMEOUT", 2))
-    max_seconds = max(1, getattr(settings, "PBIRS_REFRESH_STATUS_MAX_SECONDS", 20))
-    deadline = time.monotonic() + max_seconds
-
-    completed_refreshes = 0
-    failed_refreshes = 0
-    report_refresh_list = []
-
-    for report in powerbi_reports[:max_reports]:
-        if time.monotonic() >= deadline:
-            logger.warning(
-                "Refresh-list stopped after %s seconds for user %s.",
-                max_seconds,
-                request.user.username,
-            )
-            break
-
-        report_id = report.get("Id")
-        report_name = report.get("Name", "Unknown Report")
-
-        if not report_id:
-            continue
-
-        refresh_url = f"{ReportRef.get_server_url(report_id)}/reports/api/v2.0/PowerBIReports({report_id})/CacheRefreshPlans"
-
-        try:
-            refresh_response = requests.get(refresh_url, auth=auth, timeout=request_timeout)
-            refresh_response.raise_for_status()
-            refresh_data = refresh_response.json().get("value", [])
-
-            for refresh in refresh_data:
-                last_status = refresh.get("LastStatus", "Unknown")
-                last_run_time = refresh.get("LastRunTime")
-                schedule_data = refresh.get("Schedule", {})
-                schedule_definition = schedule_data.get("Definition")
-
-                if last_run_time and isinstance(last_run_time, str) and len(last_run_time) >= 19:
-                    try:
-                        dt_object = datetime.strptime(last_run_time[:19], "%Y-%m-%dT%H:%M:%S")
-                        dt_object = dt_object.replace(tzinfo=pytz.UTC).astimezone(pytz.timezone("Africa/Algiers"))
-
-                        if start_of_day <= dt_object <= end_of_day:
-                            if "completed" in last_status.lower():
-                                completed_refreshes += 1
-                            elif "failed" in last_status.lower():
-                                failed_refreshes += 1
-
-                            formatted_last_refresh = dt_object.strftime("%d/%m/%Y %H:%M")
-
-                            report_refresh_list.append({
-                                "report_id": report_id,
-                                "report_name": report_name,
-                                "status": last_status,
-                                "last_refresh": formatted_last_refresh,
-                                "next_refresh": "N/A" if schedule_definition is None else schedule_definition
-                            })
-                    except ValueError:
-                        pass
-
-        except requests.exceptions.RequestException:
-            # Silently skip reports that don't support CacheRefreshPlans (e.g., 400 errors)
-            pass
-
-    context = {
-        'completed_refreshes': completed_refreshes,
-        'failed_refreshes': failed_refreshes,
-        'Report_Refresh_List': report_refresh_list,
-    }
-
-    cache.set(cache_key, context, timeout=500)
-
-    return JsonResponse({
-        'report_refresh_list': report_refresh_list,
-        'completed_refreshes': completed_refreshes,
-        'failed_refreshes': failed_refreshes,
-    })
 
 
 #################################################################################################################

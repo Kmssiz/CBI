@@ -45,7 +45,6 @@ def get_user_permissions(user):
         'add_notification', 'change_notification', 'delete_notification', 'view_notification',
         'add_powerbireport', 'change_powerbireport', 'delete_powerbireport', 'view_powerbireport',
         'add_report', 'change_report', 'delete_report', 'view_report',
-        'view_refresh',
         'add_reportaccess', 'change_reportaccess', 'delete_reportaccess', 'view_reportaccess',
         'add_task', 'change_task', 'delete_task', 'view_task',
         'view_dashboard',

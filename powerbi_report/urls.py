@@ -54,7 +54,7 @@ urlpatterns = [
 
     path('report/<str:report_id>/download/', views.download_report, name='download_report'),
     path('get_folders/', views.get_folders, name='get_folders'),
-    path('refresh-list/', views.get_report_refresh_list, name='get_report_refresh_list'),
+
     path('report/<str:report_id>/add_refresh_plan/', views.add_refresh_plan, name='add_refresh_plan'),
     path('upload/', views.upload_powerbi_report, name='upload_powerbi_report'),
 

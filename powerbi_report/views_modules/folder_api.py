@@ -4,8 +4,8 @@ import logging
 from collections.abc import Callable
 
 import requests
-from django.conf import settings
 from django.http import JsonResponse
+from powerbi_report.services.pbirs_servers import get_active_pbirs_server_urls
 
 logger = logging.getLogger("powerbi_report")
 
@@ -26,7 +26,7 @@ def _fetch_folders_from_server(auth, server_url: str) -> list[str]:
 def get_folders_response(request, auth_getter: Callable) -> JsonResponse:
     """Return PBIRS folder paths for jsTree (aggregated from all servers)."""
     auth = auth_getter(request)
-    server_urls = getattr(settings, 'POWERBI_REPORT_SERVER_URLS', [settings.POWERBI_REPORT_SERVER_URL])
+    server_urls = get_active_pbirs_server_urls()
 
     all_folder_paths = []
     for server_url in server_urls:
@@ -44,7 +44,7 @@ def get_folder_list_response(request, auth_getter: Callable) -> JsonResponse:
         if not auth:
             return JsonResponse({"error": "Authentication failed"}, status=401)
 
-        server_urls = getattr(settings, 'POWERBI_REPORT_SERVER_URLS', [settings.POWERBI_REPORT_SERVER_URL])
+        server_urls = get_active_pbirs_server_urls()
 
         all_folder_paths = []
         for server_url in server_urls:

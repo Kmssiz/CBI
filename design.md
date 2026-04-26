@@ -1,7 +1,7 @@
-# CBI Web Application - Design & Architecture
+# PBI Web Application - Design & Architecture
 
 ## 1. Project Overview
-CBI is a robust Django-based web application that acts as a custom portal for Power BI Report Server (PBIRS). It provides enhanced user and role management, custom virtual folder organization, dynamic dashboards, and LDAP/Active Directory integration, wrapped in a premium, modern, and responsive user interface.
+PBI is a robust Django-based web application that acts as a custom portal for Power BI Report Server (PBIRS). It provides enhanced user and role management, custom virtual folder organization, dynamic dashboards, and LDAP/Active Directory integration, wrapped in a premium, modern, and responsive user interface.
 
 ## 2. Technology Stack
 - **Backend Framework:** Django 5.1+

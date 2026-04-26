@@ -25,289 +25,182 @@
   {% endif %}
 
   {% if permissions.view_dashboard %}
-  
-  <!-- Quick Stats Row -->
-  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-    
-    <!-- Users this month -->
+  <div class="dashboard-kpi-grid">
     <a href="{% url 'users_view' %}" class="group block">
-      <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:border-primary/30 transition-all shadow-sm dark:shadow-none">
-        <div class="flex items-center gap-2 mb-2">
-          <span class="material-symbols-outlined text-primary text-[18px]">group</span>
-          <span class="text-[10px] font-bold text-slate-500 uppercase">Utilisateurs / mois</span>
+      <div class="dashboard-stat-card">
+        <div class="dashboard-stat-icon bg-primary/10 text-primary"><span class="material-symbols-outlined">group</span></div>
+        <div class="min-w-0">
+          <p class="dashboard-stat-label">Utilisateurs / mois</p>
+          <p class="dashboard-stat-value">{{ users_this_month }}</p>
+          <p class="dashboard-stat-meta">sur {{ total_users }} au total</p>
         </div>
-        <p class="text-2xl font-black text-theme text-slate-900">{{ users_this_month }}</p>
-        <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-1">sur {{ total_users }} au total</p>
       </div>
     </a>
 
-   
-    <!-- Anomalies -->
-    <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm dark:shadow-none">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="material-symbols-outlined text-red-500 dark:text-red-400 text-[18px]">warning</span>
-        <span class="text-[10px] font-bold text-slate-500 uppercase">Anomalies / mois</span>
+    <div class="dashboard-stat-card">
+      <div class="dashboard-stat-icon bg-violet-500/10 text-violet-500"><span class="material-symbols-outlined">dashboard</span></div>
+      <div class="min-w-0">
+        <p class="dashboard-stat-label">Tableaux de bord</p>
+        <p class="dashboard-stat-value">{{ dashboard_report_count }}</p>
+        <p class="dashboard-stat-meta">direction, pôle, consolidé</p>
       </div>
-      <p class="text-2xl font-black text-theme text-slate-900">{{ anomaly_report_count }}</p>
-      <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-1">rapports d'anomalie</p>
     </div>
 
-    <!-- Dashboards -->
-    <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm dark:shadow-none">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="material-symbols-outlined text-violet-500 dark:text-violet-400 text-[18px]">dashboard</span>
-        <span class="text-[10px] font-bold text-slate-500 uppercase">Tableaux de bord / mois</span>
+    <div class="dashboard-stat-card">
+      <div class="dashboard-stat-icon bg-emerald-500/10 text-emerald-500"><span class="material-symbols-outlined">library_books</span></div>
+      <div class="min-w-0">
+        <p class="dashboard-stat-label">Extractions</p>
+        <p class="dashboard-stat-value">{{ extraction_report_count }}</p>
+        <p class="dashboard-stat-meta">bibliothèque</p>
       </div>
-      <p class="text-2xl font-black text-theme text-slate-900">{{ dashboard_report_count }}</p>
-      <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-1">CBI</p>
     </div>
 
-    <!-- Extraction Reports -->
-    <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm dark:shadow-none">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="material-symbols-outlined text-emerald-500 dark:text-emerald-400 text-[18px]">library_books</span>
-        <span class="text-[10px] font-bold text-slate-500 uppercase">Extractions / mois</span>
-      </div>
-      <p class="text-2xl font-black text-theme text-slate-900">{{ extraction_report_count }}</p>
-      <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-1">rapports d'extraction</p>
-    </div>
 
   </div>
 
-  <!-- Main Content Grid -->
-  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-    
-    <!-- Left Column: Charts -->
-    <div class="xl:col-span-2 space-y-6">
-      
-      <!-- Login Charts Section -->
-      <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm dark:shadow-none">
-        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between">
+  <div class="dashboard-main-grid">
+    <!-- Activité des connexions -->
+    <div class="lg:col-span-12">
+      <div class="dashboard-card h-full flex flex-col">
+        <div class="dashboard-card-header">
           <div>
-            <h3 class="text-base font-bold text-theme text-slate-900">Activité des connexions</h3>
-            <p class="text-xs text-slate-500 mt-0.5">Tendances d'accès à la plateforme</p>
+            <h3 class="dashboard-card-title">Activité des connexions</h3>
+            <p class="dashboard-card-subtitle">Tendances d'accès à la plateforme</p>
           </div>
-          <div class="flex gap-1 bg-slate-100 dark:bg-slate-900/50 p-1 rounded-lg">
+          <div class="dashboard-toggle-group">
             <button class="graph-btn active px-3 py-1.5 rounded-md text-xs font-medium" data-graph="monthly">Mois</button>
+            <button class="graph-btn px-3 py-1.5 rounded-md text-xs font-medium" data-graph="quarterly">Trimestre</button>
             <button class="graph-btn px-3 py-1.5 rounded-md text-xs font-medium" data-graph="daily">Jour</button>
             <button class="graph-btn px-3 py-1.5 rounded-md text-xs font-medium" data-graph="weekly">Semaine</button>
             <button class="graph-btn px-3 py-1.5 rounded-md text-xs font-medium" data-graph="hourly">Heure</button>
           </div>
         </div>
-        <div class="p-6">
-          <div id="monthly-graph" class="graph-container">
-            <canvas id="statistics-chart" class="chart-canvas"></canvas>
-          </div>
-          <div id="daily-graph" class="graph-container hidden">
-            <canvas id="statistics-chart2" class="chart-canvas"></canvas>
-          </div>
-          <div id="weekly-graph" class="graph-container hidden">
-            <canvas id="statistics-chart3" class="chart-canvas"></canvas>
-          </div>
-          <div id="hourly-graph" class="graph-container hidden">
-            <canvas id="statistics-chart4" class="chart-canvas"></canvas>
-          </div>
+        <div class="p-6 flex-1 flex flex-col justify-center">
+          <div id="monthly-graph" class="graph-container flex-1"><canvas id="statistics-chart" class="chart-canvas"></canvas></div>
+          <div id="quarterly-graph" class="graph-container hidden flex-1"><canvas id="statistics-chart-quarterly" class="chart-canvas"></canvas></div>
+          <div id="daily-graph" class="graph-container hidden flex-1"><canvas id="statistics-chart2" class="chart-canvas"></canvas></div>
+          <div id="weekly-graph" class="graph-container hidden flex-1"><canvas id="statistics-chart3" class="chart-canvas"></canvas></div>
+          <div id="hourly-graph" class="graph-container hidden flex-1"><canvas id="statistics-chart4" class="chart-canvas"></canvas></div>
         </div>
       </div>
+    </div>
 
-      <!-- Most Requested Dashboards & Extraction Reports -->
-      <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm dark:shadow-none">
-        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50">
-          <h3 class="text-base font-bold text-theme text-slate-900">Rapports et tableaux de bord les plus consultés</h3>
-          <p class="text-xs text-slate-500 mt-0.5">Basé sur l'historique des accès utilisateurs</p>
+    <!-- Utilisateurs par Société -->
+    <div class="lg:col-span-6">
+      <div class="dashboard-card h-full flex flex-col">
+        <div class="dashboard-card-header">
+          <div>
+            <h3 class="dashboard-card-title">
+              <span class="material-symbols-outlined text-sky-500">pie_chart</span>
+              Utilisateurs par Société
+            </h3>
+            <p class="dashboard-card-subtitle">Répartition des comptes actifs</p>
+          </div>
         </div>
-        <div class="p-6">
+        <div class="p-4 flex-1 flex items-center justify-center min-h-[220px]">
+          {% if users_by_societe %}
+          <div class="relative w-full h-full">
+            <canvas id="users-societe-chart"></canvas>
+          </div>
+          {% else %}
+          <div class="dashboard-empty-state">
+            <span class="material-symbols-outlined text-[28px] text-slate-400 dark:text-slate-700">account_tree</span>
+            <p class="text-xs text-slate-500">Données non disponibles</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Rapports les plus consultés -->
+    <div class="lg:col-span-6">
+      <div class="dashboard-card h-full flex flex-col">
+        <div class="dashboard-card-header">
+          <div>
+            <h3 class="dashboard-card-title">
+              <span class="material-symbols-outlined text-primary">trending_up</span>
+              Rapports les plus consultés
+            </h3>
+            <p class="dashboard-card-subtitle">Synthèse des usages récents</p>
+          </div>
+        </div>
+        <div class="p-6 flex-1 overflow-y-auto max-h-[320px] custom-scrollbar">
           {% if most_requested %}
-          <div class="space-y-3">
-            {% for item in most_requested %}
-            <div class="flex items-center gap-3">
-              <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <span class="material-symbols-outlined text-[16px]">bar_chart</span>
+          <div class="grid grid-cols-2 gap-3">
+            {% for item in most_requested|slice:":10" %}
+            <div class="group/item rounded-xl border border-slate-200/60 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20 px-3 py-2.5 flex items-center gap-3 transition-all hover:bg-white dark:hover:bg-slate-900 hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5">
+              <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover/item:bg-primary group-hover/item:text-white transition-all">
+                <span class="material-symbols-outlined text-[16px]">analytics</span>
               </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-theme text-slate-900 truncate">{{ item.action }}</p>
+              <div class="min-w-0 flex-1">
+                <p class="text-[11px] font-semibold text-slate-900 dark:text-slate-200 truncate leading-tight">{{ item.name }}</p>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span class="text-[9px] font-medium text-slate-500 uppercase tracking-tighter">Actif</span>
+                </div>
               </div>
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary">{{ item.count }}</span>
+              <span class="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{{ item.count }}</span>
             </div>
             {% endfor %}
           </div>
           {% else %}
-          <div class="py-8 text-center">
-            <span class="material-symbols-outlined text-[32px] text-slate-400 dark:text-slate-700 mb-2">analytics</span>
+          <div class="dashboard-empty-state">
+            <span class="material-symbols-outlined text-[32px] text-slate-400 dark:text-slate-700">analytics</span>
             <p class="text-xs text-slate-500">Aucune donnée d'utilisation disponible</p>
           </div>
           {% endif %}
         </div>
       </div>
-
     </div>
+  </div>
 
-    <!-- Right Column: Activity & Users -->
-    <div class="space-y-6">
-
-      <!-- Recent Activity -->
-      <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm dark:shadow-none">
-        <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800/50">
-          <h3 class="text-sm font-bold text-theme text-slate-900">Activité récente</h3>
+  <div class="dashboard-secondary-grid">
+    <!-- Nouveaux rapports par catégorie -->
+    <div class="dashboard-card">
+      <div class="dashboard-card-header">
+        <div>
+          <h3 class="dashboard-card-title flex items-center gap-2">
+            <span class="material-symbols-outlined text-violet-500">category</span>
+            Nouveaux rapports par catégorie
+          </h3>
+          <p class="dashboard-card-subtitle">Répartition par type de contenu</p>
         </div>
-        <div class="divide-y divide-slate-100 dark:divide-slate-800/30 max-h-[320px] overflow-y-auto custom-scrollbar">
-          {% for activity in recent_activity %}
-          <div class="px-5 py-3 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-            <div class="flex items-start gap-3">
-              <div class="size-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0 mt-0.5">
-                {{ activity.user__username|slice:":1"|upper }}
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-[13px] text-theme text-slate-900 leading-snug">
-                  <span class="font-medium">{{ activity.user__username }}</span>
-                  <span class="text-slate-600 dark:text-slate-400">{{ activity.action|truncatechars:50 }}</span>
-                </p>
-                <p class="text-[10px] text-slate-500 dark:text-slate-600 mt-0.5">{{ activity.timestamp|timesince }} ago</p>
-              </div>
+        <div class="dashboard-toggle-group">
+          <button class="folder-period-btn active px-2.5 py-1.5 rounded-md text-[11px] font-medium" data-period="monthly">Mois</button>
+          <button class="folder-period-btn px-2.5 py-1.5 rounded-md text-[11px] font-medium" data-period="quarterly">Trim</button>
+          <button class="folder-period-btn px-2.5 py-1.5 rounded-md text-[11px] font-medium" data-period="yearly">Année</button>
+        </div>
+      </div>
+      <div class="p-6">
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div class="rounded-2xl bg-primary/5 border border-primary/10 p-4">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[10px] uppercase tracking-wider font-bold text-primary/70">BI (CBI)</span>
+              <span class="material-symbols-outlined text-[16px] text-primary">dashboard</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 dark:text-white">{{ dashboard_report_count }}</p>
+            <div class="w-full h-1 bg-primary/10 rounded-full mt-2 overflow-hidden">
+              <div class="h-full bg-primary rounded-full" style="width: 70%"></div>
             </div>
           </div>
-          {% empty %}
-          <div class="py-8 text-center">
-            <span class="material-symbols-outlined text-[32px] text-slate-400 dark:text-slate-700 mb-2">history</span>
-            <p class="text-xs text-slate-500">Aucune activité récente</p>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-
-      <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-5 shadow-sm dark:shadow-none">
-        <h3 class="text-sm font-bold text-theme text-slate-900 mb-4">Utilisateurs par Pôle</h3>
-        {% if users_by_direction %}
-        <div class="space-y-3">
-          {% for direction in users_by_direction %}
-          <div class="flex items-center gap-3">
-            <div class="flex-1">
-              <div class="flex items-center justify-between mb-1">
-                <span class="text-xs text-slate-600 dark:text-slate-400 truncate">{{ direction.direction|default:"Non renseigné" }}</span>
-                <span class="text-xs font-bold text-theme text-slate-900">{{ direction.count }}</span>
-              </div>
-              <div class="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-primary to-cyan-400 rounded-full" style="width: {% widthratio direction.count users_by_direction.0.count 100 %}%"></div>
-              </div>
+          <div class="rounded-2xl bg-violet-500/5 border border-violet-500/10 p-4">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[10px] uppercase tracking-wider font-bold text-violet-500/70">QC (BI)</span>
+              <span class="material-symbols-outlined text-[16px] text-violet-500">library_books</span>
+            </div>
+            <p class="text-2xl font-black text-slate-900 dark:text-white">{{ extraction_report_count|add:anomaly_report_count }}</p>
+            <div class="w-full h-1 bg-violet-500/10 rounded-full mt-2 overflow-hidden">
+              <div class="h-full bg-violet-500 rounded-full" style="width: 50%"></div>
             </div>
           </div>
-          {% endfor %}
         </div>
-        {% else %}
-        <div class="py-6 text-center">
-          <span class="material-symbols-outlined text-[28px] text-slate-400 dark:text-slate-700 mb-2">account_tree</span>
-          <p class="text-xs text-slate-500">Données non disponibles</p>
+        <div class="h-[220px] relative">
+          <canvas id="reports-per-folder-chart" class="w-full h-full"></canvas>
         </div>
-        {% endif %}
-      </div>
-
-    </div>
-
-  </div>
-  {% endif %}
-
-  {% if permissions.view_dashboard %}
-  <!-- New Reports per Folder Card -->
-  <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm dark:shadow-none">
-    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between">
-      <div>
-        <h3 class="text-base font-bold text-theme text-slate-900">Nouveaux rapports par catégorie</h3>
-        <p class="text-xs text-slate-500 mt-0.5">Répartition des rapports CBI et Anomalie</p>
-      </div>
-      <div class="flex gap-1 bg-slate-100 dark:bg-slate-900/50 p-1 rounded-lg">
-        <button class="folder-period-btn active px-3 py-1.5 rounded-md text-xs font-medium" data-period="monthly">Mois</button>
-        <button class="folder-period-btn px-3 py-1.5 rounded-md text-xs font-medium" data-period="quarterly">Trimestre</button>
-        <button class="folder-period-btn px-3 py-1.5 rounded-md text-xs font-medium" data-period="yearly">Année</button>
-      </div>
-    </div>
-    <div class="p-6">
-      <canvas id="reports-per-folder-chart" style="height: 280px; width: 100%;"></canvas>
-    </div>
-  </div>
-  {% endif %}
-
-  {% if permissions.view_refresh %}
-  {% if report_refresh_list %}
-  <!-- Refresh Table Section -->
-  <div class="space-y-4">
-    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-      <div>
-        <h2 class="text-lg font-bold text-theme text-slate-900">Actualisations récentes</h2>
-        <p class="text-sm text-slate-500">État des rafraîchissements de données</p>
-      </div>
-      <div class="flex flex-col sm:flex-row gap-3">
-        <div class="relative">
-          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
-          <input type="text" id="searchName" placeholder="Rechercher..." class="w-full sm:w-64 pl-10 pr-4 py-2.5 bg-white dark:bg-surface-dark/60 border border-slate-200 dark:border-slate-800/50 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-primary/50 transition-colors">
-        </div>
-        <select id="statusFilter" class="px-4 py-2.5 bg-white dark:bg-surface-dark/60 border border-slate-200 dark:border-slate-800/50 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
-          <option value="">Tous les statuts</option>
-          <option value="Completed">Terminé</option>
-          <option value="failed">Échoué</option>
-        </select>
       </div>
     </div>
 
-    <div class="card-theme bg-white dark:bg-surface-dark/60 border border-slate-200 dark:border-slate-800/50 rounded-2xl overflow-hidden shadow-sm dark:shadow-none">
-      <div class="overflow-x-auto">
-        <table class="w-full" id="reportTable">
-          <thead>
-            <tr class="border-b border-slate-200 dark:border-slate-800/50">
-              <th class="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Rapport</th>
-              <th class="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Dernière actualisation</th>
-              <th class="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Statut</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100 dark:divide-slate-800/30">
-            {% for report in report_refresh_list %}
-            <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors {% if permissions.view_dashboard %}cursor-pointer{% endif %}" 
-                {% if permissions.view_dashboard %}onclick="window.location.href='{% url 'powerbi_report:report_detail' report.report_id %}'"{% endif %}>
-              <td class="px-6 py-4 report-name">
-                <div class="flex items-center gap-3">
-                  <div class="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                    <span class="material-symbols-outlined text-[18px]">analytics</span>
-                  </div>
-                  <span class="text-sm font-medium text-theme text-slate-900">{{ report.report_name }}</span>
-                </div>
-              </td>
-              <td class="px-6 py-4 last-refresh">
-                <span class="text-sm text-slate-500 dark:text-slate-400">{{ report.last_refresh }}</span>
-              </td>
-              <td class="px-6 py-4 status">
-                {% if 'Completed' in report.status %}
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border border-emerald-500/20">
-                  <span class="size-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400"></span>
-                  Terminé
-                </span>
-                {% elif 'failed' in report.status %}
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-500 dark:text-red-400 border border-red-500/20">
-                  <span class="size-1.5 rounded-full bg-red-500 dark:bg-red-400"></span>
-                  Échec
-                </span>
-                {% else %}
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20">
-                  <span class="size-1.5 rounded-full bg-amber-500 dark:bg-amber-400"></span>
-                  Planifié
-                </span>
-                {% endif %}
-              </td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="3" class="px-6 py-12 text-center">
-                <div class="flex flex-col items-center">
-                  <span class="material-symbols-outlined text-[48px] text-slate-400 dark:text-slate-700 mb-3">sync_disabled</span>
-                  <p class="text-sm text-slate-500">Aucune actualisation disponible</p>
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-  {% endif %}
+
   {% endif %}
 
 </div>
@@ -318,19 +211,264 @@
     width: 100%;
   }
 
-  .graph-btn {
-    background: transparent;
-    color: rgb(100, 116, 139);
-    transition: all 0.2s;
+  .category-chart-wrap {
+    position: relative;
+    height: 240px;
+    min-height: 240px;
+    max-height: 240px;
+    width: 100%;
+    overflow: hidden;
   }
 
-  .graph-btn:hover {
-    color: rgb(226, 232, 240);
+  .category-chart-canvas {
+    display: block;
+    width: 100% !important;
+    height: 240px !important;
+    max-height: 240px !important;
+  }
+
+  .dashboard-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(226, 232, 240, 0.7);
+    border-radius: 1.5rem;
+    overflow: hidden;
+    box-shadow: 0 10px 40px -10px rgba(15, 23, 42, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dashboard-card:hover {
+    box-shadow: 0 20px 50px -12px rgba(15, 23, 42, 0.12);
+    border-color: rgba(19, 127, 236, 0.3);
+  }
+
+  .dashboard-kpi-grid {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  @media (min-width: 768px) {
+    .dashboard-kpi-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .dashboard-kpi-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .dashboard-main-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1.25rem;
+    align-items: stretch;
+  }
+
+  @media (min-width: 1024px) {
+    .dashboard-main-grid {
+      grid-template-columns: repeat(12, 1fr);
+    }
+  }
+
+  .dashboard-secondary-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: stretch;
+  }
+
+  @media (min-width: 1024px) {
+    .dashboard-secondary-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .dark .dashboard-card {
+    background: rgba(15, 23, 42, 0.75);
+    border-color: rgba(51, 65, 85, 0.5);
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.3);
+  }
+
+  .dashboard-card-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: nowrap;
+  }
+
+  .dark .dashboard-card-header {
+    border-bottom-color: rgba(51, 65, 85, 0.5);
+  }
+
+  .dashboard-card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: rgb(15 23 42);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .dashboard-card-subtitle {
+    font-size: 0.7rem;
+    color: rgb(100 116 139);
+    margin-top: 0.15rem;
+  }
+
+  .dashboard-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(226, 232, 240, 0.7);
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(248,250,252,0.9));
+    box-shadow: 0 8px 20px -6px rgba(15, 23, 42, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 84px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dashboard-stat-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle at top right, var(--stat-color, transparent), transparent 70%);
+    opacity: 0.1;
+  }
+
+  .dashboard-stat-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(19, 127, 236, 0.4);
+    box-shadow: 0 12px 30px -10px rgba(15, 23, 42, 0.12);
+  }
+
+  .dark .dashboard-stat-card {
+    background: linear-gradient(135deg, rgba(15,23,42,0.8), rgba(15,23,42,0.6));
+    border-color: rgba(51, 65, 85, 0.5);
+    box-shadow: none;
+  }
+
+  .dashboard-stat-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.25rem;
+  }
+
+  .dashboard-stat-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: rgb(100 116 139);
+  }
+
+  .dashboard-stat-value {
+    font-size: 1.75rem;
+    line-height: 1.1;
+    font-weight: 800;
+    color: rgb(15 23 42);
+    margin-top: 0.15rem;
+  }
+
+  .dashboard-stat-meta {
+    font-size: 0.7rem;
+    color: rgb(148 163 184);
+    margin-top: 0.15rem;
+  }
+
+  .dashboard-toggle-group {
+    display: flex;
+    gap: 0.2rem;
+    padding: 0.2rem;
+    border-radius: 0.75rem;
+    background: rgba(241, 245, 249, 0.8);
+  }
+
+  .dark .dashboard-toggle-group {
+    background: rgba(30, 41, 59, 0.5);
+  }
+
+  .dashboard-filter-input {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    background: rgba(255,255,255,0.9);
+    color: rgb(15 23 42);
+    padding: 0.5rem 0.85rem;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+  }
+
+  .dark .dashboard-filter-input {
+    background: rgba(15,23,42,0.6);
+    border-color: rgba(51, 65, 85, 0.6);
+    color: white;
+  }
+
+  .dashboard-filter-input:focus {
+    outline: none;
+    border-color: var(--primary-color, #137fec);
+    box-shadow: 0 0 0 3px rgba(19, 127, 236, 0.1);
+  }
+
+  .dashboard-empty-state {
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.75rem;
+    text-align: center;
+    padding: 2rem;
+  }
+
+
+
+  .graph-btn {
+    border-radius: 0.6rem;
+    transition: all 0.2s;
+    color: #64748b;
   }
 
   .graph-btn.active {
-    background: rgba(19, 127, 236, 0.15);
-    color: rgb(19, 127, 236);
+    background: white;
+    color: #137fec;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  .dark .graph-btn.active {
+    background: #1e293b;
+    color: #38bdf8;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.2);
+    border-radius: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.4);
   }
 
   select option {
@@ -358,6 +496,11 @@
     color: rgb(19, 127, 236);
   }
 
+  .dark .dashboard-card-title,
+  .dark .dashboard-stat-value {
+    color: #fff;
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
   }
@@ -375,22 +518,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-  // Table filters
-  document.getElementById("searchName")?.addEventListener("keyup", function () {
-    let value = this.value.toLowerCase();
-    document.querySelectorAll("#reportTable tbody tr").forEach(row => {
-      let name = row.querySelector(".report-name")?.textContent.toLowerCase() || "";
-      row.style.display = name.includes(value) ? "" : "none";
-    });
-  });
 
-  document.getElementById("statusFilter")?.addEventListener("change", function () {
-    let value = this.value;
-    document.querySelectorAll("#reportTable tbody tr").forEach(row => {
-      let status = row.querySelector(".status")?.textContent.trim() || "";
-      row.style.display = value === "" || status.toLowerCase().includes(value.toLowerCase()) ? "" : "none";
-    });
-  });
 </script>
 
 <script>
@@ -399,6 +527,7 @@
     const graphButtons = document.querySelectorAll('.graph-btn');
     const graphs = {
       monthly: document.getElementById('monthly-graph'),
+      quarterly: document.getElementById('quarterly-graph'),
       daily: document.getElementById('daily-graph'),
       weekly: document.getElementById('weekly-graph'),
       hourly: document.getElementById('hourly-graph')
@@ -442,6 +571,49 @@
           datasets: [{
             data: data,
             backgroundColor: 'rgba(19, 127, 236, 0.6)',
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(100, 116, 139, 0.1)' }, ticks: { color: 'rgb(100, 116, 139)' } },
+            x: { grid: { display: false }, ticks: { color: 'rgb(100, 116, 139)' } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+  });
+</script>
+
+<!-- Quarterly Chart -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const quarterlyLogins = [
+      {% for login in quarterly_logins %}
+      { quarter: "{{ login.quarter|date:'n' }}", count: {{ login.count }} }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
+
+    const quarterLabels = ['T1', 'T2', 'T3', 'T4'];
+    const data = new Array(4).fill(0);
+    quarterlyLogins.forEach(login => {
+      const month = parseInt(login.quarter, 10);
+      const quarterIndex = Math.floor((month - 1) / 3);
+      if (quarterIndex >= 0 && quarterIndex < 4) data[quarterIndex] = login.count;
+    });
+
+    const ctx = document.getElementById('statistics-chart-quarterly');
+    if (ctx) {
+      new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: quarterLabels,
+          datasets: [{
+            data: data,
+            backgroundColor: 'rgba(14, 165, 233, 0.6)',
             borderRadius: 4
           }]
         },
@@ -589,16 +761,6 @@
   });
 </script>
 
-<script>
-  // Prefetch refresh data
-  document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(function () {
-      fetch("{% url 'powerbi_report:get_report_refresh_list' %}")
-        .then(response => response.json())
-        .catch(error => console.error('Error:', error));
-    }, 100);
-  });
-</script>
 
 <!-- Reports per Folder Chart -->
 <script>
@@ -624,12 +786,12 @@
 
     function buildChart(data) {
       const labels = [...new Set(data.map(d => d.period))];
-      const cbiCounts = labels.map(l => {
-        return data.filter(d => d.period === l && (d.type === 'direction' || d.type === 'department'))
+      const biCounts = labels.map(l => {
+        return data.filter(d => d.period === l && ['direction', 'pole', 'consolide'].includes(d.type))
                    .reduce((sum, d) => sum + d.count, 0);
       });
-      const anomalieCounts = labels.map(l => {
-        return data.filter(d => d.period === l && d.type === 'anomalie')
+      const qcCounts = labels.map(l => {
+        return data.filter(d => d.period === l && ['biblio', 'anomalie'].includes(d.type))
                    .reduce((sum, d) => sum + d.count, 0);
       });
 
@@ -644,15 +806,15 @@
           labels: labels,
           datasets: [
             {
-              label: 'CBI',
-              data: cbiCounts,
+              label: 'BI',
+              data: biCounts,
               backgroundColor: 'rgba(139, 92, 246, 0.6)',
               borderRadius: 4
             },
             {
-              label: 'Anomalie',
-              data: anomalieCounts,
-              backgroundColor: 'rgba(239, 68, 68, 0.6)',
+              label: 'QC',
+              data: qcCounts,
+              backgroundColor: 'rgba(16, 185, 129, 0.6)',
               borderRadius: 4
             }
           ]
@@ -685,6 +847,67 @@
         this.classList.add('active');
         buildChart(datasets[this.dataset.period]);
       });
+    });
+  });
+</script>
+
+<!-- Users by Societe Pie Chart -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('users-societe-chart');
+    if (!ctx) return;
+
+    const data = [
+      {% for societe in users_by_societe %}
+      { label: "{{ societe.societe|default:'Non renseigné'|escapejs }}", value: {{ societe.count }} }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
+
+    const chartData = {
+      labels: data.map(d => d.label),
+      datasets: [{
+        data: data.map(d => d.value),
+        backgroundColor: [
+          'rgba(14, 165, 233, 0.7)',
+          'rgba(139, 92, 246, 0.7)',
+          'rgba(16, 185, 129, 0.7)',
+          'rgba(244, 63, 94, 0.7)',
+          'rgba(245, 158, 11, 0.7)',
+          'rgba(100, 116, 139, 0.7)'
+        ],
+        borderWidth: 0,
+        hoverOffset: 15
+      }]
+    };
+
+    new Chart(ctx.getContext('2d'), {
+      type: 'pie',
+      data: chartData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              color: 'rgb(100, 116, 139)',
+              usePointStyle: true,
+              pointStyle: 'circle',
+              padding: 15,
+              font: { size: 11, weight: '500' }
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            padding: 12,
+            titleFont: { size: 13 },
+            bodyFont: { size: 12 },
+            cornerRadius: 8,
+            displayColors: true
+          }
+        },
+        layout: { padding: { left: 10, right: 10, top: 10, bottom: 10 } }
+      }
     });
   });
 </script>

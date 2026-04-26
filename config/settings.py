@@ -54,12 +54,13 @@ CSRF_TRUSTED_ORIGINS = _config_list("CSRF_TRUSTED_ORIGINS", default="")
 
 # Base URL of your report server 
 
-POWERBI_REPORT_SERVER_URL = config("POWERBI_REPORT_SERVER_URL")
+POWERBI_REPORT_SERVER_URL = config("POWERBI_REPORT_SERVER_URL", default="")
 
-# All PBIRS server URLs (comma-separated). Defaults to the single URL above.
+# Legacy env-based PBIRS server list. The application now prefers `PBIRSServer`
+# rows stored in the database and only falls back to these values when needed.
 POWERBI_REPORT_SERVER_URLS = _config_list(
     "POWERBI_REPORT_SERVER_URLS",
-    default=config("POWERBI_REPORT_SERVER_URL"),
+    default=POWERBI_REPORT_SERVER_URL,
 )
 
 
@@ -93,6 +94,7 @@ PBIRS_SYNC_POLICY_TIMEOUT = config("PBIRS_SYNC_POLICY_TIMEOUT", default=15, cast
 PBIRS_SYNC_POLICY_RETRIES = config("PBIRS_SYNC_POLICY_RETRIES", default=2, cast=int)
 PBIRS_SYNC_POLICY_RETRY_DELAY = config("PBIRS_SYNC_POLICY_RETRY_DELAY", default=1.5, cast=float)
 PBIRS_SYNC_POLICY_REQUEST_DELAY = config("PBIRS_SYNC_POLICY_REQUEST_DELAY", default=0.05, cast=float)
+
 
 # Role names (centralized to avoid hardcoded strings)
 ADMIN_ROLE_NAME = "admin"

@@ -14,6 +14,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from .ldap_utils import connexion_ad2000, get_ad_users
 from .utils import log_history, get_user_permissions, admin_required
+from powerbi_report.services.pbirs_servers import get_active_pbirs_server_urls
 from powerbi_report.services import sync_user_permissions_on_login
 from notifications.models import Notification
 from users.models import CustomUser, Role, UserHistory
@@ -768,12 +769,9 @@ def server_status(request):
     Used by the login page 'Systeme Status' feature.
     """
     try:
-        server_urls = getattr(settings, "POWERBI_REPORT_SERVER_URLS", None)
+        server_urls = get_active_pbirs_server_urls()
         if not server_urls:
-            url = getattr(settings, "POWERBI_REPORT_SERVER_URL", None)
-            server_urls = [url] if url else []
-        if not server_urls:
-            return JsonResponse({"status": "down", "error": "Configuration missing"}, status=500)
+            return JsonResponse({"status": "down", "error": "No active PBIRS server configured"}, status=500)
 
         results = []
         all_up = True

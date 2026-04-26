@@ -8,6 +8,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import render
 
 from notifications.models import Notification
+from powerbi_report.services.pbirs_servers import get_active_pbirs_server_urls
 
 
 def get_allowed_report_types_for_view(view_type):
@@ -191,7 +192,7 @@ def report_list_view(
     except:
         page_range = []
 
-    server_urls = getattr(settings, "POWERBI_REPORT_SERVER_URLS", [getattr(settings, "POWERBI_REPORT_SERVER_URL", "")])
+    server_urls = get_active_pbirs_server_urls()
 
     return render(
         request,

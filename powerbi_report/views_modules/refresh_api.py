@@ -4,10 +4,10 @@ import logging
 from collections.abc import Callable
 
 import requests
-from django.conf import settings
 from django.http import JsonResponse
 
 from powerbi_report.models import ReportRef
+from powerbi_report.services.pbirs_servers import get_primary_pbirs_server_url
 
 logger = logging.getLogger("powerbi_report")
 
@@ -34,7 +34,10 @@ def get_refresh_plans_data(report_id: str, request, auth_getter: Callable) -> li
 
 def get_shared_schedules_data(request, auth_getter: Callable) -> list[dict]:
     """Fetch shared PBIRS schedules."""
-    url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/Schedules"
+    base_url = get_primary_pbirs_server_url()
+    if not base_url:
+        return []
+    url = f"{base_url}/Reports/api/v2.0/Schedules"
     auth = auth_getter(request)
 
     try:
@@ -49,7 +52,10 @@ def get_shared_schedules_data(request, auth_getter: Callable) -> list[dict]:
 
 def get_refresh_plan_history_response(request, plan_id: str, auth_getter: Callable) -> JsonResponse:
     """Fetch execution history for a refresh plan."""
-    url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/CacheRefreshPlans({plan_id})/History"
+    base_url = get_primary_pbirs_server_url()
+    if not base_url:
+        return JsonResponse({"error": "No active PBIRS server configured."}, status=503)
+    url = f"{base_url}/Reports/api/v2.0/CacheRefreshPlans({plan_id})/History"
     auth = auth_getter(request)
 
     try:

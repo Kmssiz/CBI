@@ -13,3 +13,4 @@ whitenoise==6.7.0
 waitress==3.0.0; sys_platform == 'win32'
 pycryptodome
 psycopg2-binary==2.9.9
+pyodbc==5.1.0

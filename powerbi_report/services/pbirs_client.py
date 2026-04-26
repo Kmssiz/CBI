@@ -13,6 +13,7 @@ import requests
 from requests_ntlm import HttpNtlmAuth
 from django.conf import settings
 from django.core.cache import cache
+from .pbirs_servers import get_primary_pbirs_server_url
 
 logger = logging.getLogger('powerbi_report')
 
@@ -56,7 +57,7 @@ class PBIRSClient:
         """
         self.request = request
         self.user = request.user
-        self.base_url = settings.POWERBI_REPORT_SERVER_URL
+        self.base_url = get_primary_pbirs_server_url()
         self._auth = None
         self._session = None
     

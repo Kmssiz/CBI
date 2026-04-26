@@ -22,6 +22,7 @@ from powerbi_report.models import ReportRef, UserReportPermission, PermissionSyn
 from django.db import transaction, connection
 from django.db.models import Q
 from powerbi_report.services.ldap_group_members import get_group_members
+from powerbi_report.services.pbirs_servers import get_active_pbirs_server_urls, get_primary_pbirs_server_url
 
 logger = logging.getLogger('powerbi_report')
 
@@ -46,8 +47,8 @@ class PermissionSyncService:
             triggered_by: The user who triggered the sync (for logging).
         """
         self.triggered_by = triggered_by
-        self.base_url = settings.POWERBI_REPORT_SERVER_URL
-        self.server_urls = getattr(settings, 'POWERBI_REPORT_SERVER_URLS', [self.base_url])
+        self.base_url = get_primary_pbirs_server_url()
+        self.server_urls = get_active_pbirs_server_urls()
         self._report_fetch_success = {}
         self._sync_lock_acquired = False
         self.sync_log = None

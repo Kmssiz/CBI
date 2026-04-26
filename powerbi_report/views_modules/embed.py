@@ -4,11 +4,11 @@ import requests
 from collections.abc import Callable
 from urllib.parse import quote
 
-from django.conf import settings
 from django.shortcuts import render
 
 from notifications.models import Notification
 from powerbi_report.models import ReportRef, UserReportPermission
+from powerbi_report.services.pbirs_servers import get_primary_pbirs_server_url
 
 
 def _can_access_report(user, report_ref: ReportRef | None) -> bool:
@@ -53,7 +53,7 @@ def embed_report_view(
 
     # Use the report's own server URL, or fall back to default
     server_url = (report_ref.server_url if report_ref and report_ref.server_url
-                  else settings.POWERBI_REPORT_SERVER_URL)
+                  else get_primary_pbirs_server_url())
     embed_url = f"{server_url}/Reports/powerbi/{encoded_path}?rs:embed=true"
 
     breadcrumbs = []

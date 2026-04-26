@@ -4,11 +4,11 @@ import logging
 from collections.abc import Callable
 
 import requests
-from django.conf import settings
 from django.contrib import messages
 from django.shortcuts import redirect, render
 
 from notifications.models import Notification
+from powerbi_report.services.pbirs_servers import get_primary_pbirs_server_url
 from users.models import CustomUser
 
 logger = logging.getLogger("powerbi_report")
@@ -93,7 +93,11 @@ def add_powerbi_folder_view(request, auth_getter: Callable, history_logger: Call
             messages.error(request, "Folder name is required.")
             return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
 
-        url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/Folders"  # Uses primary server
+        base_url = get_primary_pbirs_server_url()
+        if not base_url:
+            messages.error(request, "No active PBIRS server is configured.")
+            return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
+        url = f"{base_url}/Reports/api/v2.0/Folders"
         auth = auth_getter(request)
         session = requests.Session()
         session.auth = auth
@@ -138,7 +142,11 @@ def delete_powerbi_folder_view(
 ):
     """Delete PBIRS folder and notify admins."""
     if request.method == "POST":
-        url = f"{settings.POWERBI_REPORT_SERVER_URL}/Reports/api/v2.0/Folders({folder_id})"
+        base_url = get_primary_pbirs_server_url()
+        if not base_url:
+            messages.error(request, "No active PBIRS server is configured.")
+            return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
+        url = f"{base_url}/Reports/api/v2.0/Folders({folder_id})"
         auth = auth_getter(request)
         session = requests.Session()
         session.auth = auth
