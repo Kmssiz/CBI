@@ -18,7 +18,7 @@
 {% block content %}
 <div class="px-8 py-6">
     <!-- [ History Section ] start -->
-    <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xl shadow-black/5 dark:shadow-black/20">
+    <div class="card-theme overflow-hidden">
         <div class="px-8 py-6 border-b border-slate-200 dark:border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50 dark:bg-white/[0.02]">
             <h3 class="font-bold text-slate-900 dark:text-white tracking-tight">Journal des Événements {% if selected_user %}pour {{ selected_user.username }}{% endif %}</h3>
             
@@ -26,10 +26,10 @@
                 <form method="get" class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
                     <!-- Action Filter -->
                     <div class="relative">
-                        <select name="action" onchange="this.form.submit()" class="appearance-none bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-xs font-bold text-slate-700 dark:text-black rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-primary/50 transition-all cursor-pointer w-full sm:w-48">
-                            <option value="" class="dark:text-black">Toutes les actions</option>
+                        <select name="action" onchange="this.form.submit()" class="appearance-none bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-xs font-bold text-slate-700 dark:text-slate-300 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-primary/50 transition-all cursor-pointer w-full sm:w-48">
+                            <option value="" class="dark:text-slate-300">Toutes les actions</option>
                             {% for action in actions %}
-                                <option value="{{ action }}" class="dark:text-black" {% if selected_action == action %}selected{% endif %}>
+                                <option value="{{ action }}" class="dark:text-slate-300" {% if selected_action == action %}selected{% endif %}>
                                     {{ action }}
                                 </option>
                             {% endfor %}
@@ -54,10 +54,10 @@
         </div>
         
         {% if history %}
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto custom-scrollbar">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="border-b border-slate-200 dark:border-slate-800/50 bg-slate-50/50 dark:bg-white/[0.01]">
+                    <tr class="border-b border-slate-200 dark:border-slate-800/50 bg-slate-50/50 dark:bg-white/[0.02]">
                         <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Utilisateur</th>
                         <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Action</th>
                         <th class="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Date & Heure</th>
@@ -66,7 +66,7 @@
                 </thead>
                 <tbody class="divide-y divide-slate-200/50 dark:divide-slate-800/30">
                     {% for record in history %}
-                        <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group">
+                        <tr class="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors group">
                         <td class="px-8 py-5">
                             <div class="flex items-center gap-3">
                                 <div class="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">

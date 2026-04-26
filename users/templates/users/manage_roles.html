@@ -33,7 +33,7 @@
     <!-- [ Control Bar ] start -->
     <div class="flex flex-wrap items-center justify-between gap-6 mb-8">
         <div class="flex items-center gap-4 flex-1 min-w-[300px]">
-            <a href="{% url 'users_view' %}" class="size-10 flex items-center justify-center card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all hover:bg-slate-50 dark:hover:bg-white/5 shadow-sm">
+            <a href="{% url 'users_view' %}" class="size-10 flex items-center justify-center card-theme rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all hover:bg-slate-50 dark:hover:bg-white/5 shadow-sm">
                 <span class="material-symbols-outlined text-[20px]">arrow_back</span>
             </a>
             
@@ -49,13 +49,13 @@
     </div>
 
     <!-- [ Roles Table ] start -->
-    <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+    <div class="card-theme rounded-2xl overflow-hidden mb-12">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02]">
             <h2 class="font-bold text-slate-900 dark:text-white tracking-tight">Rôles et Permissions</h2>
-            <span class="text-[10px] font-bold px-2 py-1 bg-primary/20 text-primary rounded uppercase tracking-wider">Total: {{ roles.count }}</span>
+            <span class="text-[10px] font-bold px-2 py-1 bg-primary/10 text-primary rounded border border-primary/20 uppercase tracking-wider">Total: {{ roles.count }}</span>
         </div>
         
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto custom-scrollbar">
             <table class="w-full text-left border-collapse" id="roleTable">
                 <thead>
                     <tr class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800/50">
@@ -64,9 +64,9 @@
                         <th class="px-6 py-4 text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200 dark:divide-slate-800/50">
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
                     {% for role in roles %}
-                    <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-all group">
+                    <tr class="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-all group">
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-500 border border-pink-500/20">
@@ -82,13 +82,13 @@
                             <div class="flex items-center justify-end gap-2">
                                 {% if role.name|lower != 'admin' %}
                                 <a href="{% url 'permissions_list' role.id %}" class="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Détails</a>
-                                <button class="px-3 py-1.5 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" data-bs-toggle="modal" data-bs-target="#editRoleModal{{ role.id }}">Modifier</button>
+                                <button class="px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" data-bs-toggle="modal" data-bs-target="#editRoleModal{{ role.id }}">Modifier</button>
                                 <form method="POST" action="{% url 'remove_role' role.id %}" class="inline">
                                     {% csrf_token %}
-                                    <button type="submit" class="px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce rôle ?')">Supprimer</button>
+                                    <button type="submit" class="px-3 py-1.5 bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce rôle ?')">Supprimer</button>
                                 </form>
                                 {% else %}
-                                <span class="text-[10px] text-slate-600 font-bold uppercase tracking-wider mr-4 italic text-right">Système (Non Modifiable)</span>
+                                <span class="text-[10px] text-slate-500 dark:text-slate-600 font-bold uppercase tracking-wider mr-4 italic text-right">Système (Non Modifiable)</span>
                                 <a href="{% url 'permissions_list' role.id %}" class="px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Consulter</a>
                                 {% endif %}
                             </div>
@@ -109,10 +109,10 @@
 <!-- Create Role Modal -->
 <div class="modal fade" id="createRoleModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+        <div class="modal-content card-theme rounded-2xl shadow-2xl overflow-hidden border-0">
             <form method="POST" action="{% url 'create_role' %}">
                 {% csrf_token %}
-                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02]">
                     <h5 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Créer un nouveau rôle</h5>
                     <button type="button" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" data-bs-dismiss="modal">
                         <span class="material-symbols-outlined text-[24px]">close</span>
@@ -134,7 +134,7 @@
                             <option value="{{ permission.id }}">{{ permission.name }}</option>
                             {% endfor %}
                         </select>
-                        <p class="text-[10px] text-slate-600 italic mt-1">Maintenez Ctrl pour sélectionner plusieurs permissions.</p>
+                        <p class="text-[10px] text-slate-500 dark:text-slate-600 italic mt-1">Maintenez Ctrl pour sélectionner plusieurs permissions.</p>
                     </div>
                 </div>
                 <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800/50 flex justify-end gap-3 bg-slate-50 dark:bg-white/5">
@@ -150,10 +150,10 @@
 {% for role in roles %}
 <div class="modal fade" id="editRoleModal{{ role.id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+        <div class="modal-content card-theme rounded-2xl shadow-2xl overflow-hidden border-0">
             <form method="POST" action="{% url 'edit_role' role.id %}">
                 {% csrf_token %}
-                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02]">
                     <h5 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Modifier le rôle : {{ role.name }}</h5>
                     <button type="button" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" data-bs-dismiss="modal">
                         <span class="material-symbols-outlined text-[24px]">close</span>

@@ -32,58 +32,56 @@
     <form method="get" action="{% url 'users_view' %}" id="filterForm">
     <div class="flex flex-wrap items-center justify-between gap-6 mb-8">
         <div class="flex items-center gap-4 flex-1 min-w-[300px]">
-            <div class="relative flex-1 max-w-sm">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
-                <input type="text" name="search" id="userSearch" value="{{ search_query|default:'' }}" class="w-full pl-10 pr-4 py-2 card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm transition-all text-slate-700 dark:text-slate-300" placeholder="Rechercher par nom...">
+            <div class="relative flex-1 max-w-sm group">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors text-[20px]">search</span>
+                <input type="text" name="search" id="userSearch" value="{{ search_query|default:'' }}" 
+                       class="w-full pl-10 pr-4 py-2 bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white placeholder:text-slate-400" 
+                       placeholder="Rechercher par nom...">
             </div>
             
-            <select name="role" id="roleFilter" class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-slate-700 dark:text-slate-300" onchange="document.getElementById('filterForm').submit()">
+            <select name="role" id="roleFilter" class="bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-slate-700 dark:text-slate-300" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Tous les rôles</option>
                 {% for role in roles %}
                 <option value="{{ role.name }}" {% if role_filter == role.name %}selected{% endif %}>{{ role.name }}</option>
                 {% endfor %}
             </select>
 
-            <select name="status" id="statusFilter" class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-slate-700 dark:text-slate-300" onchange="document.getElementById('filterForm').submit()">
+            <select name="status" id="statusFilter" class="bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-slate-700 dark:text-slate-300" onchange="document.getElementById('filterForm').submit()">
                 <option value="">Tous les statuts</option>
                 <option value="Active" {% if status_filter == 'Active' %}selected{% endif %}>Actif</option>
                 <option value="Not Active" {% if status_filter == 'Not Active' %}selected{% endif %}>Inactif</option>
             </select>
 
-            <select name="direction" id="directionFilter" class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-slate-700 dark:text-slate-300" onchange="document.getElementById('filterForm').submit()">
-                <option value="">Toutes les directions</option>
-                {% for direction in directions %}
-                <option value="{{ direction }}" {% if direction_filter == direction %}selected{% endif %}>{{ direction }}</option>
-                {% endfor %}
-            </select>
-
         </div>
 
         <div class="flex items-center gap-3">
-            <button type="button" id="syncUsersBtn" class="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-600 dark:text-slate-400" onclick="startSyncUsers()">
+            <button type="button" id="syncUsersBtn" class="flex items-center gap-2 px-5 py-2.5 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-slate-700/50 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl text-sm font-bold transition-all text-slate-700 dark:text-white" onclick="startSyncUsers()">
                 <span class="material-symbols-outlined text-[18px]">sync</span> Synchroniser
             </button>
             
             {% if permissions.view_role %}
-            <button type="button" class="flex items-center gap-2 px-4 py-2 border border-emerald-500/20 text-emerald-500 dark:text-emerald-400 hover:bg-emerald-500/5 rounded-lg text-sm font-bold transition-all" onclick="window.location.href='{% url 'manage_roles' %}'">
-                <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span> Rôles
-            </button>
+            <a href="{% url 'manage_roles' %}" class="flex items-center gap-2 px-5 py-2.5 bg-primary text-white hover:bg-primary-dark rounded-xl text-sm font-bold shadow-lg shadow-primary/20 transition-all">
+                <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span> Gérer les Rôles
+            </a>
             {% endif %}
         </div>
     </div>
     </form>
 
     <!-- [ User List Section ] start -->
-    <div class="card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm dark:shadow-none overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50 dark:bg-white/5">
-            <h2 class="font-bold text-theme text-slate-900 tracking-tight">Utilisateurs récents</h2>
-            <span class="text-[10px] font-bold px-2 py-1 bg-primary/20 text-primary rounded uppercase tracking-wider">Total: {{ users.paginator.count }}</span>
+    <div class="card-theme overflow-hidden mb-12">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02]">
+            <h2 class="font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">group</span>
+                Utilisateurs CBI
+            </h2>
+            <span class="text-[10px] font-bold px-2 py-1 bg-primary/10 text-primary rounded border border-primary/20 uppercase tracking-wider">Total: {{ users.paginator.count }}</span>
         </div>
         
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto custom-scrollbar">
             <table class="w-full text-left border-collapse min-w-[1000px]" id="userTable">
                 <thead>
-                    <tr class="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800/50">
+                    <tr class="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800/50 bg-slate-50/50 dark:bg-white/[0.02]">
                         <th class="px-6 py-4">Utilisateur</th>
                         <th class="px-6 py-4">Email</th>
                         <th class="px-6 py-4">Rôle</th>
@@ -94,7 +92,7 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
                     {% for user in users %}
-                    <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-all group" data-permission="true" data-user-id="{{ user.id }}" data-user-role="{{ user.role|lower }}" data-user-view="{{ user.default_view }}" data-user-status="{{ user.status|lower }}">
+                    <tr class="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-all group" data-permission="true" data-user-id="{{ user.id }}" data-user-role="{{ user.role.id }}" data-user-view="{{ user.default_view }}" data-user-status="{{ user.status|lower }}" data-user-can-anomalie="{{ user.can_view_anomalie|yesno:"true,false" }}">
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm" style="background-color: {% if not user.profile_image %}{{ user.get_avatar_color }}{% endif %};">
@@ -105,12 +103,12 @@
                                     {% endif %}
                                 </div>
                                 <div class="flex flex-col">
-                                    <span class="text-sm font-bold text-theme text-slate-900">{{ user.AD2000|default:user.get_full_name }}</span>
-                                    <span class="text-[10px] text-slate-500 uppercase tracking-tighter">{{ user.username }}</span>
+                                    <span class="text-sm font-bold text-slate-900 dark:text-white">{{ user.AD2000|default:user.get_full_name }}</span>
+                                    <span class="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-tighter">{{ user.username }}</span>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 text-sm text-slate-500">{{ user.email }}</td>
+                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">{{ user.email }}</td>
                         <td class="px-6 py-4">
                             <span class="text-sm font-medium text-slate-600 dark:text-slate-400">{{ user.role|default:"None" }}</span>
                         </td>
@@ -121,8 +119,8 @@
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider">
-                                <span class="w-1.5 h-1.5 rounded-full {% if user.status == 'Active' %}bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]{% else %}bg-red-500{% endif %}"></span>
-                                <span class="{% if user.status == 'Active' %}text-emerald-400{% else %}text-red-400{% endif %}">
+                                <span class="w-1.5 h-1.5 rounded-full {% if user.status == 'Active' %}bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]{% else %}bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]{% endif %}"></span>
+                                <span class="{% if user.status == 'Active' %}text-emerald-600 dark:text-emerald-400{% else %}text-red-600 dark:text-red-400{% endif %}">
                                     {% if user.status == 'Active' %}Actif{% else %}Inactif{% endif %}
                                 </span>
                             </div>
@@ -130,24 +128,24 @@
                         <td class="px-6 py-4">
                             <div class="flex items-center justify-end gap-2">
                                 {% if permissions.change_powerbireport and user.ad2000 %}
-                                <a href="{% url 'powerbi_report:user_permission' user.ad2000 %}" class="px-3 py-1.5 bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 border border-pink-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Accès</a>
+                                <a href="{% url 'powerbi_report:user_permission' user.ad2000 %}" class="px-3 py-1.5 bg-pink-500/10 text-pink-600 dark:text-pink-400 hover:bg-pink-500/20 border border-pink-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Accès</a>
                                 {% endif %}
                                 
                                 <a href="{% url 'user_details' %}?user_id={{ user.id }}" class="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Info</a>
                                 
                                 {% if permissions.view_userhistory %}
-                                <a href="{% url 'user_history_user' user.id %}?source=users_view" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Activité</a>
+                                <a href="{% url 'user_history_user' user.id %}?source=users_view" class="px-3 py-1.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Activité</a>
                                 {% endif %}
 
                                 {% if permissions.change_customuser %}
-                                <button class="px-3 py-1.5 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" onclick="openEditModal({{ user.id }}, '{{ user.role.id }}', '{{ user.default_view }}')">Modifier</button>
+                                <button class="px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" onclick="openEditModal({{ user.id }}, '{{ user.role.id }}', '{{ user.default_view }}', {{ user.can_view_anomalie|yesno:"true,false" }})">Modifier</button>
                                 {% endif %}
                             </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="px-6 py-12 text-center text-slate-600 font-medium">Aucun utilisateur trouvé.</td>
+                        <td colspan="7" class="px-6 py-12 text-center text-slate-500 dark:text-slate-600 font-medium italic">Aucun utilisateur trouvé.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -201,36 +199,46 @@
 <!-- Edit Modal -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl">
+        <div class="modal-content card-theme rounded-2xl shadow-2xl border-0 overflow-hidden">
             <form id="editUserForm" method="post" action="{% url 'user_edit' 0 %}">
                 {% csrf_token %}
-                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                    <h5 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Modifier les paramètres</h5>
-                    <button type="button" class="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors" onclick="closeEditModal()">
-                        <span class="material-symbols-outlined text-[24px]">close</span>
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
+                    <h5 class="font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                        <span class="material-symbols-outlined text-amber-500">edit_square</span>
+                        Paramètres Utilisateur
+                    </h5>
+                    <button type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors" onclick="closeEditModal()">
+                        <span class="material-symbols-outlined">close</span>
                     </button>
                 </div>
-                <div class="p-6 space-y-4">
+                <div class="p-6 space-y-6">
                     <input type="hidden" name="user_id" id="editUserId">
                     <div class="space-y-2">
-                        <label for="editUserRole" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Rôle Utilisateur</label>
-                        <select name="role" id="editUserRole" class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all">
+                        <label for="editUserRole" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Rôle Système</label>
+                        <select name="role" id="editUserRole" class="w-full bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-slate-700/50 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all">
                             {% for role in roles %}
                             <option value="{{ role.id }}">{{ role.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="space-y-2">
-                        <label for="editUserView" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Vue par défaut</label>
-                        <select name="default_view" id="editUserView" class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all">
+                        <label for="editUserView" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Vue par défaut</label>
+                        <select name="default_view" id="editUserView" class="w-full bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-slate-700/50 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all">
                             <option value="direction">Vue Direction</option>
                             <option value="pole">Vue Pôle</option>
                         </select>
                     </div>
+
+                    <div class="space-y-4 pt-2">
+                        <label class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/50 transition-all group">
+                            <input type="checkbox" name="can_view_anomalie" id="editCanViewAnomalie" class="w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary/20 transition-all">
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-primary transition-colors">Autoriser l'accès à la section Anomalie</span>
+                        </label>
+                    </div>
                 </div>
-                <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-slate-50 dark:bg-white/5">
-                    <button type="button" class="px-5 py-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-bold text-sm transition-all" onclick="closeEditModal()">Annuler</button>
-                    <button type="submit" class="px-6 py-2 bg-primary hover:bg-blue-600 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-primary/20">Enregistrer</button>
+                <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800/50 flex justify-end gap-3 bg-slate-50/50 dark:bg-white/5">
+                    <button type="button" class="px-5 py-2.5 text-slate-500 hover:text-slate-700 dark:hover:text-white font-bold text-sm transition-all" onclick="closeEditModal()">Annuler</button>
+                    <button type="submit" class="px-6 py-2.5 bg-primary text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-primary/20 hover:bg-primary-dark">Enregistrer les modifications</button>
                 </div>
             </form>
         </div>
@@ -239,7 +247,7 @@
 
 <!-- Loading Overlay for Sync -->
 <div id="syncLoadingOverlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999]" style="display: none;">
-  <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl max-w-sm mx-4">
+  <div class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl max-w-sm mx-4">
     <div class="relative">
       <span class="material-symbols-outlined text-[48px] text-primary animate-spin">sync</span>
     </div>
@@ -278,13 +286,16 @@
   }
 
   // Function to open the edit modal
-  function openEditModal(userId, currentRole, currentView) {
+  function openEditModal(userId, currentRole, currentView, canAnomalie) {
     document.getElementById('editUserId').value = userId;
     const roleSelect = document.getElementById('editUserRole');
-    roleSelect.value = currentRole; // Set the current role
+    roleSelect.value = currentRole; 
 
     const viewSelect = document.getElementById('editUserView');
-    viewSelect.value = currentView || 'direction'; // Set the current default view
+    viewSelect.value = currentView || 'direction'; 
+
+    // Set permission checkbox
+    document.getElementById('editCanViewAnomalie').checked = canAnomalie;
 
     const form = document.getElementById('editUserForm');
     form.action = "{% url 'user_edit' 0 %}".replace('/0/', '/' + userId + '/');
@@ -357,10 +368,16 @@
 
   .loading-content {
     text-align: center;
-    color: #137fec;
-    background: #121922;
+    color: var(--primary);
+    background: white;
     padding: 32px;
     border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .loading-content {
+    background: #121922;
     border: 1px solid rgba(255, 255, 255, 0.05);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   }

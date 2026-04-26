@@ -87,16 +87,38 @@
     }
   </style>
   
-  <!-- Dark mode CSS overrides -->
+  <!-- Theme CSS overrides -->
   <style>
+    :root {
+      --primary: #2563eb;
+      --surface-light: #f8fafc;
+      --surface-dark: #0f172a;
+      --card-bg-light: #ffffff;
+      --card-bg-dark: #1e293b;
+      --border-light: #eef2f6;
+      --border-dark: #334155;
+    }
+
     /* Card and panel backgrounds */
+    .card-theme {
+      background-color: var(--card-bg-light);
+      border: 1px solid var(--border-light);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
     .dark .card-theme {
-      background-color: #1e293b !important;
-      border-color: #334155 !important;
+      background-color: var(--card-bg-dark) !important;
+      border-color: var(--border-dark) !important;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1) !important;
+    }
+    .card-theme-alt {
+      background-color: rgba(255, 255, 255, 0.8);
+      border: 1px solid var(--border-light);
+      backdrop-filter: blur(8px);
     }
     .dark .card-theme-alt {
       background-color: rgba(30, 41, 59, 0.8) !important;
-      border-color: #334155 !important;
+      border-color: var(--border-dark) !important;
     }
     /* Text colors */
     .dark .text-theme {
@@ -106,14 +128,25 @@
       color: #94a3b8 !important;
     }
     /* Input backgrounds */
+    .input-theme {
+      background-color: #ffffff;
+      border: 1px solid var(--border-light);
+      color: #1e293b;
+      transition: all 0.2s;
+    }
     .dark .input-theme {
-      background-color: #1e293b !important;
-      border-color: #334155 !important;
+      background-color: var(--card-bg-dark) !important;
+      border-color: var(--border-dark) !important;
       color: #e2e8f0 !important;
+    }
+    .input-theme:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+      outline: none;
     }
     /* Table backgrounds */
     .dark .table-theme {
-      background-color: #1e293b !important;
+      background-color: var(--card-bg-dark) !important;
     }
     .dark .table-row-theme:hover {
       background-color: rgba(51, 65, 85, 0.5) !important;
@@ -122,11 +155,11 @@
     /* Sidebar theming */
     .sidebar-theme {
       background-color: #ffffff;
-      border-color: #e2e8f0;
+      border-right: 1px solid var(--border-light);
     }
     .dark .sidebar-theme {
       background-color: #070b0f !important;
-      border-color: rgba(30, 41, 59, 0.5) !important;
+      border-right: 1px solid rgba(30, 41, 59, 0.5) !important;
     }
     
     /* Sidebar section labels */
@@ -172,15 +205,46 @@
       color: #10b981 !important;
     }
     
-    /* Hide scrollbar for Chrome, Safari and Opera by default */
+    /* Styled Custom Scrollbar */
     .custom-scrollbar::-webkit-scrollbar {
-      display: none;
+      width: 6px;
+      height: 6px;
+      display: block;
     }
 
-    /* Hide scrollbar for IE, Edge and Firefox by default */
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.4); /* slate-400 */
+      border-radius: 10px;
+      transition: all 0.3s;
+    }
+
+    .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.6);
+    }
+
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .dark .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .dark .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+      background: rgba(71, 85, 105, 0.7); /* slate-600 */
+    }
+
+    /* Firefox Support */
     .custom-scrollbar {
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+    }
+
+    .dark .custom-scrollbar {
+      scrollbar-color: rgba(51, 65, 85, 0.5) transparent;
     }
 
     /* Dark Mode Scrollbar Global Styles */
@@ -316,40 +380,38 @@
         <div class="h-4"></div>
         <p class="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-2">Navigation</p>
 
-        {% if permissions.view_dashboard %}
-          <a href="{% url 'powerbi_report:custom_direction' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/direction' in request.path or request.GET.context == 'direction' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
-            <span class="material-symbols-outlined text-[20px]">business_center</span>
-            <span class="text-sm font-medium">Direction</span>
-          </a>
-          <a href="{% url 'powerbi_report:custom_pole' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/pole' in request.path or request.GET.context == 'pole' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
-            <span class="material-symbols-outlined text-[20px]">groups</span>
-            <span class="text-sm font-medium">Pôle</span>
-          </a>
-        {% else %}
-          {% if user.default_view == 'pole' %}
-            <a href="{% url 'powerbi_report:custom_pole' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/pole' in request.path or request.GET.context == 'pole' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
-              <span class="material-symbols-outlined text-[20px]">groups</span>
-              <span class="text-sm font-medium">Rapport</span>
-            </a>
-          {% else %}
-            <a href="{% url 'powerbi_report:custom_direction' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/direction' in request.path or request.GET.context == 'direction' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
-              <span class="material-symbols-outlined text-[20px]">business_center</span>
-              <span class="text-sm font-medium">Rapport</span>
-            </a>
-          {% endif %}
+        {% if permissions.can_view_direction %}
+        <a href="{% url 'powerbi_report:custom_direction' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/direction' in request.path or request.GET.context == 'direction' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
+          <span class="material-symbols-outlined text-[20px]">business_center</span>
+          <span class="text-sm font-medium">Direction</span>
+        </a>
         {% endif %}
-            <a href="{% url 'powerbi_report:custom_consolide' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/consolide' in request.path or request.GET.context == 'consolide' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
+
+        {% if permissions.can_view_pole %}
+        <a href="{% url 'powerbi_report:custom_pole' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/pole' in request.path or request.GET.context == 'pole' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
+          <span class="material-symbols-outlined text-[20px]">groups</span>
+          <span class="text-sm font-medium">Pôle</span>
+        </a>
+        {% endif %}
+
+        {% if permissions.can_view_consolide %}
+        <a href="{% url 'powerbi_report:custom_consolide' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/consolide' in request.path or request.GET.context == 'consolide' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">layers</span>
           <span class="text-sm font-medium">Consolidé</span>
         </a>
+        {% endif %}
+
         <a href="{% url 'powerbi_report:custom_biblio' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/biblio' in request.path or request.GET.context == 'biblio' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">library_books</span>
           <span class="text-sm font-medium">Bibliothèque</span>
         </a>
+
+        {% if permissions.can_view_anomalie %}
         <a href="{% url 'powerbi_report:custom_anomalie' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/anomalie' in request.path or request.GET.context == 'anomalie' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">warning</span>
           <span class="text-sm font-medium">Anomalie</span>
         </a>
+        {% endif %}
         <div class="h-4"></div>
         <div class="h-4"></div>
         <p class="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-2">Support</p>
@@ -397,7 +459,7 @@
 
 
   <main class="flex-1 flex flex-col relative overflow-auto">
-    <header class="h-20 flex items-center justify-between px-4 lg:px-8 bg-white/80 dark:bg-transparent backdrop-blur-md sticky top-0 z-10 shrink-0">
+    <header class="h-20 flex items-center justify-between px-4 lg:px-8 bg-white/80 dark:bg-transparent backdrop-blur-md sticky top-0 z-[100] shrink-0">
       <div class="flex items-center gap-4">
         <button id="mobile-menu-toggle" class="lg:hidden p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
           <span class="material-symbols-outlined text-[24px]">menu</span>
@@ -429,7 +491,7 @@
                 <span class="absolute -top-1 -right-1 size-4 bg-primary text-[10px] font-bold text-white rounded-full flex items-center justify-center">{{ unread }}</span>
               {% endif %}
             </button>
-            <div class="dropdown-menu dropdown-menu-end p-0 !bg-white dark:!bg-deep-charcoal border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden w-[420px]">
+            <div class="dropdown-menu dropdown-menu-end p-0 !bg-white dark:!bg-deep-charcoal border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden w-[420px] z-[1000]">
               <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800/50">
                 <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tight">Notifications</h3>
                  <form action="{% url 'mark_notifications' %}" method="post" class="m-0">

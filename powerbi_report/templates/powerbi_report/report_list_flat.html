@@ -45,8 +45,8 @@
     </div>
 
     <!-- [ Reports Table ] start -->
-    <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+    <div class="card-theme overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02]">
             <h2 class="font-bold text-slate-900 dark:text-white tracking-tight">Tous les Rapports</h2>
             <span class="text-[10px] font-bold px-2 py-1 bg-primary/20 text-primary rounded uppercase tracking-wider">Total: {{ reports.paginator.count }}</span>
         </div>
@@ -54,7 +54,7 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse min-w-[1000px]" id="reportsTable">
                 <thead>
-                    <tr class="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800/50 bg-slate-50 dark:bg-slate-900/20">
+                    <tr class="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800/50 bg-slate-50/50 dark:bg-white/[0.02]">
                         <th class="px-6 py-4">Nom du Rapport</th>
                         <th class="px-6 py-4">Chemin</th>
                         <th class="px-6 py-4 text-right">Actions</th>

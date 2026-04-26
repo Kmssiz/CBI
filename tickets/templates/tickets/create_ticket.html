@@ -31,7 +31,7 @@
     <p class="text-slate-500 dark:text-slate-400 mt-2">Detaillez votre demande ci-dessous pour aider notre equipe a comprendre vos besoins.</p>
   </div>
 
-  <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-xl p-6 lg:p-8 shadow-xl shadow-black/5 dark:shadow-black/20">
+  <div class="card-theme p-6 lg:p-8">
     <form method="post" action="{% url 'tickets:create_ticket' %}" enctype="multipart/form-data">
       {% csrf_token %}
 
@@ -57,7 +57,7 @@
       <div class="space-y-6">
         <div>
           <label for="{{ form.title.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Titre du ticket</label>
-          <input type="text" name="{{ form.title.name }}" id="{{ form.title.id_for_label }}" class="w-full bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all" placeholder="Ex: Erreur lors du chargement..." value="{{ form.title.value|default:'' }}" required>
+          <input type="text" name="{{ form.title.name }}" id="{{ form.title.id_for_label }}" class="input-theme w-full" placeholder="Ex: Erreur lors du chargement..." value="{{ form.title.value|default:'' }}" required>
           {% if form.title.help_text %}
           <p class="text-xs text-slate-500 mt-1">{{ form.title.help_text }}</p>
           {% endif %}
@@ -67,7 +67,7 @@
           <div>
             <label for="{{ form.ticket_type.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Type de demande</label>
             <div class="relative">
-              <select name="{{ form.ticket_type.name }}" id="{{ form.ticket_type.id_for_label }}" class="w-full bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all appearance-none">
+              <select name="{{ form.ticket_type.name }}" id="{{ form.ticket_type.id_for_label }}" class="input-theme w-full appearance-none">
                 {% for value, label in form.ticket_type.field.choices %}
                 <option value="{{ value }}" {% if form.ticket_type.value == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
@@ -81,7 +81,7 @@
           <div>
             <label for="{{ form.category.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Categorie</label>
             <div class="relative">
-              <select name="{{ form.category.name }}" id="{{ form.category.id_for_label }}" class="w-full bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all appearance-none">
+              <select name="{{ form.category.name }}" id="{{ form.category.id_for_label }}" class="input-theme w-full appearance-none">
                 {% for value, label in form.category.field.choices %}
                 <option value="{{ value }}" {% if form.category.value == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
@@ -95,7 +95,7 @@
           <div>
             <label for="{{ form.priority.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Priorite</label>
             <div class="relative">
-              <select name="{{ form.priority.name }}" id="{{ form.priority.id_for_label }}" class="w-full bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all appearance-none">
+              <select name="{{ form.priority.name }}" id="{{ form.priority.id_for_label }}" class="input-theme w-full appearance-none">
                 {% for value, label in form.priority.field.choices %}
                 <option value="{{ value }}" {% if form.priority.value == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
@@ -109,13 +109,13 @@
 
         <div>
           <label for="{{ form.description.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Description detaillee</label>
-          <textarea name="{{ form.description.name }}" id="{{ form.description.id_for_label }}" rows="6" class="w-full bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all resize-y" placeholder="Expliquez votre probleme ou votre demande en detail..." required>{{ form.description.value|default:'' }}</textarea>
+          <textarea name="{{ form.description.name }}" id="{{ form.description.id_for_label }}" rows="6" class="input-theme w-full resize-y" placeholder="Expliquez votre probleme ou votre demande en detail..." required>{{ form.description.value|default:'' }}</textarea>
         </div>
 
         <div>
           <label for="{{ form.attachment.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Piece jointe (image)</label>
           <div class="relative">
-            <input type="file" name="{{ form.attachment.name }}" id="{{ form.attachment.id_for_label }}" accept="image/*" class="w-full bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all file:mr-4 file:py-1 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 file:cursor-pointer file:transition-all">
+            <input type="file" name="{{ form.attachment.name }}" id="{{ form.attachment.id_for_label }}" accept="image/*" class="input-theme w-full file:mr-4 file:py-1 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 file:cursor-pointer file:transition-all">
           </div>
           <p class="text-xs text-slate-500 mt-1.5">Formats acceptes : JPG, PNG, GIF. Taille max : 5 Mo.</p>
           <div id="image-preview" class="mt-3 hidden">

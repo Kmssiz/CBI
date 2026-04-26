@@ -259,9 +259,11 @@ def landing_page(request):
     """Landing page shown to all users immediately after login."""
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
+    permissions = get_user_permissions(request.user)
     return render(request, 'landing.html', {
         'notifications': notifications,
         'unread': unread,
+        'permissions': permissions,
     })
 
 
@@ -526,7 +528,10 @@ def permissions_list(request, role_id):
 #################################################################################################################
 @admin_required
 def sync_users(request):
-
+    """
+    Synchronizes users with LDAP directory.
+    Optimized for large datasets using bulk lookups to avoid O(N) database queries.
+    """
     # Use default LDAP service account for user synchronization
     ldap_username = settings.LDAP_SERVICE_USERNAME
     ldap_password = settings.LDAP_SERVICE_PASSWORD
@@ -542,22 +547,21 @@ def sync_users(request):
          messages.error(request, "Failed to fetch LDAP users or no users found.")
          return redirect('users_view')
 
+    # Optimization: Fetch all existing users in one query to create local lookup maps
+    # We only need a few fields for identification and change detection
+    all_db_users = CustomUser.objects.all().only('id', 'username', 'ad2000', 'pole', 'direction', 'societe', 'ad_groups')
+    username_map = {u.username.lower(): u for u in all_db_users}
+    ad2000_map = {u.ad2000.lower(): u for u in all_db_users if u.ad2000}
+
     count = 0
-    skipped = 0
     already_exist = 0
+    skipped = 0
     
-    # Debug: print first 5 LDAP users to see actual data
-    for i, ldap_user in enumerate(ldap_users[:5]):
-        logger.debug(
-            "LDAP sync sample idx=%s sam=%s ad2000=%s",
-            i,
-            ldap_user.get("sAMAccountName"),
-            ldap_user.get("ad2000"),
-        )
-    
+    user_role, _ = Role.objects.get_or_create(name=settings.USER_ROLE_NAME)
+
     for ldap_user in ldap_users:
-        ad2000 = ldap_user.get("ad2000", "").strip()
-        sam_account = ldap_user.get("sAMAccountName", "").strip()
+        ad2000 = (ldap_user.get("ad2000") or "").strip()
+        sam_account = (ldap_user.get("sAMAccountName") or "").strip()
         ldap_groups = _normalize_ad_groups(ldap_user.get("ad_groups", []))
         
         # Fallback to sAMAccountName if ad2000 (extensionAttribute1) is empty or just "[]"
@@ -569,30 +573,12 @@ def sync_users(request):
             skipped += 1
             continue
 
-        # Check if user already exists by ad2000 OR by username
-        user = CustomUser.objects.filter(ad2000__iexact=ad2000).first()
-        matched_by = "ad2000" if user else None
-        
+        # Check lookup maps first (O(1))
+        user = ad2000_map.get(ad2000.lower())
         if not user:
-            user = CustomUser.objects.filter(username__iexact=sam_account).first()
-            if user:
-                matched_by = "username"
-        
-        # Debug: Print first few matches to understand why they're matching
-        if user and already_exist < 5:
-            logger.debug(
-                "LDAP sync match sam=%s ad2000=%s matched_by=%s user_id=%s db_username=%s db_ad2000=%s",
-                sam_account,
-                ad2000,
-                matched_by,
-                user.id,
-                user.username,
-                user.ad2000,
-            )
-        
-        if not user:
-            user_role, _ = Role.objects.get_or_create(name=settings.USER_ROLE_NAME)
+            user = username_map.get(sam_account.lower())
 
+        if not user:
             try:
                 user = CustomUser(
                     username=sam_account,  
@@ -610,14 +596,19 @@ def sync_users(request):
                 user.save()  
                 user.user_permissions.set(user_role.permissions.all())  
                 count += 1
+                
+                # Update maps for subsequent lookups in the same loop
+                username_map[user.username.lower()] = user
+                if user.ad2000:
+                    ad2000_map[user.ad2000.lower()] = user
             except Exception as e:
                 logger.exception("Failed to save synced LDAP user %s: %s", sam_account, e)
         else:
-            # Minimize expensive model.save() calls (signals/audit) to avoid sync timeouts.
+            # Efficiently update existing users only if fields changed
             update_fields = {}
-
             company = ldap_user.get("company", "").strip()
             department = ldap_user.get("department", "").strip()
+            
             if not user.pole and company:
                 user.pole = company
                 update_fields["pole"] = company
@@ -647,6 +638,7 @@ def sync_users(request):
     )
     messages.success(request, f"User synchronization completed. {count} new users added. ({already_exist} already existed)")
     return redirect('users_view')
+
 
 
 
@@ -705,9 +697,17 @@ def user_edit(request, user_id):
             user.is_superuser = is_admin_role
             user.is_staff = is_admin_role
         
-        # Update default view (always update, even if role is not changed)
+        # Update default view
         old_view = user.default_view
         user.default_view = new_default_view
+
+        # Sync boolean permission fields with the default view
+        user.can_view_direction = (new_default_view == 'direction')
+        user.can_view_pole = (new_default_view == 'pole')
+
+        # Update specific permissions
+        user.can_view_anomalie = request.POST.get('can_view_anomalie') == 'on'
+        
         user.save()
 
         # Log the updates

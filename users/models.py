@@ -23,6 +23,9 @@ class CustomUser(AbstractUser):
     profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
     user_permissions = models.ManyToManyField(Permission, blank=True)
     can_view_consolide = models.BooleanField(default=False, help_text="Accès à la page des rapports consolidés")
+    can_view_anomalie = models.BooleanField(default=False, help_text="Accès à la page des rapports anomalies")
+    can_view_direction = models.BooleanField(default=True, help_text="Accès à la vue Direction")
+    can_view_pole = models.BooleanField(default=False, help_text="Accès à la vue Pôle")
     default_view = models.CharField(
         max_length=20, 
         choices=VIEW_CHOICES, 

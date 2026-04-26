@@ -35,22 +35,22 @@
     <!-- [ Control Bar ] start -->
     <div class="flex flex-wrap items-center justify-between gap-6 mb-8">
         <div class="flex items-center gap-4">
-            <a href="{% url 'manage_roles' %}" class="size-10 flex items-center justify-center bg-surface-dark border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-all hover:bg-white/5 shadow-sm">
+            <a href="{% url 'manage_roles' %}" class="size-10 flex items-center justify-center bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all hover:bg-slate-100 dark:hover:bg-slate-700 shadow-sm">
                 <span class="material-symbols-outlined text-[20px]">arrow_back</span>
             </a>
-            <h3 class="text-lg font-bold text-white tracking-tight">{{ role.name }}</h3>
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{{ role.name }}</h3>
         </div>
 
         <div class="flex items-center gap-3">
             <form method="post" class="inline">
                 {% csrf_token %}
-                <button type="submit" name="action" value="grant_all" class="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-sm font-bold hover:bg-emerald-500/20 transition-all">
+                <button type="submit" name="action" value="grant_all" class="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-lg text-sm font-bold hover:bg-emerald-500/20 transition-all">
                     <span class="material-symbols-outlined text-[18px]">add_task</span> Tout accorder
                 </button>
             </form>
             <form method="post" class="inline">
                 {% csrf_token %}
-                <button type="submit" name="action" value="revoke_all" class="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-sm font-bold hover:bg-red-500/20 transition-all">
+                <button type="submit" name="action" value="revoke_all" class="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 rounded-lg text-sm font-bold hover:bg-red-500/20 transition-all">
                     <span class="material-symbols-outlined text-[18px]">remove_done</span> Tout révoquer
                 </button>
             </form>
@@ -58,60 +58,89 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Missing Permissions -->
-        <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[600px]">
-            <div class="px-6 py-4 border-b border-slate-800/50 bg-white/5 flex items-center justify-between">
-                <h4 class="font-bold text-white text-sm uppercase tracking-widest">Permissions Disponibles</h4>
-                <span class="text-[10px] font-bold px-2 py-1 bg-slate-800 text-slate-400 rounded">Disponibles</span>
+        <!-- Available Permissions -->
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 shadow-sm rounded-2xl overflow-hidden flex flex-col h-[600px]">
+            <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/80 flex items-center justify-between">
+                <div>
+                    <h4 class="font-bold text-slate-900 dark:text-white text-sm uppercase tracking-widest">Disponibles</h4>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Permissions pouvant être ajoutées</p>
+                </div>
+                <span class="text-[10px] font-bold px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                    {{ permissions_list|length }} total
+                </span>
             </div>
-            <div class="flex-1 overflow-y-auto p-4 space-y-2 text-slate-400">
-                {% for perm in permissions_list %}
-                    {% if perm not in all_permissions %}
-                    <div class="flex items-center justify-between p-3 bg-white/[0.02] border border-slate-800/50 rounded-xl hover:bg-white/[0.05] transition-all group">
-                        <div class="flex flex-col">
-                            <span class="text-xs font-bold text-slate-300">{{ perm.name }}</span>
-                            <span class="text-[10px] text-slate-500 uppercase tracking-tighter">{{ perm.content_type.app_label }} | {{ perm.content_type.model }}</span>
+            
+            <div class="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar bg-slate-50/50 dark:bg-slate-900/10" id="available-permissions">
+                <div class="grid grid-cols-1 gap-3">
+                    {% for perm in permissions_list %}
+                        {% if perm not in all_permissions %}
+                        <div class="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl hover:border-indigo-400/50 dark:hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/5 transition-all group">
+                            <div class="flex items-center gap-4">
+                                <div class="size-10 rounded-xl bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center text-slate-400 group-hover:text-indigo-500 transition-colors">
+                                    <span class="material-symbols-outlined text-[20px]">security</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold text-slate-700 dark:text-slate-200">{{ perm.name }}</span>
+                                    <span class="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">{{ perm.content_type.app_label }} • {{ perm.content_type.model }}</span>
+                                </div>
+                            </div>
+                            <form method="post" class="mb-0">
+                                {% csrf_token %}
+                                <input type="hidden" name="permission" value="{{ perm.id }}">
+                                <button type="submit" name="action" value="grant" class="size-9 flex items-center justify-center bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-emerald-500 hover:text-white shadow-lg shadow-emerald-500/20">
+                                    <span class="material-symbols-outlined text-[20px]">add</span>
+                                </button>
+                            </form>
                         </div>
-                        <form method="post" class="mb-0">
-                            {% csrf_token %}
-                            <input type="hidden" name="permission" value="{{ perm.id }}">
-                            <button type="submit" name="action" value="grant" class="size-8 flex items-center justify-center bg-emerald-500/10 text-emerald-400 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-emerald-500/20">
-                                <span class="material-symbols-outlined text-[18px]">add</span>
-                            </button>
-                        </form>
-                    </div>
-                    {% endif %}
-                {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
             </div>
         </div>
 
         <!-- Current Permissions -->
-        <div class="bg-surface-dark border border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[600px]">
-            <div class="px-6 py-4 border-b border-slate-800/50 bg-white/5 flex items-center justify-between">
-                <h4 class="font-bold text-white text-sm uppercase tracking-widest">Permissions Actuelles</h4>
-                <span class="text-[10px] font-bold px-2 py-1 bg-primary/20 text-primary rounded">Assignées</span>
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 shadow-sm rounded-2xl overflow-hidden flex flex-col h-[600px]">
+            <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/80 flex items-center justify-between">
+                <div>
+                    <h4 class="font-bold text-slate-900 dark:text-white text-sm uppercase tracking-widest">Assignées</h4>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Permissions actuellement actives</p>
+                </div>
+                <span class="text-[10px] font-bold px-2.5 py-1 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg border border-indigo-500/20">
+                    {{ all_permissions|length }} actives
+                </span>
             </div>
-            <div class="flex-1 overflow-y-auto p-4 space-y-2">
-                {% for perm in all_permissions %}
-                <div class="flex items-center justify-between p-3 bg-primary/5 border border-primary/10 rounded-xl hover:bg-primary/10 transition-all group">
-                    <div class="flex flex-col">
-                        <span class="text-xs font-bold text-white">{{ perm.name }}</span>
-                        <span class="text-[10px] text-primary/60 uppercase tracking-tighter">{{ perm.content_type.app_label }} | {{ perm.content_type.model }}</span>
+            
+            <div class="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar bg-indigo-50/30 dark:bg-indigo-900/10" id="assigned-permissions">
+                <div class="grid grid-cols-1 gap-3">
+                    {% for perm in all_permissions %}
+                    <div class="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-800/50 border border-indigo-100 dark:border-indigo-500/30 rounded-2xl hover:border-indigo-400/50 dark:hover:border-indigo-400/50 hover:shadow-lg hover:shadow-indigo-500/5 transition-all group">
+                        <div class="flex items-center gap-4">
+                            <div class="size-10 rounded-xl bg-indigo-100/50 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-500">
+                                <span class="material-symbols-outlined text-[20px]">verified_user</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-sm font-bold text-slate-800 dark:text-slate-100">{{ perm.name }}</span>
+                                <span class="text-[10px] text-indigo-500/70 dark:text-indigo-400 uppercase tracking-wider">{{ perm.content_type.app_label }} • {{ perm.content_type.model }}</span>
+                            </div>
+                        </div>
+                        <form method="post" class="mb-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="permission" value="{{ perm.id }}">
+                            <button type="submit" name="action" value="revoke" class="size-9 flex items-center justify-center bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white shadow-lg shadow-red-500/20">
+                                <span class="material-symbols-outlined text-[20px]">delete</span>
+                            </button>
+                        </form>
                     </div>
-                    <form method="post" class="mb-0">
-                        {% csrf_token %}
-                        <input type="hidden" name="permission" value="{{ perm.id }}">
-                        <button type="submit" name="action" value="revoke" class="size-8 flex items-center justify-center bg-red-500/10 text-red-400 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/20">
-                            <span class="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
-                    </form>
+                    {% empty %}
+                    <div class="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-600">
+                        <div class="size-20 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center mb-4">
+                            <span class="material-symbols-outlined text-[40px] opacity-20">shield_lock</span>
+                        </div>
+                        <p class="text-sm font-medium">Aucune permission assignée</p>
+                        <p class="text-[11px] mt-1 opacity-60">Ajoutez des permissions depuis la liste de gauche.</p>
+                    </div>
+                    {% endfor %}
                 </div>
-                {% empty %}
-                <div class="flex flex-col items-center justify-center h-full text-slate-600 italic">
-                    <span class="material-symbols-outlined text-[48px] mb-2 opacity-20">shield_lock</span>
-                    <p class="text-sm">Aucune permission assignée à ce rôle</p>
-                </div>
-                {% endfor %}
             </div>
         </div>
     </div>

@@ -52,24 +52,41 @@ def get_user_permissions(user):
         'add_customuser', 'change_customuser', 'delete_customuser', 'view_customuser',
         'add_role', 'change_role', 'delete_role', 'view_role',
         'add_userhistory', 'change_userhistory', 'delete_userhistory', 'view_userhistory',
+        'can_view_direction', 'can_view_pole', 'can_view_consolide', 'can_view_anomalie',
     ]
     
     if not user.is_authenticated:
         return {perm: False for perm in all_permissions}
     
-    # Superusers have all permissions
+    # Initialize permissions dict
     if user.is_superuser:
-        return {perm: True for perm in all_permissions}
+        permissions = {perm: True for perm in all_permissions}
+    else:
+        # Collect permissions from role and direct user permissions
+        user_perm_set = set(user.user_permissions.values_list('codename', flat=True))
+        
+        # Add role permissions if user has a role
+        if user.role:
+            role_perms = user.role.permissions.values_list('codename', flat=True)
+            user_perm_set.update(role_perms)
+        
+        permissions = {perm: perm in user_perm_set for perm in all_permissions}
     
-    # Collect permissions from role and direct user permissions
-    user_perm_set = set(user.user_permissions.values_list('codename', flat=True))
+    # Custom boolean permissions from the user model
+    permissions['can_view_anomalie'] = getattr(user, 'can_view_anomalie', False)
     
-    # Add role permissions if user has a role
-    if user.role:
-        role_perms = user.role.permissions.values_list('codename', flat=True)
-        user_perm_set.update(role_perms)
+    # Direction and Pôle are STRICTLY filtered by default_view for EVERYONE (including superusers)
+    # This ensures the "Default View" setting actually works as expected in the UI
+    permissions['can_view_direction'] = (user.default_view == 'direction')
+    permissions['can_view_pole'] = (user.default_view == 'pole')
     
-    permissions = {perm: perm in user_perm_set for perm in all_permissions}
+    # Admins/Superusers always have access to other functional sections
+    if user.is_admin:
+        permissions['can_view_consolide'] = True
+        permissions['can_view_anomalie'] = True
+    else:
+        permissions['can_view_consolide'] = getattr(user, 'can_view_consolide', False)
+        # can_view_anomalie is already set from model attribute or False at line 76
     
     return permissions
 

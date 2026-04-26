@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 import pytz
 import requests
 from requests_ntlm import HttpNtlmAuth
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Windows-only authentication module
 import sys
@@ -457,11 +458,14 @@ def _get_assignable_reports_from_pbirs(request):
 #################################################################################################################
 
 @admin_required
-def get_report_permissions(request, report_id):
-    url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
+def get_report_permissions(request, report_id, server_url=None, timeout=10):
+    base_url = server_url or REPORT_SERVER_URL
+    url = f"{base_url}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
     auth = get_current_user_auth(request)
+    if not auth:
+        return []
     try:
-        response = requests.get(url, auth=auth)
+        response = requests.get(url, auth=auth, timeout=timeout)
         response.raise_for_status()
         if response.status_code == 200:
             return response.json().get('Policies', [])
@@ -471,21 +475,24 @@ def get_report_permissions(request, report_id):
         # 403 Forbidden is expected when user lacks admin rights to view policies - not an error
         if hasattr(errh, 'response') and errh.response is not None and errh.response.status_code == 403:
             return []
-        logger.error(f"HTTP Error (Permissions): {errh}")
+        logger.error(f"HTTP Error (Permissions) for report {report_id} on {base_url}: {errh}")
         return []
     except requests.exceptions.RequestException as err:
-        logger.error(f"Request Error (Permissions): {err}")
+        logger.error(f"Request Error (Permissions) for report {report_id} on {base_url}: {err}")
         return []
 #################################################################################################################
 #                    Retrieves permissions for a specific folder on the report server                           #
 #################################################################################################################
 
 @admin_required
-def get_folder_permissions(request, folder_id):
-    url = f"{REPORT_SERVER_URL}/Reports/api/v2.0/Folders({folder_id})/Policies"
+def get_folder_permissions(request, folder_id, server_url=None, timeout=10):
+    base_url = server_url or REPORT_SERVER_URL
+    url = f"{base_url}/Reports/api/v2.0/Folders({folder_id})/Policies"
     auth = get_current_user_auth(request)
+    if not auth:
+        return []
     try:
-        response = requests.get(url, auth=auth)
+        response = requests.get(url, auth=auth, timeout=timeout)
         response.raise_for_status()
         if response.status_code == 200:
             return response.json().get('Policies', [])
@@ -495,9 +502,11 @@ def get_folder_permissions(request, folder_id):
         # 403 Forbidden is expected when user lacks admin rights to view policies - not an error
         if hasattr(errh, 'response') and errh.response is not None and errh.response.status_code == 403:
             return []
-        logger.error(f"HTTP Error (Folder Permissions): {errh}")
+        logger.error(f"HTTP Error (Folder Permissions) for folder {folder_id} on {base_url}: {errh}")
         return []
     except requests.exceptions.RequestException as err:
+        logger.error(f"Request Error (Folder Permissions) for folder {folder_id} on {base_url}: {err}")
+        return []
         logger.error(f"Request Error (Folder Permissions): {err}")
         return []
 
@@ -652,7 +661,7 @@ CONTEXT_ROOT_FOLDERS = {
     'consolide': '/CBI',
 }
 
-@admin_required
+@login_required
 def report_list_flat(request):
     return report_list_flat_view(
         request=request,
@@ -2000,13 +2009,68 @@ def user_permission(request, username):
             # Calculate permissions based on API
             user_ad_groups = set(selected_user.ad_groups) if selected_user and selected_user.ad_groups else set()
             
+            # Parallel fetching of policies for all reports
+            report_policies = {}
+            with ThreadPoolExecutor(max_workers=20) as executor:
+                future_to_report = {
+                    executor.submit(
+                        get_report_permissions, 
+                        request, 
+                        report['Id'], 
+                        server_url=report.get('_server_url')
+                    ): report for report in all_reports
+                }
+                for future in as_completed(future_to_report):
+                    report = future_to_report[future]
+                    try:
+                        policies = future.result()
+                        report_policies[report['Id']] = policies
+                    except Exception as e:
+                        logger.error(f"Error fetching permissions for report {report['Id']}: {e}")
+                        report_policies[report['Id']] = []
+
+            # Handle fallback to folder permissions for reports with no policies
+            reports_needing_folder_perms = []
             for report in all_reports:
-                policies = get_report_permissions(request, report['Id']) # Don't cache here, we want fresh data
+                if not report_policies.get(report['Id']):
+                    parent_id = report.get("ParentFolderId")
+                    if parent_id:
+                        reports_needing_folder_perms.append(report)
+
+            if reports_needing_folder_perms:
+                # Group by ParentFolderId to avoid redundant calls
+                folder_ids = {r['ParentFolderId'] for r in reports_needing_folder_perms}
+                folder_policies = {}
                 
-                if not policies:
-                    parent_folder_id = report.get("ParentFolderId")
-                    if parent_folder_id:
-                         policies = get_folder_permissions(request, parent_folder_id)
+                with ThreadPoolExecutor(max_workers=10) as executor:
+                    # Need to find at least one report per folder to get the server_url
+                    folder_to_server = {}
+                    for r in reports_needing_folder_perms:
+                        folder_to_server[r['ParentFolderId']] = r.get('_server_url')
+
+                    future_to_folder = {
+                        executor.submit(
+                            get_folder_permissions, 
+                            request, 
+                            fid, 
+                            server_url=folder_to_server[fid]
+                        ): fid for fid in folder_ids
+                    }
+                    for future in as_completed(future_to_folder):
+                        fid = future_to_folder[future]
+                        try:
+                            folder_policies[fid] = future.result()
+                        except Exception as e:
+                            logger.error(f"Error fetching folder permissions for {fid}: {e}")
+                            folder_policies[fid] = []
+                
+                # Apply folder policies to reports
+                for report in reports_needing_folder_perms:
+                    report_policies[report['Id']] = folder_policies.get(report['ParentFolderId'], [])
+
+            # Now calculate which reports are allowed
+            for report in all_reports:
+                policies = report_policies.get(report['Id'], [])
                 
                 is_allowed = False
                 for policy in policies:
@@ -3295,10 +3359,18 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
     if view_type not in ['direction', 'pole', 'biblio', 'anomalie', 'consolide']:
         raise Http404("Invalid view type")
 
-    # Access control: non-admins can only access direction/pole that matches their assigned default_view.
-    if not request.user.is_admin and view_type in ('direction', 'pole'):
-        if request.user.default_view != view_type:
-            raise PermissionDenied
+    # Access control: only the 'anomalie' view is strictly gated by an explicit permission.
+    # Other views rely on report-level permissions.
+    # View permissions check
+    is_admin = request.user.is_admin
+    if view_type == 'anomalie' and not (is_admin or request.user.can_view_anomalie):
+        raise PermissionDenied
+    if view_type == 'consolide' and not (is_admin or request.user.can_view_consolide):
+        raise PermissionDenied
+    if view_type == 'direction' and request.user.default_view != 'direction':
+        raise PermissionDenied
+    if view_type == 'pole' and request.user.default_view != 'pole':
+        raise PermissionDenied
     
     # Get the current folder if specified
     current_folder = None
@@ -3656,7 +3728,19 @@ def embed_custom_report(request, view_type, folder_id, report_id):
     folder = get_object_or_404(CustomFolder, id=folder_id)
     report_ref = get_object_or_404(ReportRef, id=report_id)
     
-    # Check permissions from the local DB cache.
+    # Access control for the view type context
+    # View permissions check
+    is_admin = request.user.is_admin
+    if view_type == 'anomalie' and not (is_admin or request.user.can_view_anomalie):
+        raise PermissionDenied
+    if view_type == 'consolide' and not (is_admin or request.user.can_view_consolide):
+        raise PermissionDenied
+    if view_type == 'direction' and request.user.default_view != 'direction':
+        raise PermissionDenied
+    if view_type == 'pole' and request.user.default_view != 'pole':
+        raise PermissionDenied
+
+    # Check report-specific permissions
     if not _user_can_access_report(request.user, report_ref):
          return HttpResponse("You do not have permission to view this report.", status=403)
 

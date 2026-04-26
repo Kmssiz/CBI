@@ -42,22 +42,34 @@
                             Rapports
                         </a>
                     {% else %}
-                        {% if request.user.default_view == 'direction' %}
+                        {% if permissions.can_view_direction and user.default_view == 'direction' %}
                             <a href="{% url 'powerbi_report:custom_direction' %}" class="px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
                                 <span class="material-symbols-outlined">analytics</span>
                                 Accéder à mes rapports
                                 <span class="material-symbols-outlined">arrow_forward</span>
                             </a>
-                        {% elif request.user.default_view == 'pole' %}
+                        {% elif permissions.can_view_pole and user.default_view == 'pole' %}
+                            <a href="{% url 'powerbi_report:custom_pole' %}" class="px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
+                                <span class="material-symbols-outlined">analytics</span>
+                                Accéder à mes rapports
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </a>
+                        {% elif permissions.can_view_direction %}
+                            <a href="{% url 'powerbi_report:custom_direction' %}" class="px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
+                                <span class="material-symbols-outlined">analytics</span>
+                                Accéder à mes rapports
+                                <span class="material-symbols-outlined">arrow_forward</span>
+                            </a>
+                        {% elif permissions.can_view_pole %}
                             <a href="{% url 'powerbi_report:custom_pole' %}" class="px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
                                 <span class="material-symbols-outlined">analytics</span>
                                 Accéder à mes rapports
                                 <span class="material-symbols-outlined">arrow_forward</span>
                             </a>
                         {% else %}
-                            <a href="{% url 'powerbi_report:custom_direction' %}" class="px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
-                                <span class="material-symbols-outlined">analytics</span>
-                                Accéder à mes rapports
+                            <a href="{% url 'powerbi_report:custom_biblio' %}" class="px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
+                                <span class="material-symbols-outlined">library_books</span>
+                                Accéder à la bibliothèque
                                 <span class="material-symbols-outlined">arrow_forward</span>
                             </a>
                         {% endif %}
@@ -78,7 +90,7 @@
 
         {% if request.user.is_admin %}
         <!-- Admin: Dashboard -->
-        <a href="{% url 'powerbi_report:dashboard' %}" class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+        <a href="{% url 'powerbi_report:dashboard' %}" class="card-theme p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
             <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <span class="material-symbols-outlined text-blue-500">dashboard</span>
             </div>
@@ -89,7 +101,7 @@
         </a>
 
         <!-- Admin: User Management -->
-        <a href="{% url 'users_view' %}" class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+        <a href="{% url 'users_view' %}" class="card-theme p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
             <div class="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <span class="material-symbols-outlined text-violet-500">manage_accounts</span>
             </div>
@@ -100,7 +112,7 @@
         </a>
 
         <!-- Admin: Reports Hierarchy -->
-        <a href="{% url 'powerbi_report:report_list' %}" class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+        <a href="{% url 'powerbi_report:report_list' %}" class="card-theme p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
             <div class="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <span class="material-symbols-outlined text-emerald-500">folder_open</span>
             </div>
@@ -111,11 +123,13 @@
         </a>
 
         {% else %}
-        <!-- User: Rapport (direction or pole depending on default_view) -->
-        {% if request.user.default_view == 'pole' %}
-        <a href="{% url 'powerbi_report:custom_pole' %}" class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+        <!-- User: Rapport (direction or pole depending on permissions and default_view) -->
+        {% if permissions.can_view_direction %}
+        <a href="{% url 'powerbi_report:custom_direction' %}" class="card-theme p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+        {% elif permissions.can_view_pole %}
+        <a href="{% url 'powerbi_report:custom_pole' %}" class="card-theme p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
         {% else %}
-        <a href="{% url 'powerbi_report:custom_direction' %}" class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+        <a href="{% url 'powerbi_report:custom_biblio' %}" class="card-theme p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
         {% endif %}
             <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <span class="material-symbols-outlined text-blue-500">analytics</span>
@@ -127,7 +141,7 @@
         </a>
 
         <!-- User: Library -->
-        <a href="{% url 'powerbi_report:custom_biblio' %}" class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+        <a href="{% url 'powerbi_report:custom_biblio' %}" class="card-theme p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
             <div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <span class="material-symbols-outlined text-amber-500">menu_book</span>
             </div>
@@ -137,8 +151,9 @@
             </p>
         </a>
 
+        {% if permissions.can_view_anomalie %}
         <!-- User: Anomalie -->
-        <a href="{% url 'powerbi_report:custom_anomalie' %}" class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+        <a href="{% url 'powerbi_report:custom_anomalie' %}" class="card-theme p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
             <div class="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <span class="material-symbols-outlined text-rose-500">warning</span>
             </div>
@@ -147,6 +162,7 @@
                 Consultez les rapports d'anomalies et suivez les alertes liées à vos données.
             </p>
         </a>
+        {% endif %}
         {% endif %}
 
     </div>
