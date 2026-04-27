@@ -96,6 +96,12 @@ def login_view(request):
                 user.ad2000 = ad2000
                 user.ad_groups = user_info.get("ad_groups", [])
                 user.status = "Active"
+                # Ensure default view is valid (repair legacy/invalid values).
+                if user.default_view not in {"direction", "pole"}:
+                    user.default_view = "direction"
+                    user.can_view_direction = True
+                    user.can_view_pole = False
+                    
                 logger.debug(
                     "Updated existing user id=%s with ldap_username=%s",
                     user.id,
@@ -113,7 +119,9 @@ def login_view(request):
                     ad2000=ad2000,
                     ad_groups=user_info.get("ad_groups", []),
                     role=role,
-                    status="Active"
+                    status="Active",
+                    default_view="direction",
+                    can_view_direction=True
                 )
                 user.save()
                 new_permissions = role.permissions.all()
@@ -136,13 +144,13 @@ def login_view(request):
                 try:
                     permissions_synced = sync_user_permissions_on_login(user, password)
                     logger.info(
-                        "Synced %s report permissions for user %s",
+                        "Synchronisation de %s permissions de rapports pour l'utilisateur %s",
                         permissions_synced,
                         user.username,
                     )
                 except Exception as e:
                     logger.error(
-                        "Failed to sync permissions for %s: %s",
+                        "Échec de la synchronisation des permissions pour %s: %s",
                         user.username,
                         e,
                     )
@@ -208,10 +216,10 @@ def user_history(request, user_id=None):
 
     # Defined general action categories for dropdown
     actions = [
-        "User logged in", 
-        "User logged out", 
-        "Updated role", 
-        "Updated default view"
+        "Utilisateur connecté", 
+        "Utilisateur déconnecté", 
+        "Rôle mis à jour", 
+        "Vue par défaut mise à jour"
     ]
 
     # Pagination
@@ -271,7 +279,7 @@ def landing_page(request):
 @login_required
 def home_view(request):
     """
-    Traffic controller – redirects every authenticated user to the landing page.
+    Contrôleur de trafic – redirige chaque utilisateur authentifié vers la page d'accueil (landing).
     """
     return redirect('landing')
 
@@ -409,13 +417,13 @@ def create_role(request):
             if created:
                 if selected_permissions:
                     role.permissions.set(Permission.objects.filter(id__in=selected_permissions))
-                messages.success(request, "Role created successfully.")
+                messages.success(request, "Rôle créé avec succès.")
             else:
-                messages.warning(request, "Role already exists.")
+                messages.warning(request, "Ce rôle existe déjà.")
 
             return redirect("manage_roles")
 
-        messages.error(request, "Role name cannot be empty.")
+        messages.error(request, "Le nom du rôle ne peut pas être vide.")
 
     return render(request, "users/manage_roles.html")
 
@@ -433,14 +441,14 @@ def edit_role(request, role_id):
         new_role_description = request.POST.get("role_description", "").strip()
 
         if not new_role_name:
-            messages.error(request, "Role name cannot be empty.")
+            messages.error(request, "Le nom du rôle ne peut pas être vide.")
         elif Role.objects.filter(name=new_role_name).exclude(id=role_id).exists():
-            messages.warning(request, "A role with this name already exists.")
+            messages.warning(request, "Un rôle avec ce nom existe déjà.")
         else:
             role.name = new_role_name
             role.description = new_role_description
             role.save()
-            messages.success(request, "Role updated successfully.")
+            messages.success(request, "Rôle mis à jour avec succès.")
         return redirect("manage_roles")
 
     return render(request, "users/manage_roles.html", {
@@ -458,11 +466,11 @@ def remove_role(request, role_id):
     role = get_object_or_404(Role, id=role_id)
 
     if CustomUser.objects.filter(role=role).exists():
-        messages.error(request, "Cannot delete role assigned to users.")
+        messages.error(request, "Impossible de supprimer un rôle assigné à des utilisateurs.")
         return redirect("manage_roles")
 
     role.delete()
-    messages.success(request, "Role deleted successfully.")
+    messages.success(request, "Rôle supprimé avec succès.")
     return redirect("manage_roles")
 
 #################################################################################################################
@@ -485,7 +493,7 @@ def permissions_list(request, role_id):
             users_with_role = CustomUser.objects.filter(role=role)
             for user in users_with_role:
                 user.user_permissions.add(permission)
-            messages.success(request, f"Permission '{permission.name}' added to role '{role.name}' and associated users.")
+            messages.success(request, f"Permission '{permission.name}' ajoutée au rôle '{role.name}' et aux utilisateurs associés.")
         elif action == "revoke" and permission_id:
             
             permission = get_object_or_404(Permission, id=permission_id)
@@ -493,7 +501,7 @@ def permissions_list(request, role_id):
             users_with_role = CustomUser.objects.filter(role=role)
             for user in users_with_role:
                 user.user_permissions.remove(permission)
-            messages.success(request, f"Permission '{permission.name}' removed from role '{role.name}' and associated users.")
+            messages.success(request, f"Permission '{permission.name}' supprimée du rôle '{role.name}' et des utilisateurs associés.")
 
         elif action == "grant_all":
             permissions_list=Permission.objects.all()
@@ -501,14 +509,14 @@ def permissions_list(request, role_id):
             users_with_role = CustomUser.objects.filter(role=role)
             for user in users_with_role:
                 user.user_permissions.set(all_permissions)
-            messages.success(request, f"All permissions added to role '{role.name}' and associated users.")
+            messages.success(request, f"Toutes les permissions ont été ajoutées au rôle '{role.name}' et aux utilisateurs associés.")
 
         elif action == "revoke_all":
             role.permissions.clear()
             users_with_role = CustomUser.objects.filter(role=role)
             for user in users_with_role:
                 user.user_permissions.clear()
-            messages.success(request, f"All permissions removed from role '{role.name}' and associated users.")
+            messages.success(request, f"Toutes les permissions ont été supprimées du rôle '{role.name}' et des utilisateurs associés.")
 
         return redirect("permissions_list", role_id=role_id)
 
@@ -539,13 +547,13 @@ def sync_users(request):
     
     # Validate that service credentials are configured
     if not ldap_username or not ldap_password:
-        messages.error(request, "LDAP service account not configured. Please set LDAP_SERVICE_USERNAME and LDAP_SERVICE_PASSWORD in .env")
+        messages.error(request, "Compte de service LDAP non configuré. Veuillez définir LDAP_SERVICE_USERNAME et LDAP_SERVICE_PASSWORD dans le fichier .env.")
         return redirect('users_view')
 
     ldap_users = get_ad_users(ldap_username, ldap_password)
     
     if not ldap_users:
-         messages.error(request, "Failed to fetch LDAP users or no users found.")
+         messages.error(request, "Échec de la récupération des utilisateurs LDAP ou aucun utilisateur trouvé.")
          return redirect('users_view')
 
     # Optimization: Fetch all existing users in one query to create local lookup maps
@@ -592,7 +600,9 @@ def sync_users(request):
                     email=ldap_user.get("mail", "").strip(),
                     ad_groups=ldap_groups,
                     role=user_role,
-                    status="Not Active"
+                    status="Not Active",
+                    default_view="direction",
+                    can_view_direction=True
                 )
                 user.save()  
                 user.user_permissions.set(user_role.permissions.all())  
@@ -603,7 +613,7 @@ def sync_users(request):
                 if user.ad2000:
                     ad2000_map[user.ad2000.lower()] = user
             except Exception as e:
-                logger.exception("Failed to save synced LDAP user %s: %s", sam_account, e)
+                logger.exception("Échec de l'enregistrement de l'utilisateur LDAP synchronisé %s: %s", sam_account, e)
         else:
             # Efficiently update existing users only if fields changed
             update_fields = {}
@@ -619,6 +629,15 @@ def sync_users(request):
             if not user.societe and company:
                 user.societe = company
                 update_fields["societe"] = company
+            
+            # Ensure default view is valid (repair legacy/invalid values).
+            if user.default_view not in {"direction", "pole"}:
+                user.default_view = "direction"
+                user.can_view_direction = True
+                user.can_view_pole = False
+                update_fields["default_view"] = "direction"
+                update_fields["can_view_direction"] = True
+                update_fields["can_view_pole"] = False
 
             if ldap_groups:
                 existing_groups = _normalize_ad_groups(user.ad_groups)
@@ -631,13 +650,13 @@ def sync_users(request):
             already_exist += 1
 
     logger.info(
-        "LDAP sync summary total=%s created=%s existing=%s skipped=%s",
+        "Résumé de la synchronisation LDAP total=%s créés=%s existants=%s ignorés=%s",
         len(ldap_users),
         count,
         already_exist,
         skipped,
     )
-    messages.success(request, f"User synchronization completed. {count} new users added. ({already_exist} already existed)")
+    messages.success(request, f"Synchronisation des utilisateurs terminée. {count} nouveaux utilisateurs ajoutés. ({already_exist} existaient déjà)")
     return redirect('users_view')
 
 
@@ -708,6 +727,7 @@ def user_edit(request, user_id):
 
         # Update specific permissions
         user.can_view_anomalie = request.POST.get('can_view_anomalie') == 'on'
+        user.can_view_consolide = request.POST.get('can_view_consolide') == 'on'
         
         user.save()
 
@@ -740,7 +760,7 @@ def user_edit(request, user_id):
                     message=f"{request.user.username} a modifié les paramètres de {user.username}."
                 )
 
-        messages.success(request, "User settings updated successfully.")
+        messages.success(request, "Paramètres utilisateur mis à jour avec succès.")
 
         return redirect('users_view')
 
@@ -771,7 +791,7 @@ def server_status(request):
     try:
         server_urls = get_active_pbirs_server_urls()
         if not server_urls:
-            return JsonResponse({"status": "down", "error": "No active PBIRS server configured"}, status=500)
+            return JsonResponse({"status": "down", "error": "Aucun serveur PBIRS actif configuré"}, status=500)
 
         results = []
         all_up = True
@@ -790,6 +810,6 @@ def server_status(request):
         overall_status = "up" if all_up else ("partial" if any(r["status"] == "up" for r in results) else "down")
         return JsonResponse({"status": overall_status, "servers": results})
     except Exception as e:
-        logger.warning("PBIRS status check failed: %s", e)
+        logger.warning("Échec de la vérification du statut PBIRS: %s", e)
         return JsonResponse({"status": "down", "error": str(e)}, status=500)
 

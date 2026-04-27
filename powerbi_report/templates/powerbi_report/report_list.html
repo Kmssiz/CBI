@@ -70,10 +70,10 @@
                     
                     {% if user.is_superuser %}
                     <div class="flex items-center gap-2">
-                        <a href="{% url 'powerbi_report:sync_reports' %}" class="size-11 flex items-center justify-center bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 border border-yellow-500/20 rounded-xl transition-all" title="Sync Reports">
+                        <a href="{% url 'powerbi_report:sync_reports' %}" id="syncPbirsBtn" class="size-11 flex items-center justify-center bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 border border-yellow-500/20 rounded-xl transition-all" title="Sync Reports">
                             <span class="material-symbols-outlined">sync</span>
                         </a>
-                        <a href="{% url 'powerbi_report:sync_permissions' %}" class="size-11 flex items-center justify-center bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 border border-cyan-500/20 rounded-xl transition-all" title="Sync Permissions">
+                        <a href="{% url 'powerbi_report:sync_permissions' %}" id="syncPermissionsBtn" class="size-11 flex items-center justify-center bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 border border-cyan-500/20 rounded-xl transition-all" title="Sync Permissions">
                             <span class="material-symbols-outlined">group</span>
                         </a>
                     </div>
@@ -298,13 +298,21 @@
 </div>
 
 
-<!-- Loading Prompt -->
-<div id="loadingPrompt" class="loading-overlay" style="display: none;">
-  <div class="loading-content">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
+<!-- Loading Overlay for Sync -->
+<div id="syncLoadingOverlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999]" style="display: none;">
+  <div class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl max-w-sm mx-4">
+    <div class="relative">
+      <span class="material-symbols-outlined text-[48px] text-primary animate-spin">sync</span>
     </div>
-    <p>Processing request... Please wait.</p>
+    <div class="text-center">
+      <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">Synchronisation en cours...</h3>
+      <p id="syncLoadingMsg" class="text-sm text-slate-500 dark:text-slate-400">Traitement des données Power BI. Cette opération peut prendre plusieurs minutes.</p>
+    </div>
+    <div class="flex items-center gap-2 mt-2">
+      <div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+      <div class="w-2 h-2 bg-primary rounded-full animate-pulse" style="animation-delay: 0.2s;"></div>
+      <div class="w-2 h-2 bg-primary rounded-full animate-pulse" style="animation-delay: 0.4s;"></div>
+    </div>
   </div>
 </div>
 
@@ -327,50 +335,6 @@
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(100, 116, 139, 1); 
-  }
-  .loading-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.6);
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-  }
-  .loading-content {
-      text-align: center;
-      background: rgba(255, 255, 255, 0.9);
-      color: #007bff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-  }
-  .spinner-border {
-      width: 3rem;
-      height: 3rem;
-      margin-bottom: 10px;
-      color: #007bff !important;
-      border: 4px solid currentColor;
-      border-right-color: transparent;
-      border-radius: 50%;
-      animation: spinner-border 0.75s linear infinite;
-  }
-  @keyframes spinner-border {
-      to { transform: rotate(360deg); }
-  }
-  .visually-hidden {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border-width: 0;
   }
 </style>
 
@@ -468,13 +432,39 @@
     }
 
     // Sync button loaders
-    const loadingPrompt = document.getElementById('loadingPrompt');
-    const syncButtons = document.querySelectorAll('#syncPbirsBtn, #syncPermissionsBtn');
-    syncButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (loadingPrompt) loadingPrompt.style.display = 'flex';
+    const overlay = document.getElementById('syncLoadingOverlay');
+    const syncMsg = document.getElementById('syncLoadingMsg');
+    
+    const syncReportsBtn = document.getElementById('syncPbirsBtn');
+    const syncPermissionsBtn = document.getElementById('syncPermissionsBtn');
+
+    if (syncReportsBtn) {
+        syncReportsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const href = syncReportsBtn.getAttribute('href');
+            if (overlay && syncMsg) {
+                syncMsg.innerText = "Synchronisation des rapports en cours... Récupération des informations depuis le serveur Power BI.";
+                overlay.style.display = 'flex';
+            }
+            setTimeout(() => {
+                window.location.href = href;
+            }, 100);
         });
-    });
+    }
+
+    if (syncPermissionsBtn) {
+        syncPermissionsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const href = syncPermissionsBtn.getAttribute('href');
+            if (overlay && syncMsg) {
+                syncMsg.innerText = "Synchronisation des permissions en cours... Mise à jour des accès utilisateurs.";
+                overlay.style.display = 'flex';
+            }
+            setTimeout(() => {
+                window.location.href = href;
+            }, 100);
+        });
+    }
 
     // Auto-close alerts
     setTimeout(function () {
@@ -980,5 +970,83 @@ document.addEventListener('keydown', function(e) {
     }
 });
 </script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const syncPbirsBtn = document.getElementById('syncPbirsBtn');
+    const syncPermissionsBtn = document.getElementById('syncPermissionsBtn');
+    const loadingPrompt = document.getElementById('loadingPrompt');
+
+    if (syncPbirsBtn) {
+      syncPbirsBtn.addEventListener('click', function() {
+        loadingPrompt.style.display = 'flex';
+      });
+    }
+
+    if (syncPermissionsBtn) {
+      syncPermissionsBtn.addEventListener('click', function() {
+        loadingPrompt.style.display = 'flex';
+      });
+    }
+  });
+</script>
 {% endif %}
+
+<!-- Loading Prompt for Sync Actions -->
+<div id="loadingPrompt" class="loading-overlay">
+  <div class="loading-content">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p>Synchronisation en cours... Veuillez patienter.</p>
+  </div>
+</div>
+
+<style>
+  /* Loading styles */
+  .loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 15, 20, 0.8);
+    backdrop-filter: blur(4px);
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  }
+
+  .loading-content {
+    text-align: center;
+    color: var(--primary);
+    background: white;
+    padding: 32px;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .loading-content {
+    background: #121922;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    color: white;
+  }
+
+  .spinner-border {
+    display: inline-block;
+    width: 2rem;
+    height: 2rem;
+    vertical-align: text-bottom;
+    border: .25em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border .75s linear infinite;
+  }
+
+  @keyframes spinner-border {
+    to { transform: rotate(360deg); }
+  }
+</style>
 {% endblock %}

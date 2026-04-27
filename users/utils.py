@@ -74,16 +74,18 @@ def get_user_permissions(user):
     # Custom boolean permissions from the user model
     permissions['can_view_anomalie'] = getattr(user, 'can_view_anomalie', False)
     
-    # Direction and Pôle are STRICTLY filtered by default_view for EVERYONE (including superusers)
-    # This ensures the "Default View" setting actually works as expected in the UI
-    permissions['can_view_direction'] = (user.default_view == 'direction')
-    permissions['can_view_pole'] = (user.default_view == 'pole')
-    
-    # Admins/Superusers always have access to other functional sections
+    # Direction and Pôle are filtered by default_view
+    # For admins, we show both to allow full navigation.
+    # For regular users, we default to 'direction' if not set.
     if user.is_admin:
+        permissions['can_view_direction'] = True
+        permissions['can_view_pole'] = True
         permissions['can_view_consolide'] = True
         permissions['can_view_anomalie'] = True
     else:
+        effective_view = user.default_view or 'direction'
+        permissions['can_view_direction'] = (effective_view == 'direction')
+        permissions['can_view_pole'] = (effective_view == 'pole')
         permissions['can_view_consolide'] = getattr(user, 'can_view_consolide', False)
         # can_view_anomalie is already set from model attribute or False at line 76
     

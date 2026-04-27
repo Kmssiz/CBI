@@ -138,7 +138,7 @@
                                 {% endif %}
 
                                 {% if permissions.change_customuser %}
-                                <button class="px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" onclick="openEditModal({{ user.id }}, '{{ user.role.id }}', '{{ user.default_view }}', {{ user.can_view_anomalie|yesno:"true,false" }})">Modifier</button>
+                                <button class="px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" onclick="openEditModal({{ user.id }}, '{{ user.role.id }}', '{{ user.default_view }}', {{ user.can_view_anomalie|yesno:"true,false" }}, {{ user.can_view_consolide|yesno:"true,false" }})">Modifier</button>
                                 {% endif %}
                             </div>
                         </td>
@@ -234,6 +234,10 @@
                             <input type="checkbox" name="can_view_anomalie" id="editCanViewAnomalie" class="w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary/20 transition-all">
                             <span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-primary transition-colors">Autoriser l'accès à la section Anomalie</span>
                         </label>
+                        <label class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/50 transition-all group">
+                            <input type="checkbox" name="can_view_consolide" id="editCanViewConsolide" class="w-4 h-4 text-cyan-500 bg-slate-100 border-slate-300 rounded focus:ring-cyan-500/20 transition-all">
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-cyan-500 transition-colors">Autoriser l'accès à la section Consolidé</span>
+                        </label>
                     </div>
                 </div>
                 <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800/50 flex justify-end gap-3 bg-slate-50/50 dark:bg-white/5">
@@ -286,7 +290,7 @@
   }
 
   // Function to open the edit modal
-  function openEditModal(userId, currentRole, currentView, canAnomalie) {
+  function openEditModal(userId, currentRole, currentView, canAnomalie, canConsolide) {
     document.getElementById('editUserId').value = userId;
     const roleSelect = document.getElementById('editUserRole');
     roleSelect.value = currentRole; 
@@ -294,8 +298,9 @@
     const viewSelect = document.getElementById('editUserView');
     viewSelect.value = currentView || 'direction'; 
 
-    // Set permission checkbox
+    // Set permission checkboxes
     document.getElementById('editCanViewAnomalie').checked = canAnomalie;
+    document.getElementById('editCanViewConsolide').checked = canConsolide;
 
     const form = document.getElementById('editUserForm');
     form.action = "{% url 'user_edit' 0 %}".replace('/0/', '/' + userId + '/');
