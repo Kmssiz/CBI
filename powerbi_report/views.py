@@ -329,7 +329,7 @@ def _user_can_access_report(user, report_ref):
     """Check report access from local DB only."""
     if not user.is_authenticated or not report_ref:
         return False
-    if user.is_superuser:
+    if user.is_superuser or user.is_admin:
         return True
     return UserReportPermission.objects.filter(user=user, report=report_ref).exists()
 
@@ -3107,7 +3107,7 @@ def get_visible_report_ids(request, view_type=None):
     # Filter by metadata if view_type is specified
     allowed_types, req_field, _ = _get_allowed_report_types_for_view(view_type) if view_type else ([], None, None)
 
-    if user.is_superuser:
+    if user.is_superuser or user.is_admin:
         qs = ReportRef.objects.all()
         if allowed_types:
             qs = qs.filter(report_type__in=allowed_types)
@@ -3283,9 +3283,9 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
         raise PermissionDenied
     if view_type == 'consolide' and not (is_admin or request.user.can_view_consolide):
         raise PermissionDenied
-    if view_type == 'direction' and request.user.default_view != 'direction':
+    if view_type == 'direction' and not (is_admin or request.user.default_view == 'direction'):
         raise PermissionDenied
-    if view_type == 'pole' and request.user.default_view != 'pole':
+    if view_type == 'pole' and not (is_admin or request.user.default_view == 'pole'):
         raise PermissionDenied
     
     # Get the current folder if specified
@@ -3300,7 +3300,7 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
         subfolders = CustomFolder.objects.filter(parent__isnull=True, view_type=view_type)
     
     # Admins see all folders; regular users only see folders with visible reports
-    if request.user.is_superuser:
+    if request.user.is_superuser or is_admin:
         visible_subfolders = list(subfolders)
     else:
         visible_folder_ids = {f.id for f in get_visible_folders(request, view_type)}
@@ -3651,9 +3651,9 @@ def embed_custom_report(request, view_type, folder_id, report_id):
         raise PermissionDenied
     if view_type == 'consolide' and not (is_admin or request.user.can_view_consolide):
         raise PermissionDenied
-    if view_type == 'direction' and request.user.default_view != 'direction':
+    if view_type == 'direction' and not (is_admin or request.user.default_view == 'direction'):
         raise PermissionDenied
-    if view_type == 'pole' and request.user.default_view != 'pole':
+    if view_type == 'pole' and not (is_admin or request.user.default_view == 'pole'):
         raise PermissionDenied
 
     # Check report-specific permissions

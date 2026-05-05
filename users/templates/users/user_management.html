@@ -215,29 +215,44 @@
                     <input type="hidden" name="user_id" id="editUserId">
                     <div class="space-y-2">
                         <label for="editUserRole" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Rôle Système</label>
-                        <select name="role" id="editUserRole" class="w-full bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-slate-700/50 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all">
+                        <select name="role" id="editUserRole" class="w-full bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-slate-700/50 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" onchange="toggleAdminSettings()">
                             {% for role in roles %}
-                            <option value="{{ role.id }}">{{ role.name }}</option>
+                            <option value="{{ role.id }}" data-role-name="{{ role.name|lower }}">{{ role.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="space-y-2">
-                        <label for="editUserView" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Vue par défaut</label>
-                        <select name="default_view" id="editUserView" class="w-full bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-slate-700/50 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all">
-                            <option value="direction">Vue Direction</option>
-                            <option value="pole">Vue Pôle</option>
-                        </select>
+
+                    <!-- Admin full-access badge (shown only when admin role is selected) -->
+                    <div id="adminAccessBadge" class="hidden">
+                        <div class="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                            <span class="material-symbols-outlined text-amber-500 text-[22px]">shield_person</span>
+                            <div>
+                                <p class="text-sm font-bold text-amber-600 dark:text-amber-400">Accès Administrateur Complet</p>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Les administrateurs ont un accès illimité à toutes les sections (Direction, Pôle, Anomalie, Consolidé) par défaut.</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="space-y-4 pt-2">
-                        <label class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/50 transition-all group">
-                            <input type="checkbox" name="can_view_anomalie" id="editCanViewAnomalie" class="w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary/20 transition-all">
-                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-primary transition-colors">Autoriser l'accès à la section Anomalie</span>
-                        </label>
-                        <label class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/50 transition-all group">
-                            <input type="checkbox" name="can_view_consolide" id="editCanViewConsolide" class="w-4 h-4 text-cyan-500 bg-slate-100 border-slate-300 rounded focus:ring-cyan-500/20 transition-all">
-                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-cyan-500 transition-colors">Autoriser l'accès à la section Consolidé</span>
-                        </label>
+                    <!-- Non-admin settings (hidden when admin role is selected) -->
+                    <div id="nonAdminSettings">
+                        <div class="space-y-2">
+                            <label for="editUserView" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Vue par défaut</label>
+                            <select name="default_view" id="editUserView" class="w-full bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-slate-700/50 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all">
+                                <option value="direction">Vue Direction</option>
+                                <option value="pole">Vue Pôle</option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-4 pt-4">
+                            <label class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/50 transition-all group">
+                                <input type="checkbox" name="can_view_anomalie" id="editCanViewAnomalie" class="w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary/20 transition-all">
+                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-primary transition-colors">Autoriser l'accès à la section Anomalie</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/50 transition-all group">
+                                <input type="checkbox" name="can_view_consolide" id="editCanViewConsolide" class="w-4 h-4 text-cyan-500 bg-slate-100 border-slate-300 rounded focus:ring-cyan-500/20 transition-all">
+                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-cyan-500 transition-colors">Autoriser l'accès à la section Consolidé</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800/50 flex justify-end gap-3 bg-slate-50/50 dark:bg-white/5">
@@ -278,6 +293,27 @@
 </div>
 
 <script>
+  const ADMIN_ROLE_NAME = '{{ admin_role_name|lower }}';
+
+  // Toggle visibility of non-admin settings based on selected role
+  function toggleAdminSettings() {
+    const roleSelect = document.getElementById('editUserRole');
+    const selectedOption = roleSelect.options[roleSelect.selectedIndex];
+    const roleName = (selectedOption.getAttribute('data-role-name') || '').toLowerCase();
+    const isAdmin = (roleName === ADMIN_ROLE_NAME);
+
+    const nonAdminSettings = document.getElementById('nonAdminSettings');
+    const adminBadge = document.getElementById('adminAccessBadge');
+
+    if (isAdmin) {
+      nonAdminSettings.classList.add('hidden');
+      adminBadge.classList.remove('hidden');
+    } else {
+      nonAdminSettings.classList.remove('hidden');
+      adminBadge.classList.add('hidden');
+    }
+  }
+
   // Function to start user sync with loading overlay
   function startSyncUsers() {
     const overlay = document.getElementById('syncLoadingOverlay');
@@ -304,6 +340,9 @@
 
     const form = document.getElementById('editUserForm');
     form.action = "{% url 'user_edit' 0 %}".replace('/0/', '/' + userId + '/');
+
+    // Toggle admin settings visibility based on selected role
+    toggleAdminSettings();
 
     // Use jQuery for Bootstrap 4
     $('#editModal').modal('show');
@@ -385,6 +424,12 @@
     background: #121922;
     border: 1px solid rgba(255, 255, 255, 0.05);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Fix dark-mode dropdown option readability */
+  #editModal select option {
+    color: #1e293b;
+    background: #fff;
   }
 </style>
 

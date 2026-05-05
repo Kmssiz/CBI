@@ -360,6 +360,7 @@ def user_management(request):
         'role_filter': role_filter,
         'status_filter': status_filter,
         'direction_filter': direction_filter,
+        'admin_role_name': settings.ADMIN_ROLE_NAME,
     })
 
 #################################################################################################################
@@ -721,13 +722,20 @@ def user_edit(request, user_id):
         old_view = user.default_view
         user.default_view = new_default_view
 
-        # Sync boolean permission fields with the default view
-        user.can_view_direction = (new_default_view == 'direction')
-        user.can_view_pole = (new_default_view == 'pole')
+        if is_admin_role:
+            # Admin has unrestricted access to all sections
+            user.can_view_direction = True
+            user.can_view_pole = True
+            user.can_view_anomalie = True
+            user.can_view_consolide = True
+        else:
+            # Sync boolean permission fields with the default view
+            user.can_view_direction = (new_default_view == 'direction')
+            user.can_view_pole = (new_default_view == 'pole')
 
-        # Update specific permissions
-        user.can_view_anomalie = request.POST.get('can_view_anomalie') == 'on'
-        user.can_view_consolide = request.POST.get('can_view_consolide') == 'on'
+            # Update specific permissions
+            user.can_view_anomalie = request.POST.get('can_view_anomalie') == 'on'
+            user.can_view_consolide = request.POST.get('can_view_consolide') == 'on'
         
         user.save()
 
@@ -809,7 +817,6 @@ def server_status(request):
 
         overall_status = "up" if all_up else ("partial" if any(r["status"] == "up" for r in results) else "down")
         return JsonResponse({"status": overall_status, "servers": results})
-    except Exception as e:
-        logger.warning("Échec de la vérification du statut PBIRS: %s", e)
+    except Exception as e:        logger.warning("Échec de la vérification du statut PBIRS: %s", e)
         return JsonResponse({"status": "down", "error": str(e)}, status=500)
 
