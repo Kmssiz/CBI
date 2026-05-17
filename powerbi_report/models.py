@@ -29,7 +29,7 @@ REPORT_TYPE_DASHBOARD = 'dashboard'
 
 REPORT_TYPE_CHOICES = [
     (REPORT_TYPE_ANOMALIE, 'Anomalie'),
-    (REPORT_TYPE_BIBLIOTHEQUE, 'Bibliothèque'),
+    (REPORT_TYPE_BIBLIOTHEQUE, 'BibliothÃ¨que'),
     (REPORT_TYPE_DASHBOARD, 'Dashboard'),
 ]
 
@@ -67,26 +67,26 @@ class ReportRef(models.Model):
     # Local metadata fields (not synced from PBIRS)
     pole = models.CharField(
         max_length=128, blank=True, null=True,
-        help_text="Pôle organisationnel du rapport"
+        help_text="PÃ´le organisationnel du rapport"
     )
     direction = models.CharField(
         max_length=128, blank=True, null=True,
-        help_text="Direction concernée par le rapport"
+        help_text="Direction concernÃ©e par le rapport"
     )
     societe = models.CharField(
         max_length=128, blank=True, null=True,
-        help_text="Société concernée par le rapport"
+        help_text="SociÃ©tÃ© concernÃ©e par le rapport"
     )
     report_type = models.CharField(
         max_length=20,
         choices=REPORT_TYPE_CHOICES,
         blank=True,
         null=True,
-        help_text="Type de rapport : Anomalie, Bibliothèque ou Dashboard"
+        help_text="Type de rapport : Anomalie, BibliothÃ¨que ou Dashboard"
     )
     is_consolide = models.BooleanField(
         default=False,
-        help_text="Rapport consolidé (multi-sociétés/pôles — champs pôle/société/direction non applicables)"
+        help_text="Rapport consolidÃ© (multi-sociÃ©tÃ©s/pÃ´les â€” champs pÃ´le/sociÃ©tÃ©/direction non applicables)"
     )
 
     class Meta:
@@ -120,10 +120,10 @@ class CustomFolder(models.Model):
     """
     VIEW_TYPE_CHOICES = [
         ('direction', 'Direction Folders'),
-        ('pole', 'Pôle Folders'),
-        ('biblio', 'Bibliothèque'),
+        ('pole', 'PÃ´le Folders'),
+        ('biblio', 'BibliothÃ¨que'),
         ('anomalie', 'Anomalie'),
-        ('consolide', 'Consolidé'),
+        ('consolide', 'ConsolidÃ©'),
     ]
     
     name = models.CharField(max_length=255)
@@ -275,3 +275,30 @@ class PermissionSyncLog(models.Model):
     def __str__(self):
         return f"Sync at {self.started_at} - {self.status}"
 
+
+class MetadataOption(models.Model):
+    OPTION_TYPE_CHOICES = [
+        ('pole', 'Pôle'),
+        ('direction', 'Direction'),
+        ('societe', 'Société'),
+    ]
+    option_type = models.CharField(max_length=20, choices=OPTION_TYPE_CHOICES)
+    name = models.CharField(max_length=128)
+    
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='children',
+        help_text="Parent option (e.g. link Société to a Pôle)"
+    )
+    
+    class Meta:
+        verbose_name = "Metadata Option"
+        verbose_name_plural = "Metadata Options"
+        unique_together = [['option_type', 'name']]
+        ordering = ['option_type', 'name']
+
+    def __str__(self):
+        return f"{self.get_option_type_display()} - {self.name}"

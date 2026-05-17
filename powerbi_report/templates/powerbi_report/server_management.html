@@ -97,6 +97,124 @@
         </div>
         {% endfor %}
     </div>
+
+    <!-- Metadata Management Section -->
+    <div class="mt-12 mb-8">
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-1">Métadonnées des Rapports</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Gérez les options disponibles pour les pôles, directions et sociétés lors de l'ajout ou la modification de rapports.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Pôle List -->
+        <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[400px]">
+            <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-[20px]">account_tree</span>
+                    <h3 class="font-bold text-slate-800 dark:text-slate-200">Pôles</h3>
+                </div>
+                <button onclick="openMetadataModal('pole', 'Ajouter un Pôle')" class="size-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">add</span>
+                </button>
+            </div>
+            <div class="p-2 flex-1 overflow-y-auto">
+                <ul class="space-y-1">
+                    {% for option in poles %}
+                    <li class="flex items-center justify-between px-3 py-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg group transition-colors">
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ option.name }}</span>
+                        <div class="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                            <button type="button" onclick="editMetadataOption('{{ option.id }}', 'pole', '{{ option.name|escapejs }}', '')" class="text-slate-400 hover:text-blue-500 transition-colors p-1" title="Modifier">
+                                <span class="material-symbols-outlined text-[16px]">edit</span>
+                            </button>
+                            <form action="{% url 'powerbi_report:metadata_option_delete' option.id %}" method="POST" onsubmit="return confirm('Supprimer ce pôle ?')">
+                                {% csrf_token %}
+                                <button type="submit" class="text-slate-400 hover:text-red-500 transition-colors p-1" title="Supprimer">
+                                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="px-3 py-6 text-center text-sm text-slate-500">Aucun pôle configuré</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Direction List -->
+        <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[400px]">
+            <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-blue-500 text-[20px]">corporate_fare</span>
+                    <h3 class="font-bold text-slate-800 dark:text-slate-200">Directions</h3>
+                </div>
+                <button onclick="openMetadataModal('direction', 'Ajouter une Direction')" class="size-8 flex items-center justify-center rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">add</span>
+                </button>
+            </div>
+            <div class="p-2 flex-1 overflow-y-auto">
+                <ul class="space-y-1">
+                    {% for option in directions %}
+                    <li class="flex items-center justify-between px-3 py-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg group transition-colors">
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ option.name }}</span>
+                        <div class="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                            <button type="button" onclick="editMetadataOption('{{ option.id }}', 'direction', '{{ option.name|escapejs }}', '')" class="text-slate-400 hover:text-blue-500 transition-colors p-1" title="Modifier">
+                                <span class="material-symbols-outlined text-[16px]">edit</span>
+                            </button>
+                            <form action="{% url 'powerbi_report:metadata_option_delete' option.id %}" method="POST" onsubmit="return confirm('Supprimer cette direction ?')">
+                                {% csrf_token %}
+                                <button type="submit" class="text-slate-400 hover:text-red-500 transition-colors p-1" title="Supprimer">
+                                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="px-3 py-6 text-center text-sm text-slate-500">Aucune direction configurée</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Société List -->
+        <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[400px]">
+            <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-emerald-500 text-[20px]">domain</span>
+                    <h3 class="font-bold text-slate-800 dark:text-slate-200">Sociétés</h3>
+                </div>
+                <button onclick="openMetadataModal('societe', 'Ajouter une Société')" class="size-8 flex items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">add</span>
+                </button>
+            </div>
+            <div class="p-2 flex-1 overflow-y-auto">
+                <ul class="space-y-1">
+                    {% for option in societes %}
+                    <li class="flex items-center justify-between px-3 py-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg group transition-colors">
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            {{ option.name }}
+                            {% if option.parent %}
+                            <span class="text-xs text-slate-400 dark:text-slate-500 font-normal ml-1">(Pôle: {{ option.parent.name }})</span>
+                            {% endif %}
+                        </span>
+                        <div class="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                            <button type="button" onclick="editMetadataOption('{{ option.id }}', 'societe', '{{ option.name|escapejs }}', '{% if option.parent %}{{ option.parent.id }}{% endif %}')" class="text-slate-400 hover:text-blue-500 transition-colors p-1" title="Modifier">
+                                <span class="material-symbols-outlined text-[16px]">edit</span>
+                            </button>
+                            <form action="{% url 'powerbi_report:metadata_option_delete' option.id %}" method="POST" onsubmit="return confirm('Supprimer cette société ?')">
+                                {% csrf_token %}
+                                <button type="submit" class="text-slate-400 hover:text-red-500 transition-colors p-1" title="Supprimer">
+                                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="px-3 py-6 text-center text-sm text-slate-500">Aucune société configurée</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
 </div>
 
 {% endblock %}
@@ -249,6 +367,106 @@
     </div>
 </div>
 
+<!-- Add Metadata Modal -->
+<div id="addMetadataModal" class="fixed inset-0 z-[1060] hidden">
+    <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="closeModal('addMetadataModal')"></div>
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-2xl card-theme bg-white dark:bg-surface-dark text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-slate-200 dark:border-slate-800 animate-slide-up">
+                <form action="{% url 'powerbi_report:metadata_option_create' %}" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="option_type" id="metadata_option_type">
+                    
+                    <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[20px]">add_circle</span>
+                            </div>
+                            <h3 id="metadataModalTitle" class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Ajouter</h3>
+                        </div>
+                        <button type="button" onclick="closeModal('addMetadataModal')" class="text-slate-400 hover:text-slate-500 dark:hover:text-slate-300 transition-colors">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    
+                    <div class="px-6 py-6 space-y-5">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Valeur</label>
+                            <input type="text" name="name" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white" placeholder="Saisir la valeur...">
+                        </div>
+                        
+                        <!-- Parent selection (only shown for Société) -->
+                        <div id="add_metadata_parent_container" class="hidden">
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Pôle Associé</label>
+                            <select name="parent_id" id="add_metadata_parent" class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white">
+                                <option value="">-- Sélectionner un Pôle --</option>
+                                {% for pole in poles %}
+                                <option value="{{ pole.id }}">{{ pole.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-white/5 flex justify-end gap-3">
+                        <button type="button" onclick="closeModal('addMetadataModal')" class="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">Annuler</button>
+                        <button type="submit" class="px-5 py-2.5 text-sm font-bold bg-primary text-white rounded-xl hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 transition-all">Ajouter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Metadata Modal -->
+<div id="editMetadataModal" class="fixed inset-0 z-[1060] hidden">
+    <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="closeModal('editMetadataModal')"></div>
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-2xl card-theme bg-white dark:bg-surface-dark text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-slate-200 dark:border-slate-800 animate-slide-up">
+                <form id="editMetadataForm" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="option_type" id="edit_metadata_option_type">
+                    
+                    <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="size-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[20px]">edit</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Modifier l'Option</h3>
+                        </div>
+                        <button type="button" onclick="closeModal('editMetadataModal')" class="text-slate-400 hover:text-slate-500 dark:hover:text-slate-300 transition-colors">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    
+                    <div class="px-6 py-6 space-y-5">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Valeur</label>
+                            <input type="text" name="name" id="edit_metadata_name" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white" placeholder="Saisir la valeur...">
+                        </div>
+                        
+                        <!-- Parent selection (only shown for Société) -->
+                        <div id="edit_metadata_parent_container" class="hidden">
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Pôle Associé</label>
+                            <select name="parent_id" id="edit_metadata_parent" class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white">
+                                <option value="">-- Sélectionner un Pôle --</option>
+                                {% for pole in poles %}
+                                <option value="{{ pole.id }}">{{ pole.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-white/5 flex justify-end gap-3">
+                        <button type="button" onclick="closeModal('editMetadataModal')" class="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">Annuler</button>
+                        <button type="submit" class="px-5 py-2.5 text-sm font-bold bg-blue-500 text-white rounded-xl hover:bg-blue-600 hover:shadow-lg hover:shadow-blue-500/30 transition-all">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
     .animate-slide-up {
         animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -279,6 +497,48 @@
         const modal = document.getElementById(id);
         modal.classList.add('hidden');
         document.body.style.overflow = 'auto';
+    }
+
+    function openMetadataModal(type, title) {
+        document.getElementById('metadata_option_type').value = type;
+        document.getElementById('metadataModalTitle').textContent = title;
+        
+        const parentContainer = document.getElementById('add_metadata_parent_container');
+        const parentSelect = document.getElementById('add_metadata_parent');
+        
+        if (type === 'societe') {
+            parentContainer.classList.remove('hidden');
+            parentSelect.setAttribute('required', 'required');
+        } else {
+            parentContainer.classList.add('hidden');
+            parentSelect.removeAttribute('required');
+            parentSelect.value = '';
+        }
+        
+        openModal('addMetadataModal');
+    }
+
+    function editMetadataOption(id, type, name, parentId) {
+        const form = document.getElementById('editMetadataForm');
+        form.action = "{% url 'powerbi_report:metadata_option_edit' 999999 %}".replace('999999', id);
+        
+        document.getElementById('edit_metadata_option_type').value = type;
+        document.getElementById('edit_metadata_name').value = name;
+        
+        const parentContainer = document.getElementById('edit_metadata_parent_container');
+        const parentSelect = document.getElementById('edit_metadata_parent');
+        
+        if (type === 'societe') {
+            parentContainer.classList.remove('hidden');
+            parentSelect.setAttribute('required', 'required');
+            parentSelect.value = parentId || '';
+        } else {
+            parentContainer.classList.add('hidden');
+            parentSelect.removeAttribute('required');
+            parentSelect.value = '';
+        }
+        
+        openModal('editMetadataModal');
     }
 
     function editServer(id, name, baseUrl, adminUsername, isActive) {

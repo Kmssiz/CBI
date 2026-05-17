@@ -1003,9 +1003,9 @@ def add_report_local(request):
                 'path': pbirs_path,
                 'server_url': server_url,
                 'is_consolide': is_consolide,
-                # When consolidated, pole/direction/societe are not meaningful
-                'pole': None if is_consolide else (pole or None),
-                'direction': None if is_consolide else (direction or None),
+                # When consolidated, only societe is not applicable
+                'pole': pole or None,
+                'direction': direction or None,
                 'societe': None if is_consolide else (societe or None),
                 'report_type': report_type or None,
                 'modified_by': request.user,
@@ -1073,13 +1073,12 @@ def update_report_metadata_local(request, report_id: str):
     report_ref.is_consolide = is_consolide
 
     if is_consolide:
-        report_ref.pole = None
-        report_ref.direction = None
         report_ref.societe = None
     else:
-        report_ref.pole = request.POST.get('pole', '').strip() or None
-        report_ref.direction = request.POST.get('direction', '').strip() or None
         report_ref.societe = request.POST.get('societe', '').strip() or None
+
+    report_ref.pole = request.POST.get('pole', '').strip() or None
+    report_ref.direction = request.POST.get('direction', '').strip() or None
     
     report_ref.report_type = request.POST.get('report_type', '').strip() or None
     report_ref.modified_by = request.user
@@ -1247,7 +1246,24 @@ def report_detail(request, report_id):
         'July', 'August', 'September', 'October', 'November', 'December'
     ]
 
-    from powerbi_report.models import REPORT_TYPE_CHOICES
+    from powerbi_report.models import REPORT_TYPE_CHOICES, MetadataOption
+    import json as _json
+
+    metadata_options = MetadataOption.objects.all()
+    all_metadata_poles = [opt.name for opt in metadata_options if opt.option_type == 'pole']
+    all_metadata_directions = [opt.name for opt in metadata_options if opt.option_type == 'direction']
+    all_metadata_societes = [opt.name for opt in metadata_options if opt.option_type == 'societe']
+
+    # Build Pôle → Société mapping from MetadataOption parent FK
+    pole_societe_map = {}
+    pole_objs = {opt.id: opt.name for opt in metadata_options if opt.option_type == 'pole'}
+    for opt in metadata_options:
+        if opt.option_type == 'societe' and opt.parent_id and opt.parent_id in pole_objs:
+            pole_name = pole_objs[opt.parent_id]
+            pole_societe_map.setdefault(pole_name, []).append(opt.name)
+    for k in pole_societe_map:
+        pole_societe_map[k].sort()
+
     return render(request, 'powerbi_report/report_detail.html', {
         'notifications': notifications,
         'report': report,
@@ -1259,6 +1275,10 @@ def report_detail(request, report_id):
         'permissions': permissions,
         'week_days': week_days,
         'months': months,
+        'all_metadata_poles': all_metadata_poles,
+        'all_metadata_directions': all_metadata_directions,
+        'all_metadata_societes': all_metadata_societes,
+        'metadata_pole_societe_map_json': _json.dumps(pole_societe_map),
     })
 
 

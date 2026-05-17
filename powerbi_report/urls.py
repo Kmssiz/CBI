@@ -91,4 +91,9 @@ urlpatterns = [
     path('servers/create/', server_views.server_create, name='server_create'),
     path('servers/edit/<int:server_id>/', server_views.server_edit, name='server_edit'),
     path('servers/delete/<int:server_id>/', server_views.server_delete, name='server_delete'),
+    
+    # Metadata Options Management
+    path('servers/metadata/create/', server_views.metadata_option_create, name='metadata_option_create'),
+    path('servers/metadata/edit/<int:option_id>/', server_views.metadata_option_edit, name='metadata_option_edit'),
+    path('servers/metadata/delete/<int:option_id>/', server_views.metadata_option_delete, name='metadata_option_delete'),
 ]

@@ -193,6 +193,23 @@ def report_list_view(
         page_range = []
 
     server_urls = get_active_pbirs_server_urls()
+    
+    from powerbi_report.models import MetadataOption
+    import json as _json
+    metadata_options = MetadataOption.objects.all()
+    all_metadata_poles = [opt.name for opt in metadata_options if opt.option_type == 'pole']
+    all_metadata_directions = [opt.name for opt in metadata_options if opt.option_type == 'direction']
+    all_metadata_societes = [opt.name for opt in metadata_options if opt.option_type == 'societe']
+
+    # Build Pôle → Société mapping from MetadataOption parent FK
+    pole_societe_map = {}
+    pole_objs = {opt.id: opt.name for opt in metadata_options if opt.option_type == 'pole'}
+    for opt in metadata_options:
+        if opt.option_type == 'societe' and opt.parent_id and opt.parent_id in pole_objs:
+            pole_name = pole_objs[opt.parent_id]
+            pole_societe_map.setdefault(pole_name, []).append(opt.name)
+    for k in pole_societe_map:
+        pole_societe_map[k].sort()
 
     return render(
         request,
@@ -215,5 +232,9 @@ def report_list_view(
             "all_poles": all_poles,
             "all_societes": all_societes,
             "metadata_relations": metadata_relations,
+            "all_metadata_poles": all_metadata_poles,
+            "all_metadata_directions": all_metadata_directions,
+            "all_metadata_societes": all_metadata_societes,
+            "metadata_pole_societe_map_json": _json.dumps(pole_societe_map),
         },
     )

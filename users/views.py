@@ -817,7 +817,7 @@ def server_status(request):
 
         overall_status = "up" if all_up else ("partial" if any(r["status"] == "up" for r in results) else "down")
         return JsonResponse({"status": overall_status, "servers": results})
-    except Exception as e:        
+    except Exception as e:       
         logger.warning("Échec de la vérification du statut PBIRS: %s", e)
         return JsonResponse({"status": "down", "error": str(e)}, status=500)
 

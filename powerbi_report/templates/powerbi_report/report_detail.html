@@ -549,23 +549,38 @@
         </div>
         <div class="p-6 space-y-5">
             <!-- Org fields -->
-            <div id="metaOrgFields" class="space-y-5 {% if report_ref.is_consolide %}ar-collapsed{% endif %}">
+            <div id="metaOrgFields" class="space-y-5">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1.5">
                         <label for="meta_direction" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Direction</label>
-                        <input type="text" id="meta_direction" name="direction" value="{{ report_ref.direction|default:'' }}" placeholder="ex: Direction Commerciale"
-                            class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-300 placeholder-slate-400 focus:ring-2 focus:ring-primary outline-none transition-all text-sm">
+                        <select id="meta_direction" name="direction"
+                            class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-300 placeholder-slate-400 focus:ring-2 focus:ring-primary outline-none transition-all text-sm appearance-none cursor-pointer">
+                            <option value="">Sélectionnez une Direction</option>
+                            {% for dir_opt in all_metadata_directions %}
+                                <option value="{{ dir_opt }}" {% if report_ref.direction == dir_opt %}selected{% endif %}>{{ dir_opt }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="space-y-1.5">
                         <label for="meta_pole" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Pôle</label>
-                        <input type="text" id="meta_pole" name="pole" value="{{ report_ref.pole|default:'' }}" placeholder="ex: Finance"
-                            class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-300 placeholder-slate-400 focus:ring-2 focus:ring-primary outline-none transition-all text-sm">
+                        <select id="meta_pole" name="pole"
+                            class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-300 placeholder-slate-400 focus:ring-2 focus:ring-primary outline-none transition-all text-sm appearance-none cursor-pointer">
+                            <option value="">Sélectionnez un Pôle</option>
+                            {% for pole_opt in all_metadata_poles %}
+                                <option value="{{ pole_opt }}" {% if report_ref.pole == pole_opt %}selected{% endif %}>{{ pole_opt }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <!-- Société -->
-                    <div class="space-y-1.5 col-span-2">
+                    <div id="metaSocieteContainer" class="space-y-1.5 col-span-2 {% if report_ref.is_consolide %}ar-collapsed{% endif %}">
                         <label for="meta_societe" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Société</label>
-                        <input type="text" id="meta_societe" name="societe" value="{{ report_ref.societe|default:'' }}" placeholder="ex: CBI"
-                            class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-300 placeholder-slate-400 focus:ring-2 focus:ring-primary outline-none transition-all text-sm">
+                        <select id="meta_societe" name="societe"
+                            class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-300 placeholder-slate-400 focus:ring-2 focus:ring-primary outline-none transition-all text-sm appearance-none cursor-pointer">
+                            <option value="">Sélectionnez une Société</option>
+                            {% for soc_opt in all_metadata_societes %}
+                                <option value="{{ soc_opt }}" {% if report_ref.societe == soc_opt %}selected{% endif %}>{{ soc_opt }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
             </div>
@@ -758,30 +773,90 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function toggleEditConsolide(checked) {
-    const orgFields = document.getElementById('metaOrgFields');
+    const societeContainer = document.getElementById('metaSocieteContainer');
     if (checked) {
-        orgFields.classList.add('ar-collapsed');
-        // Clear values
-        ['meta_direction', 'meta_pole', 'meta_societe'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = '';
-        });
+        if (societeContainer) societeContainer.classList.add('ar-collapsed');
+        // Clear values of only societe
+        const el = document.getElementById('meta_societe');
+        if (el) el.value = '';
     } else {
-        orgFields.classList.remove('ar-collapsed');
+        if (societeContainer) societeContainer.classList.remove('ar-collapsed');
     }
 }
+
+/* ── Cascading Pôle → Société dropdown (Edit Metadata) ────────────────────── */
+(function() {
+    const poleSocieteMap = {{ metadata_pole_societe_map_json|safe }};
+    const poleSelect = document.getElementById('meta_pole');
+    const societeSelect = document.getElementById('meta_societe');
+    if (!poleSelect || !societeSelect) return;
+
+    // Store all original societe options
+    const allSocieteOptions = [];
+    for (let i = 0; i < societeSelect.options.length; i++) {
+        allSocieteOptions.push({
+            value: societeSelect.options[i].value,
+            text: societeSelect.options[i].text,
+            selected: societeSelect.options[i].selected
+        });
+    }
+
+    function filterSocietes() {
+        const selectedPole = poleSelect.value;
+        const currentSociete = societeSelect.value;
+
+        // Clear all options except the first placeholder
+        while (societeSelect.options.length > 1) {
+            societeSelect.remove(1);
+        }
+
+        if (selectedPole && poleSocieteMap[selectedPole]) {
+            // Only add societes linked to this pole
+            poleSocieteMap[selectedPole].forEach(function(soc) {
+                const opt = document.createElement('option');
+                opt.value = soc;
+                opt.text = soc;
+                if (soc === currentSociete) opt.selected = true;
+                societeSelect.add(opt);
+            });
+        } else {
+            // No pole selected: restore all societe options
+            allSocieteOptions.forEach(function(item) {
+                if (!item.value) return; // skip placeholder
+                const opt = document.createElement('option');
+                opt.value = item.value;
+                opt.text = item.text;
+                if (item.value === currentSociete) opt.selected = true;
+                societeSelect.add(opt);
+            });
+        }
+
+        // If current societe is not in new list, reset
+        if (societeSelect.value !== currentSociete) {
+            societeSelect.value = '';
+        }
+    }
+
+    poleSelect.addEventListener('change', filterSocietes);
+    // Initialize on page load to pre-filter based on existing selection
+    filterSocietes();
+})();
 </script>
 
 <style>
-#metaOrgFields { 
-    transition: opacity .2s, max-height .25s cubic-bezier(0.4,0,0.2,1); 
-    max-height: 400px; 
+#metaSocieteContainer { 
+    transition: opacity .2s, max-height .25s cubic-bezier(0.4,0,0.2,1), padding .2s, margin .2s; 
+    max-height: 150px; 
     overflow: hidden; 
     opacity: 1; 
 }
-#metaOrgFields.ar-collapsed { 
+#metaSocieteContainer.ar-collapsed { 
     max-height: 0; 
     opacity: 0; 
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    margin-bottom: 0;
     pointer-events: none; 
 }
 </style>

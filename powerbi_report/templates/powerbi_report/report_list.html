@@ -484,7 +484,7 @@
 </script>
 {% if permissions.add_powerbireport %}
 <!-- ========== Add Report Modal (Full-screen Slide-in) ========== -->
-<div id="addReportModal" class="hidden fixed inset-0 z-[9999] flex items-stretch justify-end">
+<div id="addReportModal" class="hidden fixed inset-0 z-[9999] flex items-stretch justify-start flex-row-reverse">
     <!-- Backdrop -->
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="document.getElementById('addReportModal').classList.add('hidden')"></div>
     <!-- Panel -->
@@ -599,26 +599,43 @@
                     </div>
 
                     <div class="space-y-4">
-                        <!-- Org fields (hidden when Consolidé is on) -->
-                            <div class="grid grid-cols-2 gap-4">
-                                <!-- Pôle -->
-                                <div class="space-y-1.5">
-                                    <label for="add_pole" class="text-xs font-bold ar-label uppercase tracking-widest">Pôle</label>
-                                    <input type="text" id="add_pole" name="pole" placeholder="ex: Finance"
-                                        class="ar-input w-full rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm">
-                                </div>
-                                <!-- Direction -->
-                                <div class="space-y-1.5">
-                                    <label for="add_direction" class="text-xs font-bold ar-label uppercase tracking-widest">Direction</label>
-                                    <input type="text" id="add_direction" name="direction" placeholder="ex: Direction Commerciale"
-                                        class="ar-input w-full rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm">
-                                </div>
-                                <!-- Société -->
-                                <div class="space-y-1.5 col-span-2">
-                                    <label for="add_societe" class="text-xs font-bold ar-label uppercase tracking-widest">Société</label>
-                                    <input type="text" id="add_societe" name="societe" placeholder="ex: CBI"
-                                        class="ar-input w-full rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm">
-                                </div>
+                        <!-- Pôle and Direction (always visible) -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- Pôle -->
+                            <div class="space-y-1.5">
+                                <label for="add_pole" class="text-xs font-bold ar-label uppercase tracking-widest">Pôle</label>
+                                <select id="add_pole" name="pole"
+                                    class="ar-input w-full rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm appearance-none cursor-pointer">
+                                    <option value="">Sélectionnez un Pôle</option>
+                                    {% for pole_opt in all_metadata_poles %}
+                                        <option value="{{ pole_opt }}">{{ pole_opt }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <!-- Direction -->
+                            <div class="space-y-1.5">
+                                <label for="add_direction" class="text-xs font-bold ar-label uppercase tracking-widest">Direction</label>
+                                <select id="add_direction" name="direction"
+                                    class="ar-input w-full rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm appearance-none cursor-pointer">
+                                    <option value="">Sélectionnez une Direction</option>
+                                    {% for dir_opt in all_metadata_directions %}
+                                        <option value="{{ dir_opt }}">{{ dir_opt }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Société (hidden when Consolidé is on) -->
+                        <div id="arSocieteField">
+                            <div class="space-y-1.5">
+                                <label for="add_societe" class="text-xs font-bold ar-label uppercase tracking-widest">Société</label>
+                                <select id="add_societe" name="societe"
+                                    class="ar-input w-full rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm appearance-none cursor-pointer">
+                                    <option value="">Sélectionnez une Société</option>
+                                    {% for soc_opt in all_metadata_societes %}
+                                        <option value="{{ soc_opt }}">{{ soc_opt }}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
                         </div>
 
@@ -627,7 +644,7 @@
                             <div class="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-violet-500/30 bg-violet-500/8">
                                 <span class="material-symbols-outlined text-[18px] text-violet-400">hub</span>
                                 <div>
-                                    <p class="text-xs font-bold text-violet-400">Rapport Consolidé</p>
+                                    <p class="text-xs font-bold text-violet-400">Rapport Consolidé </p>
                                 </div>
                             </div>
                         </div>
@@ -767,9 +784,9 @@ html.dark .ar-cancel:hover { color: #f1f5f9; }
 /* Consolidé badge bg (the Tailwind /8 opacity trick can be purged) */
 #arConsolideBadge > div { background: rgba(139,92,246,0.08); }
 
-/* Org fields collapse animation */
-#arOrgFields { transition: opacity .2s, max-height .25s cubic-bezier(0.4,0,0.2,1); max-height: 400px; overflow: hidden; opacity: 1; }
-#arOrgFields.ar-collapsed { max-height: 0; opacity: 0; pointer-events: none; }
+/* Société field collapse animation */
+#arSocieteField { transition: opacity .2s, max-height .25s cubic-bezier(0.4,0,0.2,1); max-height: 200px; overflow: hidden; opacity: 1; }
+#arSocieteField.ar-collapsed { max-height: 0; opacity: 0; pointer-events: none; }
 
 /* Upload overlay */
 #arUploadOverlay.ar-overlay { background: rgba(255,255,255,0.92); }
@@ -804,20 +821,18 @@ function resetArForm() {
 }
 
 function toggleConsolide(checked) {
-    const orgFields     = document.getElementById('arOrgFields');
+    const societeField  = document.getElementById('arSocieteField');
     const badge         = document.getElementById('arConsolideBadge');
     const checkbox      = document.getElementById('is_consolide');
     if (checkbox) checkbox.checked = checked;
     if (checked) {
-        orgFields.classList.add('ar-collapsed');
+        societeField.classList.add('ar-collapsed');
         badge.classList.remove('hidden');
-        // Clear values so they're not submitted
-        ['add_pole','add_direction','add_societe'].forEach(function(id) {
-            const el = document.getElementById(id);
-            if (el) el.value = '';
-        });
+        // Clear only societe value (pole & direction remain)
+        const socEl = document.getElementById('add_societe');
+        if (socEl) socEl.value = '';
     } else {
-        orgFields.classList.remove('ar-collapsed');
+        societeField.classList.remove('ar-collapsed');
         badge.classList.add('hidden');
     }
 }
@@ -835,6 +850,59 @@ function handleFileSelected(input) {
     }
     hideFeedback();
 }
+
+/* ── Cascading Pôle → Société dropdown (Add Report) ───────────────────────── */
+(function() {
+    const poleSocieteMap = {{ metadata_pole_societe_map_json|safe }};
+    const poleSelect = document.getElementById('add_pole');
+    const societeSelect = document.getElementById('add_societe');
+    if (!poleSelect || !societeSelect) return;
+
+    // Store all original societe options
+    const allSocieteOptions = [];
+    for (let i = 0; i < societeSelect.options.length; i++) {
+        allSocieteOptions.push({
+            value: societeSelect.options[i].value,
+            text: societeSelect.options[i].text
+        });
+    }
+
+    poleSelect.addEventListener('change', function() {
+        const selectedPole = this.value;
+        const currentSociete = societeSelect.value;
+
+        // Clear all options except the first placeholder
+        while (societeSelect.options.length > 1) {
+            societeSelect.remove(1);
+        }
+
+        if (selectedPole && poleSocieteMap[selectedPole]) {
+            // Only add societes linked to this pole
+            poleSocieteMap[selectedPole].forEach(function(soc) {
+                const opt = document.createElement('option');
+                opt.value = soc;
+                opt.text = soc;
+                if (soc === currentSociete) opt.selected = true;
+                societeSelect.add(opt);
+            });
+        } else {
+            // No pole selected: restore all societe options
+            allSocieteOptions.forEach(function(item) {
+                if (!item.value) return; // skip placeholder
+                const opt = document.createElement('option');
+                opt.value = item.value;
+                opt.text = item.text;
+                if (item.value === currentSociete) opt.selected = true;
+                societeSelect.add(opt);
+            });
+        }
+
+        // If current societe is not in new list, reset
+        if (societeSelect.value !== currentSociete) {
+            societeSelect.value = '';
+        }
+    });
+})();
 
 /* ── Feedback banner ───────────────────────────────────────────────────────── */
 function showError(msg) {
