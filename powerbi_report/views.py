@@ -283,12 +283,12 @@ def get_local_reports_for_user(user, request=None):
     from powerbi_report.models import ReportRef, UserReportPermission
 
     if user.is_superuser:
-        report_refs = ReportRef.objects.all()
+        report_refs = ReportRef.objects.all().prefetch_related('poles', 'directions', 'societes', 'modules')
     else:
         permitted_report_ids = UserReportPermission.objects.filter(
             user=user
         ).values_list('report_id', flat=True)
-        report_refs = ReportRef.objects.filter(id__in=permitted_report_ids)
+        report_refs = ReportRef.objects.filter(id__in=permitted_report_ids).prefetch_related('poles', 'directions', 'societes', 'modules')
 
     # Defensive fallback for historical cache pollution.
     report_refs = _filter_reportref_to_leaf_items(report_refs)
@@ -305,6 +305,11 @@ def get_local_reports_for_user(user, request=None):
         path_parts = path.strip("/").split("/") if path else []
         parent_folder_path = "/" + "/".join(path_parts[:-1]) if len(path_parts) > 1 else "/"
 
+        ref_poles = [p.name for p in ref.poles.all()]
+        ref_dirs = [d.name for d in ref.directions.all()]
+        ref_socs = [s.name for s in ref.societes.all()]
+        ref_mods = [m.name for m in ref.modules.all()]
+
         reports.append({
             'Id': ref.pbirs_id,
             'Name': ref.name,
@@ -312,12 +317,17 @@ def get_local_reports_for_user(user, request=None):
             'Description': getattr(ref, 'description', ""),
             'Type': 'PowerBIReport',
             'embed_url': embed_url,
+            'server_url': server_url,
             'ParentFolderPath': parent_folder_path,
             'modified_at': ref.modified_at,
             'modified_by': ref.modified_by,
-            'pole': ref.pole,
-            'direction': ref.direction,
-            'societe': ref.societe,
+            'pole': ", ".join(ref_poles),
+            'direction': ", ".join(ref_dirs),
+            'societe': ", ".join(ref_socs),
+            'poles': ref_poles,
+            'directions': ref_dirs,
+            'societes': ref_socs,
+            'modules': ref_mods,
             'is_consolide': ref.is_consolide,
             'report_type': ref.report_type,
         })
@@ -872,7 +882,7 @@ def add_report_local(request):
     """Upload a .pbix to PBIRS and save local metadata (pole, direction, type).
     Returns a JSON response so the frontend can display inline feedback.
     """
-    from powerbi_report.models import ReportRef, REPORT_TYPE_CHOICES
+    from powerbi_report.models import ReportRef, REPORT_TYPE_CHOICES, MetadataOption
     from django.http import JsonResponse
 
     def _err(msg, code=400):
@@ -888,11 +898,12 @@ def add_report_local(request):
     pbix_file = request.FILES.get('pbix_file')
     pbirs_path = request.POST.get('pbirs_path', '').strip()
     server_url = request.POST.get('server_url', '').strip()
-    pole = request.POST.get('pole', '').strip()
-    direction = request.POST.get('direction', '').strip()
-    societe = request.POST.get('societe', '').strip()
     report_type = request.POST.get('report_type', '').strip()
     is_consolide = request.POST.get('is_consolide') == 'on'
+
+    selected_directions = request.POST.getlist('directions')
+    selected_societes = request.POST.getlist('societes')
+    selected_modules = request.POST.getlist('modules')
 
 
     # ── Input validation ──────────────────────────────────────────────────────
@@ -996,21 +1007,38 @@ def add_report_local(request):
         report_name = data.get('Name', pbix_file.name.replace('.pbix', ''))
 
         # ── Persist local metadata ────────────────────────────────────────────
-        ReportRef.objects.update_or_create(
+        report_ref, _ = ReportRef.objects.update_or_create(
             pbirs_id=pbirs_id,
             defaults={
                 'name': report_name,
                 'path': pbirs_path,
                 'server_url': server_url,
                 'is_consolide': is_consolide,
-                # When consolidated, only societe is not applicable
-                'pole': pole or None,
-                'direction': direction or None,
-                'societe': None if is_consolide else (societe or None),
                 'report_type': report_type or None,
                 'modified_by': request.user,
             }
         )
+
+        # Update ManyToMany fields
+        if is_consolide:
+            report_ref.societes.clear()
+            report_ref.poles.clear()
+        else:
+            report_ref.societes.set(selected_societes)
+            parent_pole_ids = MetadataOption.objects.filter(
+                id__in=selected_societes,
+                option_type='societe',
+                parent__isnull=False
+            ).values_list('parent_id', flat=True).distinct()
+            report_ref.poles.set(parent_pole_ids)
+        report_ref.directions.set(selected_directions)
+        report_ref.modules.set(selected_modules)
+
+        # Sync legacy CharFields for backward compatibility
+        report_ref.societe = ", ".join([s.name for s in report_ref.societes.all()]) or None
+        report_ref.pole = ", ".join([p.name for p in report_ref.poles.all()]) or None
+        report_ref.direction = ", ".join([d.name for d in report_ref.directions.all()]) or None
+        report_ref.save()
 
 
         cache.delete(f"powerbi_reports_cache_{request.user.id}")
@@ -1054,7 +1082,7 @@ def add_report_local(request):
 @admin_required
 def update_report_metadata_local(request, report_id: str):
     """Update pole, direction, report_type fields stored locally for a given report."""
-    from powerbi_report.models import ReportRef
+    from powerbi_report.models import ReportRef, MetadataOption
 
     permissions = get_user_permissions(request.user)
     if not permissions.get('change_powerbireport'):
@@ -1072,16 +1100,35 @@ def update_report_metadata_local(request, report_id: str):
     is_consolide = request.POST.get('is_consolide') == 'on'
     report_ref.is_consolide = is_consolide
 
-    if is_consolide:
-        report_ref.societe = None
-    else:
-        report_ref.societe = request.POST.get('societe', '').strip() or None
-
-    report_ref.pole = request.POST.get('pole', '').strip() or None
-    report_ref.direction = request.POST.get('direction', '').strip() or None
-    
     report_ref.report_type = request.POST.get('report_type', '').strip() or None
     report_ref.modified_by = request.user
+    report_ref.save()
+
+    # Update ManyToMany fields
+    if is_consolide:
+        report_ref.societes.clear()
+        report_ref.poles.clear()
+    else:
+        selected_societes = request.POST.getlist('societes')
+        report_ref.societes.set(selected_societes)
+        # Derive poles from societes parent relationship
+        parent_pole_ids = MetadataOption.objects.filter(
+            id__in=selected_societes,
+            option_type='societe',
+            parent__isnull=False
+        ).values_list('parent_id', flat=True).distinct()
+        report_ref.poles.set(parent_pole_ids)
+
+    selected_directions = request.POST.getlist('directions')
+    report_ref.directions.set(selected_directions)
+
+    selected_modules = request.POST.getlist('modules')
+    report_ref.modules.set(selected_modules)
+
+    # Sync legacy CharFields for backward compatibility
+    report_ref.societe = ", ".join([s.name for s in report_ref.societes.all()]) or None
+    report_ref.pole = ", ".join([p.name for p in report_ref.poles.all()]) or None
+    report_ref.direction = ", ".join([d.name for d in report_ref.directions.all()]) or None
     report_ref.save()
 
     log_history(request.user, f"Métadonnées mises à jour pour le rapport : {report_ref.name}")
@@ -1249,20 +1296,23 @@ def report_detail(request, report_id):
     from powerbi_report.models import REPORT_TYPE_CHOICES, MetadataOption
     import json as _json
 
-    metadata_options = MetadataOption.objects.all()
-    all_metadata_poles = [opt.name for opt in metadata_options if opt.option_type == 'pole']
-    all_metadata_directions = [opt.name for opt in metadata_options if opt.option_type == 'direction']
-    all_metadata_societes = [opt.name for opt in metadata_options if opt.option_type == 'societe']
+    metadata_options = MetadataOption.objects.all().select_related('parent')
+    all_metadata_poles = [opt for opt in metadata_options if opt.option_type == 'pole']
+    all_metadata_directions = [opt for opt in metadata_options if opt.option_type == 'direction']
+    all_metadata_societes = [opt for opt in metadata_options if opt.option_type == 'societe']
+    all_metadata_modules = [opt for opt in metadata_options if opt.option_type == 'module']
 
-    # Build Pôle → Société mapping from MetadataOption parent FK
-    pole_societe_map = {}
-    pole_objs = {opt.id: opt.name for opt in metadata_options if opt.option_type == 'pole'}
+    # Map Société ID → Pôle ID
+    societe_pole_map = {}
     for opt in metadata_options:
-        if opt.option_type == 'societe' and opt.parent_id and opt.parent_id in pole_objs:
-            pole_name = pole_objs[opt.parent_id]
-            pole_societe_map.setdefault(pole_name, []).append(opt.name)
-    for k in pole_societe_map:
-        pole_societe_map[k].sort()
+        if opt.option_type == 'societe' and opt.parent_id:
+            societe_pole_map[opt.id] = opt.parent_id
+
+    # Current report metadata IDs
+    report_pole_ids = list(report_ref.poles.values_list('id', flat=True))
+    report_direction_ids = list(report_ref.directions.values_list('id', flat=True))
+    report_societe_ids = list(report_ref.societes.values_list('id', flat=True))
+    report_module_ids = list(report_ref.modules.values_list('id', flat=True))
 
     return render(request, 'powerbi_report/report_detail.html', {
         'notifications': notifications,
@@ -1278,7 +1328,12 @@ def report_detail(request, report_id):
         'all_metadata_poles': all_metadata_poles,
         'all_metadata_directions': all_metadata_directions,
         'all_metadata_societes': all_metadata_societes,
-        'metadata_pole_societe_map_json': _json.dumps(pole_societe_map),
+        'all_metadata_modules': all_metadata_modules,
+        'report_pole_ids': report_pole_ids,
+        'report_direction_ids': report_direction_ids,
+        'report_societe_ids': report_societe_ids,
+        'report_module_ids': report_module_ids,
+        'societe_pole_map_json': _json.dumps(societe_pole_map),
     })
 
 
@@ -3104,15 +3159,17 @@ def _get_allowed_report_types_for_view(view_type):
     Returns: (allowed_types_list, required_field_name, field_value)
     """
     if view_type == 'pole':
-        return (['dashboard'], 'pole', True) # Required field 'pole' (non-null)
+        return (['dashboard'], 'poles', True) # Required M2M field 'poles' (non-empty)
     elif view_type == 'direction':
-        return (['dashboard'], 'direction', True) # Required field 'direction' (non-null)
+        return (['dashboard'], 'directions', True) # Required M2M field 'directions' (non-empty)
     elif view_type == 'consolide':
         return (['dashboard'], 'is_consolide', True) # Required boolean 'is_consolide'
     elif view_type == 'biblio':
         return (['bibliotheque'], None, None)
     elif view_type == 'anomalie':
         return (['anomalie'], None, None)
+    elif view_type == 'module':
+        return ([], 'modules', True) # Required M2M field 'modules' (non-empty)
     return ([], None, None)
 
 
@@ -3134,12 +3191,16 @@ def get_visible_report_ids(request, view_type=None):
         if req_field:
             if req_field == 'is_consolide':
                 qs = qs.filter(is_consolide=True)
+            elif req_field in ['poles', 'directions', 'modules', 'societes']:
+                qs = qs.filter(**{f"{req_field}__isnull": False}).distinct()
             else:
                 qs = qs.exclude(**{f"{req_field}__isnull": True}).exclude(**{req_field: ""})
+        if view_type and view_type != 'consolide':
+            qs = qs.exclude(is_consolide=True)
         return set(qs.values_list('pbirs_id', flat=True))
 
     # Get from local database only. Normal navigation must not call PBIRS.
-    local_permissions = UserReportPermission.objects.filter(user=user).select_related('report')
+    local_permissions = UserReportPermission.objects.filter(user=user).select_related('report').prefetch_related('report__poles', 'report__directions', 'report__societes', 'report__modules')
     if not local_permissions.exists():
         logger.warning(f"No local permissions found for {user.username}. User may need to log out and log back in.")
         return set()
@@ -3149,15 +3210,21 @@ def get_visible_report_ids(request, view_type=None):
     leaf_reports = _filter_reportref_to_leaf_items(permission_reports)
     
     # Apply metadata filter if applicable
-    if allowed_types or req_field:
+    if allowed_types or req_field or view_type:
         filtered_ids = set()
         for report in leaf_reports:
             if not report.pbirs_id: continue
+            if view_type and view_type != 'consolide' and report.is_consolide: continue
             if allowed_types and report.report_type not in allowed_types: continue
             if req_field:
-                if req_field == 'is_consolide' and not report.is_consolide: continue
-                val = getattr(report, req_field, None)
-                if not val: continue # Skip if null or empty string
+                if req_field == 'is_consolide':
+                    if not report.is_consolide: continue
+                elif req_field in ['poles', 'directions', 'modules', 'societes']:
+                    # Use prefetched M2M cache (calling .all() uses prefetched results, no DB hits)
+                    if not getattr(report, req_field).all(): continue
+                else:
+                    val = getattr(report, req_field, None)
+                    if not val: continue # Skip if null or empty string
             filtered_ids.add(report.pbirs_id)
         return filtered_ids
     
@@ -3292,86 +3359,100 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
     Filters based on the local PBIRS permission cache.
     """
     # Validate view type
-    if view_type not in ['direction', 'pole', 'biblio', 'anomalie', 'consolide']:
+    if view_type not in ['direction', 'pole', 'biblio', 'anomalie', 'consolide', 'module']:
         raise Http404("Invalid view type")
 
-    # Access control: only the 'anomalie' view is strictly gated by an explicit permission.
-    # Other views rely on report-level permissions.
-    # View permissions check
     is_admin = request.user.is_admin
+    # Check permissions
     if view_type == 'anomalie' and not (is_admin or request.user.can_view_anomalie):
         raise PermissionDenied
     if view_type == 'consolide' and not (is_admin or request.user.can_view_consolide):
         raise PermissionDenied
-    if view_type == 'direction' and not (is_admin or request.user.default_view == 'direction'):
+    if view_type == 'direction' and not (is_admin or request.user.can_view_direction):
         raise PermissionDenied
-    if view_type == 'pole' and not (is_admin or request.user.default_view == 'pole'):
+    if view_type == 'pole' and not (is_admin or request.user.can_view_pole):
         raise PermissionDenied
-    
-    # Get the current folder if specified
+    # module and biblio are always allowed
+
+    # Determine grouping metadata option type
+    if view_type == 'direction':
+        grouping_type = 'direction'
+    elif view_type == 'pole':
+        grouping_type = 'pole'
+    elif view_type == 'module':
+        grouping_type = 'module'
+    else:
+        grouping_type = 'direction'
+
+    # Get permitted report IDs for the user in this view
+    visible_report_ids = get_visible_report_ids(request, view_type=view_type)
+    permitted_reports = ReportRef.objects.filter(pbirs_id__in=visible_report_ids)
+
     current_folder = None
-    if folder_id:
-        current_folder = get_object_or_404(CustomFolder, id=folder_id, view_type=view_type)
-    
-    # Get subfolders of current folder (or root folders if no current folder)
-    if current_folder:
-        subfolders = CustomFolder.objects.filter(parent=current_folder, view_type=view_type)
-    else:
-        subfolders = CustomFolder.objects.filter(parent__isnull=True, view_type=view_type)
-    
-    # Admins see all folders; regular users only see folders with visible reports
-    if request.user.is_superuser or is_admin:
-        visible_subfolders = list(subfolders)
-    else:
-        visible_folder_ids = {f.id for f in get_visible_folders(request, view_type)}
-        visible_subfolders = [f for f in subfolders if f.id in visible_folder_ids]
-    
-    # Get reports in current folder (with PBIRS permission filtering)
-    folder_reports = []
-    if current_folder:
-        folder_reports = get_visible_reports_in_folder(request, current_folder)
-    
-    # Build breadcrumbs
+    subfolders = []
+    reports = []
     breadcrumbs = []
-    if current_folder:
-        breadcrumbs = current_folder.get_breadcrumbs()
+
+    from powerbi_report.models import MetadataOption
     
-    # Get all reports for assignment modal (admin only) from the local sync cache.
-    # Filter by allowed report types and required fields for the current view.
+    if folder_id is None:
+        # Root level: list unique metadata values as folders
+        if grouping_type == 'direction':
+            options = MetadataOption.objects.filter(option_type='direction', direction_reports__in=permitted_reports).distinct()
+        elif grouping_type == 'pole':
+            options = MetadataOption.objects.filter(option_type='pole', pole_reports__in=permitted_reports).distinct()
+        elif grouping_type == 'module':
+            options = MetadataOption.objects.filter(option_type='module', module_reports__in=permitted_reports).distinct()
+        else:
+            options = MetadataOption.objects.filter(option_type='direction', direction_reports__in=permitted_reports).distinct()
+        subfolders = list(options)
+    else:
+        # Inside a folder (MetadataOption)
+        current_folder = get_object_or_404(MetadataOption, id=folder_id)
+        if grouping_type == 'direction':
+            reports_qs = permitted_reports.filter(directions=current_folder)
+        elif grouping_type == 'pole':
+            reports_qs = permitted_reports.filter(poles=current_folder)
+        elif grouping_type == 'module':
+            reports_qs = permitted_reports.filter(modules=current_folder)
+        else:
+            reports_qs = permitted_reports.filter(directions=current_folder)
+
+        for r in reports_qs.order_by('name'):
+            reports.append({
+                'id': r.id,
+                'pbirs_id': r.pbirs_id,
+                'name': r.name,
+                'path': r.path,
+                'embed_url': r.embed_url,
+            })
+        breadcrumbs = [current_folder]
+
+    # Admin only: list all reports for assignment (not applicable now, but kept for compatibility or empty)
     all_reports = []
-    if request.user.is_superuser:
-        allowed_types, req_field, _ = _get_allowed_report_types_for_view(view_type)
-        qs = ReportRef.objects.all()
-        if allowed_types:
-            qs = qs.filter(report_type__in=allowed_types)
-        if req_field:
-            if req_field == 'is_consolide':
-                qs = qs.filter(is_consolide=True)
-            else:
-                qs = qs.exclude(**{f"{req_field}__isnull": True}).exclude(**{req_field: ""})
-        all_reports = list(qs.order_by('name'))
-    
+
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
-    
+
     view_titles = {
         'direction': 'CBI',
         'pole': 'Rapports par Pole',
         'biblio': 'Bibliotheque',
         'anomalie': 'Anomalie',
         'consolide': 'Consolidé',
+        'module': 'Module',
     }
     view_title = view_titles.get(view_type, 'Dossiers personnalisés')
-    
+
     log_history(request.user, f"A consulté les dossiers personnalisés ({view_type})")
-    
+
     return render(request, 'powerbi_report/custom_folders_list.html', {
         'view_type': view_type,
         'view_title': view_title,
         'current_folder': current_folder,
-        'subfolders': visible_subfolders,
-        'reports': folder_reports,
+        'subfolders': subfolders,
+        'reports': reports,
         'breadcrumbs': breadcrumbs,
         'all_reports': all_reports,
         'notifications': notifications,
@@ -3595,6 +3676,8 @@ def get_available_reports_json(request):
             reports = reports.filter(is_consolide=True)
         else:
             reports = reports.exclude(**{f"{req_field}__isnull": True}).exclude(**{req_field: ""})
+    if view_type and view_type != 'consolide':
+        reports = reports.exclude(is_consolide=True)
     
     reports = reports.order_by('name')
     report_list = [
@@ -3661,20 +3744,21 @@ def embed_custom_report(request, view_type, folder_id, report_id):
     """
     Embed a report within the context of a custom folder to preserve breadcrumbs.
     """
-    folder = get_object_or_404(CustomFolder, id=folder_id)
+    from powerbi_report.models import MetadataOption
+    folder = get_object_or_404(MetadataOption, id=folder_id)
     report_ref = get_object_or_404(ReportRef, id=report_id)
     
     # Access control for the view type context
-    # View permissions check
     is_admin = request.user.is_admin
     if view_type == 'anomalie' and not (is_admin or request.user.can_view_anomalie):
         raise PermissionDenied
     if view_type == 'consolide' and not (is_admin or request.user.can_view_consolide):
         raise PermissionDenied
-    if view_type == 'direction' and not (is_admin or request.user.default_view == 'direction'):
+    if view_type == 'direction' and not (is_admin or request.user.can_view_direction):
         raise PermissionDenied
-    if view_type == 'pole' and not (is_admin or request.user.default_view == 'pole'):
+    if view_type == 'pole' and not (is_admin or request.user.can_view_pole):
         raise PermissionDenied
+    # module and biblio are always allowed
 
     # Check report-specific permissions
     if not _user_can_access_report(request.user, report_ref):
@@ -3688,8 +3772,8 @@ def embed_custom_report(request, view_type, folder_id, report_id):
         'current_folder': folder,
     }
     
-    # Breadcrumbs
-    breadcrumbs = folder.get_breadcrumbs()
+    # Breadcrumbs (flat structure metadata option)
+    breadcrumbs = [folder]
     context['breadcrumbs'] = breadcrumbs
     
     log_history(request.user, f"Rapport consulté '{report_ref.name}' dans le dossier '{folder.name}'")

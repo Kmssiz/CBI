@@ -122,6 +122,23 @@
                 </span>
             </div>
             {% endif %}
+            {% if report_ref.societe %}
+            <div class="flex flex-col gap-1">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Société</span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                    <span class="material-symbols-outlined text-[14px] text-slate-400">business</span>{{ report_ref.societe }}
+                </span>
+            </div>
+            {% endif %}
+            {% if report_ref.modules.all %}
+            <div class="flex flex-col gap-1">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Modules</span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                    <span class="material-symbols-outlined text-[14px] text-slate-400">view_module</span>
+                    {% for mod in report_ref.modules.all %}{{ mod.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                </span>
+            </div>
+            {% endif %}
             {% if report_ref.is_consolide %}
             <div class="flex flex-col gap-1">
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">État</span>
@@ -551,36 +568,60 @@
             <!-- Org fields -->
             <div id="metaOrgFields" class="space-y-5">
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1.5">
-                        <label for="meta_direction" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Direction</label>
-                        <select id="meta_direction" name="direction"
-                            class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-300 placeholder-slate-400 focus:ring-2 focus:ring-primary outline-none transition-all text-sm appearance-none cursor-pointer">
-                            <option value="">Sélectionnez une Direction</option>
-                            {% for dir_opt in all_metadata_directions %}
-                                <option value="{{ dir_opt }}" {% if report_ref.direction == dir_opt %}selected{% endif %}>{{ dir_opt }}</option>
-                            {% endfor %}
-                        </select>
+                    <!-- Directions -->
+                    <div class="space-y-1.5 col-span-2">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Directions</label>
+                        <div class="relative custom-multiselect w-full" data-name="directions">
+                            <button type="button" class="multiselect-btn w-full input-theme flex justify-between items-center px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm transition-all text-slate-700 dark:text-slate-300">
+                                <span class="selected-labels truncate text-slate-400">Sélectionner des directions...</span>
+                                <span class="material-symbols-outlined text-[18px] text-slate-400">expand_more</span>
+                            </button>
+                            <div class="multiselect-dropdown absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-2 max-h-48 overflow-y-auto hidden custom-scrollbar">
+                                {% for dir_opt in all_metadata_directions %}
+                                <label class="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg cursor-pointer m-0">
+                                    <input type="checkbox" name="directions" value="{{ dir_opt.id }}" class="multiselect-checkbox w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary/20" {% if dir_opt.id in report_direction_ids %}checked{% endif %} data-label="{{ dir_opt.name }}">
+                                    <span class="text-sm text-slate-700 dark:text-slate-300">{{ dir_opt.name }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
-                    <div class="space-y-1.5">
-                        <label for="meta_pole" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Pôle</label>
-                        <select id="meta_pole" name="pole"
-                            class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-300 placeholder-slate-400 focus:ring-2 focus:ring-primary outline-none transition-all text-sm appearance-none cursor-pointer">
-                            <option value="">Sélectionnez un Pôle</option>
-                            {% for pole_opt in all_metadata_poles %}
-                                <option value="{{ pole_opt }}" {% if report_ref.pole == pole_opt %}selected{% endif %}>{{ pole_opt }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <!-- Société -->
+
+                    <!-- Sociétés -->
                     <div id="metaSocieteContainer" class="space-y-1.5 col-span-2 {% if report_ref.is_consolide %}ar-collapsed{% endif %}">
-                        <label for="meta_societe" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Société</label>
-                        <select id="meta_societe" name="societe"
-                            class="w-full bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-300 placeholder-slate-400 focus:ring-2 focus:ring-primary outline-none transition-all text-sm appearance-none cursor-pointer">
-                            <option value="">Sélectionnez une Société</option>
-                            {% for soc_opt in all_metadata_societes %}
-                                <option value="{{ soc_opt }}" {% if report_ref.societe == soc_opt %}selected{% endif %}>{{ soc_opt }}</option>
-                            {% endfor %}
-                        </select>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Sociétés</label>
+                        <div class="relative custom-multiselect w-full" data-name="societes">
+                            <button type="button" class="multiselect-btn w-full input-theme flex justify-between items-center px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm transition-all text-slate-700 dark:text-slate-300">
+                                <span class="selected-labels truncate text-slate-400">Sélectionner des sociétés...</span>
+                                <span class="material-symbols-outlined text-[18px] text-slate-400">expand_more</span>
+                            </button>
+                            <div class="multiselect-dropdown absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-2 max-h-48 overflow-y-auto hidden custom-scrollbar">
+                                {% for soc_opt in all_metadata_societes %}
+                                <label class="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg cursor-pointer m-0">
+                                    <input type="checkbox" name="societes" value="{{ soc_opt.id }}" class="multiselect-checkbox societe-checkbox w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary/20" data-parent-pole-id="{{ soc_opt.parent.id|default:'' }}" {% if soc_opt.id in report_societe_ids %}checked{% endif %} data-label="{{ soc_opt.name }}">
+                                    <span class="text-sm text-slate-700 dark:text-slate-300">{{ soc_opt.name }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modules -->
+                    <div id="metaModuleContainer" class="space-y-1.5 col-span-2 {% if report_ref.is_consolide %}ar-collapsed{% endif %}">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Modules</label>
+                        <div class="relative custom-multiselect w-full" data-name="modules">
+                            <button type="button" class="multiselect-btn w-full input-theme flex justify-between items-center px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm transition-all text-slate-700 dark:text-slate-300">
+                                <span class="selected-labels truncate text-slate-400">Sélectionner des modules...</span>
+                                <span class="material-symbols-outlined text-[18px] text-slate-400">expand_more</span>
+                            </button>
+                            <div class="multiselect-dropdown absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-2 max-h-48 overflow-y-auto hidden custom-scrollbar">
+                                {% for mod_opt in all_metadata_modules %}
+                                <label class="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg cursor-pointer m-0">
+                                    <input type="checkbox" name="modules" value="{{ mod_opt.id }}" class="multiselect-checkbox w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary/20" {% if mod_opt.id in report_module_ids %}checked{% endif %} data-label="{{ mod_opt.name }}">
+                                    <span class="text-sm text-slate-700 dark:text-slate-300">{{ mod_opt.name }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -774,83 +815,97 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function toggleEditConsolide(checked) {
     const societeContainer = document.getElementById('metaSocieteContainer');
+    const moduleContainer = document.getElementById('metaModuleContainer');
     if (checked) {
         if (societeContainer) societeContainer.classList.add('ar-collapsed');
-        // Clear values of only societe
-        const el = document.getElementById('meta_societe');
-        if (el) el.value = '';
+        if (moduleContainer) moduleContainer.classList.add('ar-collapsed');
+        document.querySelectorAll('#metaSocieteContainer .multiselect-checkbox, #metaModuleContainer .multiselect-checkbox').forEach(cb => {
+            cb.checked = false;
+            cb.dispatchEvent(new Event('change'));
+        });
+        const dashboardRadio = document.getElementById('meta_type_dashboard');
+        if (dashboardRadio) {
+            dashboardRadio.checked = true;
+            dashboardRadio.dispatchEvent(new Event('change'));
+        }
     } else {
         if (societeContainer) societeContainer.classList.remove('ar-collapsed');
+        if (moduleContainer) moduleContainer.classList.remove('ar-collapsed');
     }
 }
 
-/* ── Cascading Pôle → Société dropdown (Edit Metadata) ────────────────────── */
-(function() {
-    const poleSocieteMap = {{ metadata_pole_societe_map_json|safe }};
-    const poleSelect = document.getElementById('meta_pole');
-    const societeSelect = document.getElementById('meta_societe');
-    if (!poleSelect || !societeSelect) return;
 
-    // Store all original societe options
-    const allSocieteOptions = [];
-    for (let i = 0; i < societeSelect.options.length; i++) {
-        allSocieteOptions.push({
-            value: societeSelect.options[i].value,
-            text: societeSelect.options[i].text,
-            selected: societeSelect.options[i].selected
+
+/* ── Multiselect Dropdowns Label & Toggle Handling ────────────────────── */
+document.addEventListener('DOMContentLoaded', function() {
+    const multiselects = document.querySelectorAll('.custom-multiselect');
+    
+    multiselects.forEach(ms => {
+        const btn = ms.querySelector('.multiselect-btn');
+        const dropdown = ms.querySelector('.multiselect-dropdown');
+        const checkboxes = ms.querySelectorAll('.multiselect-checkbox');
+        const labelSpan = ms.querySelector('.selected-labels');
+        const searchName = ms.getAttribute('data-name');
+        
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.querySelectorAll('.multiselect-dropdown').forEach(d => {
+                if (d !== dropdown) d.classList.add('hidden');
+            });
+            dropdown.classList.toggle('hidden');
         });
-    }
-
-    function filterSocietes() {
-        const selectedPole = poleSelect.value;
-        const currentSociete = societeSelect.value;
-
-        // Clear all options except the first placeholder
-        while (societeSelect.options.length > 1) {
-            societeSelect.remove(1);
-        }
-
-        if (selectedPole && poleSocieteMap[selectedPole]) {
-            // Only add societes linked to this pole
-            poleSocieteMap[selectedPole].forEach(function(soc) {
-                const opt = document.createElement('option');
-                opt.value = soc;
-                opt.text = soc;
-                if (soc === currentSociete) opt.selected = true;
-                societeSelect.add(opt);
+        
+        dropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+        
+        function updateLabel() {
+            const selectedLabels = [];
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    selectedLabels.push(cb.getAttribute('data-label'));
+                }
             });
-        } else {
-            // No pole selected: restore all societe options
-            allSocieteOptions.forEach(function(item) {
-                if (!item.value) return; // skip placeholder
-                const opt = document.createElement('option');
-                opt.value = item.value;
-                opt.text = item.text;
-                if (item.value === currentSociete) opt.selected = true;
-                societeSelect.add(opt);
-            });
+            
+            if (selectedLabels.length === 0) {
+                if (searchName === 'directions') labelSpan.textContent = "Sélectionner des directions...";
+                else if (searchName === 'poles') labelSpan.textContent = "Sélectionner des pôles...";
+                else if (searchName === 'societes') labelSpan.textContent = "Sélectionner des sociétés...";
+                else if (searchName === 'modules') labelSpan.textContent = "Sélectionner des modules...";
+                else labelSpan.textContent = "Sélectionner...";
+                labelSpan.classList.add('text-slate-400');
+            } else if (selectedLabels.length <= 2) {
+                labelSpan.textContent = selectedLabels.join(', ');
+                labelSpan.classList.remove('text-slate-400');
+            } else {
+                labelSpan.textContent = `${selectedLabels.length} sélectionnés`;
+                labelSpan.classList.remove('text-slate-400');
+            }
         }
-
-        // If current societe is not in new list, reset
-        if (societeSelect.value !== currentSociete) {
-            societeSelect.value = '';
-        }
-    }
-
-    poleSelect.addEventListener('change', filterSocietes);
-    // Initialize on page load to pre-filter based on existing selection
-    filterSocietes();
-})();
+        
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateLabel);
+        });
+        
+        // Initial update
+        updateLabel();
+    });
+    
+    document.addEventListener('click', function() {
+        document.querySelectorAll('.multiselect-dropdown').forEach(d => {
+            d.classList.add('hidden');
+        });
+    });
+});
 </script>
 
 <style>
-#metaSocieteContainer { 
+#metaSocieteContainer, #metaModuleContainer { 
     transition: opacity .2s, max-height .25s cubic-bezier(0.4,0,0.2,1), padding .2s, margin .2s; 
     max-height: 150px; 
-    overflow: hidden; 
     opacity: 1; 
 }
-#metaSocieteContainer.ar-collapsed { 
+#metaSocieteContainer.ar-collapsed, #metaModuleContainer.ar-collapsed { 
     max-height: 0; 
     opacity: 0; 
     padding-top: 0;
@@ -858,6 +913,7 @@ function toggleEditConsolide(checked) {
     margin-top: 0;
     margin-bottom: 0;
     pointer-events: none; 
+    overflow: hidden;
 }
 </style>
 {% endblock %}

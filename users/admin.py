@@ -56,8 +56,8 @@ class CustomUserAdmin(UserAdmin):
     form = CustomUserChangeForm
     model = CustomUser
     
-    list_display = ('username', 'email', 'first_name', 'last_name', 'role', 'ad2000', 'status', 'default_view', 'is_superuser')
-    list_filter = ('role', 'status', 'default_view', 'is_superuser', 'is_active')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'role', 'ad2000', 'status', 'is_superuser')
+    list_filter = ('role', 'status', 'is_superuser', 'is_active')
     search_fields = ('username', 'email', 'first_name', 'last_name', 'ad2000')
     ordering = ('username',)
     
@@ -65,7 +65,6 @@ class CustomUserAdmin(UserAdmin):
         (None, {'fields': ('username', 'email')}),
         ('Personal Info', {'fields': ('first_name', 'last_name', 'profile_image')}),
         ('LDAP Info', {'fields': ('ad2000',)}),
-        ('View Settings', {'fields': ('default_view',)}),
         ('Role & Permissions', {'fields': ('role', 'status', 'is_active', 'is_staff', 'is_superuser', 'user_permissions')}),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
     )

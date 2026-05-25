@@ -96,10 +96,10 @@ def login_view(request):
                 user.ad2000 = ad2000
                 user.ad_groups = user_info.get("ad_groups", [])
                 user.status = "Active"
-                # Ensure default view is valid (repair legacy/invalid values).
-                if user.default_view not in {"direction", "pole"}:
-                    user.default_view = "direction"
-                    user.can_view_direction = True
+                # Ensure default view permissions are initialized
+                if not hasattr(user, 'can_view_direction'):
+                    user.can_view_direction = False
+                if not hasattr(user, 'can_view_pole'):
                     user.can_view_pole = False
                     
                 logger.debug(
@@ -120,8 +120,7 @@ def login_view(request):
                     ad_groups=user_info.get("ad_groups", []),
                     role=role,
                     status="Active",
-                    default_view="direction",
-                    can_view_direction=True
+                    can_view_direction=False
                 )
                 user.save()
                 new_permissions = role.permissions.all()
@@ -602,8 +601,7 @@ def sync_users(request):
                     ad_groups=ldap_groups,
                     role=user_role,
                     status="Not Active",
-                    default_view="direction",
-                    can_view_direction=True
+                    can_view_direction=False
                 )
                 user.save()  
                 user.user_permissions.set(user_role.permissions.all())  
@@ -630,15 +628,6 @@ def sync_users(request):
             if not user.societe and company:
                 user.societe = company
                 update_fields["societe"] = company
-            
-            # Ensure default view is valid (repair legacy/invalid values).
-            if user.default_view not in {"direction", "pole"}:
-                user.default_view = "direction"
-                user.can_view_direction = True
-                user.can_view_pole = False
-                update_fields["default_view"] = "direction"
-                update_fields["can_view_direction"] = True
-                update_fields["can_view_pole"] = False
 
             if ldap_groups:
                 existing_groups = _normalize_ad_groups(user.ad_groups)
@@ -702,7 +691,6 @@ def user_edit(request, user_id):
     if request.method == 'POST':
         new_role_id = request.POST.get('role')  # Get the selected role ID
         new_role = get_object_or_404(Role, id=new_role_id) if new_role_id else None  # Fetch the role object
-        new_default_view = request.POST.get('default_view', 'direction')  # Get the default view
 
         if new_role:
             # Remove all existing permissions
@@ -718,45 +706,32 @@ def user_edit(request, user_id):
             user.is_superuser = is_admin_role
             user.is_staff = is_admin_role
         
-        # Update default view
-        old_view = user.default_view
-        user.default_view = new_default_view
-
         if is_admin_role:
             # Admin has unrestricted access to all sections
             user.can_view_direction = True
             user.can_view_pole = True
             user.can_view_anomalie = True
             user.can_view_consolide = True
+            user.can_view_module = True
         else:
-            # Sync boolean permission fields with the default view
-            user.can_view_direction = (new_default_view == 'direction')
-            user.can_view_pole = (new_default_view == 'pole')
-
-            # Update specific permissions
+            # Update specific permissions independently from the checkboxes
+            user.can_view_direction = request.POST.get('can_view_direction') == 'on'
+            user.can_view_pole = request.POST.get('can_view_pole') == 'on'
             user.can_view_anomalie = request.POST.get('can_view_anomalie') == 'on'
             user.can_view_consolide = request.POST.get('can_view_consolide') == 'on'
+            user.can_view_module = request.POST.get('can_view_module') == 'on'
         
         user.save()
 
         # Log the updates
         if new_role:
             log_history(request.user, f"Rôle mis à jour pour {user.username} vers {new_role.name}")
-        if old_view != new_default_view:
-            view_label = 'Vue Direction' if new_default_view == 'direction' else 'Vue Pôle'
-            log_history(request.user, f"Vue par défaut mise à jour pour {user.username} vers {view_label}")
 
         # Notify the user
         if new_role:
             Notification.objects.create(
                 user=user,
                 message=f"Votre rôle a été mis à jour : {new_role.name}."
-            )
-        if old_view != new_default_view:
-            view_label = 'Vue Direction' if new_default_view == 'direction' else 'Vue Pôle'
-            Notification.objects.create(
-                user=user,
-                message=f"Votre vue par défaut a été modifiée : {view_label}."
             )
 
         # Notify all admins

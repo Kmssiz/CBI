@@ -88,6 +88,34 @@ class ReportRef(models.Model):
         default=False,
         help_text="Rapport consolidÃ© (multi-sociÃ©tÃ©s/pÃ´les â€” champs pÃ´le/sociÃ©tÃ©/direction non applicables)"
     )
+    poles = models.ManyToManyField(
+        'MetadataOption',
+        related_name='pole_reports',
+        blank=True,
+        limit_choices_to={'option_type': 'pole'},
+        help_text="Pôles organisationnels du rapport"
+    )
+    directions = models.ManyToManyField(
+        'MetadataOption',
+        related_name='direction_reports',
+        blank=True,
+        limit_choices_to={'option_type': 'direction'},
+        help_text="Directions concernées par le rapport"
+    )
+    societes = models.ManyToManyField(
+        'MetadataOption',
+        related_name='societe_reports',
+        blank=True,
+        limit_choices_to={'option_type': 'societe'},
+        help_text="Sociétés concernées par le rapport"
+    )
+    modules = models.ManyToManyField(
+        'MetadataOption',
+        related_name='module_reports',
+        blank=True,
+        limit_choices_to={'option_type': 'module'},
+        help_text="Modules concernés par le rapport"
+    )
 
     class Meta:
         verbose_name = "Report Reference"
@@ -124,6 +152,7 @@ class CustomFolder(models.Model):
         ('biblio', 'BibliothÃ¨que'),
         ('anomalie', 'Anomalie'),
         ('consolide', 'ConsolidÃ©'),
+        ('module', 'Module'),
     ]
     
     name = models.CharField(max_length=255)
@@ -281,6 +310,7 @@ class MetadataOption(models.Model):
         ('pole', 'Pôle'),
         ('direction', 'Direction'),
         ('societe', 'Société'),
+        ('module', 'Module'),
     ]
     option_type = models.CharField(max_length=20, choices=OPTION_TYPE_CHOICES)
     name = models.CharField(max_length=128)

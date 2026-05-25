@@ -104,7 +104,7 @@
         <p class="text-sm text-slate-500 dark:text-slate-400">Gérez les options disponibles pour les pôles, directions et sociétés lors de l'ajout ou la modification de rapports.</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <!-- Pôle List -->
         <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[400px]">
             <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
@@ -210,6 +210,41 @@
                     </li>
                     {% empty %}
                     <li class="px-3 py-6 text-center text-sm text-slate-500">Aucune société configurée</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Module List -->
+        <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[400px]">
+            <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-purple-500 text-[20px]">view_module</span>
+                    <h3 class="font-bold text-slate-800 dark:text-slate-200">Modules</h3>
+                </div>
+                <button onclick="openMetadataModal('module', 'Ajouter un Module')" class="size-8 flex items-center justify-center rounded-lg bg-purple-500/10 text-purple-500 hover:bg-purple-500 hover:text-white transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">add</span>
+                </button>
+            </div>
+            <div class="p-2 flex-1 overflow-y-auto">
+                <ul class="space-y-1">
+                    {% for option in modules %}
+                    <li class="flex items-center justify-between px-3 py-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg group transition-colors">
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ option.name }}</span>
+                        <div class="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                            <button type="button" onclick="editMetadataOption('{{ option.id }}', 'module', '{{ option.name|escapejs }}', '')" class="text-slate-400 hover:text-blue-500 transition-colors p-1" title="Modifier">
+                                <span class="material-symbols-outlined text-[16px]">edit</span>
+                            </button>
+                            <form action="{% url 'powerbi_report:metadata_option_delete' option.id %}" method="POST" onsubmit="return confirm('Supprimer ce module ?')">
+                                {% csrf_token %}
+                                <button type="submit" class="text-slate-400 hover:text-red-500 transition-colors p-1" title="Supprimer">
+                                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="px-3 py-6 text-center text-sm text-slate-500">Aucun module configuré</li>
                     {% endfor %}
                 </ul>
             </div>
@@ -405,6 +440,19 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        
+                        <!-- Sociétés selection (only shown for Pôle) -->
+                        <div id="add_metadata_societes_container" class="hidden">
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Sociétés Associées</label>
+                            <div class="max-h-32 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2 bg-slate-50 dark:bg-background-dark custom-scrollbar">
+                                {% for soc in societes %}
+                                <label class="flex items-center gap-3 cursor-pointer m-0">
+                                    <input type="checkbox" name="societe_ids" value="{{ soc.id }}" class="w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary/20">
+                                    <span class="text-sm text-slate-700 dark:text-slate-300">{{ soc.name }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-white/5 flex justify-end gap-3">
@@ -454,6 +502,19 @@
                                 <option value="{{ pole.id }}">{{ pole.name }}</option>
                                 {% endfor %}
                             </select>
+                        </div>
+                        
+                        <!-- Sociétés selection (only shown for Pôle) -->
+                        <div id="edit_metadata_societes_container" class="hidden">
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Sociétés Associées</label>
+                            <div class="max-h-32 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2 bg-slate-50 dark:bg-background-dark custom-scrollbar">
+                                {% for soc in societes %}
+                                <label class="flex items-center gap-3 cursor-pointer m-0">
+                                    <input type="checkbox" name="societe_ids" value="{{ soc.id }}" id="edit_pole_soc_{{ soc.id }}" class="w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary/20">
+                                    <span class="text-sm text-slate-700 dark:text-slate-300">{{ soc.name }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
                         </div>
                     </div>
                     
@@ -505,14 +566,25 @@
         
         const parentContainer = document.getElementById('add_metadata_parent_container');
         const parentSelect = document.getElementById('add_metadata_parent');
+        const societesContainer = document.getElementById('add_metadata_societes_container');
         
+        // Reset societes checkboxes
+        document.querySelectorAll('#add_metadata_societes_container input[type="checkbox"]').forEach(cb => cb.checked = false);
+
         if (type === 'societe') {
             parentContainer.classList.remove('hidden');
             parentSelect.setAttribute('required', 'required');
+            societesContainer.classList.add('hidden');
+        } else if (type === 'pole') {
+            parentContainer.classList.add('hidden');
+            parentSelect.removeAttribute('required');
+            parentSelect.value = '';
+            societesContainer.classList.remove('hidden');
         } else {
             parentContainer.classList.add('hidden');
             parentSelect.removeAttribute('required');
             parentSelect.value = '';
+            societesContainer.classList.add('hidden');
         }
         
         openModal('addMetadataModal');
@@ -527,15 +599,34 @@
         
         const parentContainer = document.getElementById('edit_metadata_parent_container');
         const parentSelect = document.getElementById('edit_metadata_parent');
+        const societesContainer = document.getElementById('edit_metadata_societes_container');
         
+        // Reset societes checkboxes
+        document.querySelectorAll('#edit_metadata_societes_container input[type="checkbox"]').forEach(cb => cb.checked = false);
+
         if (type === 'societe') {
             parentContainer.classList.remove('hidden');
             parentSelect.setAttribute('required', 'required');
             parentSelect.value = parentId || '';
+            societesContainer.classList.add('hidden');
+        } else if (type === 'pole') {
+            parentContainer.classList.add('hidden');
+            parentSelect.removeAttribute('required');
+            parentSelect.value = '';
+            societesContainer.classList.remove('hidden');
+            
+            // Auto-check societes linked to this pole ID
+            const poleSocieteIds = {{ pole_societe_ids_json|safe }};
+            const linkedIds = poleSocieteIds[id] || [];
+            linkedIds.forEach(socId => {
+                const cb = document.getElementById('edit_pole_soc_' + socId);
+                if (cb) cb.checked = true;
+            });
         } else {
             parentContainer.classList.add('hidden');
             parentSelect.removeAttribute('required');
             parentSelect.value = '';
+            societesContainer.classList.add('hidden');
         }
         
         openModal('editMetadataModal');

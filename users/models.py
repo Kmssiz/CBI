@@ -9,11 +9,6 @@ class Role(models.Model):
         return self.name
 
 class CustomUser(AbstractUser):
-    VIEW_CHOICES = [
-        ('direction', 'Direction View'),
-        ('pole', 'Pôle View'),
-    ]
-    
     ad2000 = models.CharField(max_length=255,blank=True, null=True, unique=True,help_text="AD2000 identifier from LDAP")
     direction = models.CharField(max_length=255, blank=True, null=True, help_text="Direction from LDAP")
     pole = models.CharField(max_length=255, blank=True, null=True, help_text="Pôle from LDAP")
@@ -24,14 +19,9 @@ class CustomUser(AbstractUser):
     user_permissions = models.ManyToManyField(Permission, blank=True)
     can_view_consolide = models.BooleanField(default=False, help_text="Accès à la page des rapports consolidés")
     can_view_anomalie = models.BooleanField(default=False, help_text="Accès à la page des rapports anomalies")
-    can_view_direction = models.BooleanField(default=True, help_text="Accès à la vue Direction")
+    can_view_direction = models.BooleanField(default=False, help_text="Accès à la vue Direction")
     can_view_pole = models.BooleanField(default=False, help_text="Accès à la vue Pôle")
-    default_view = models.CharField(
-        max_length=20, 
-        choices=VIEW_CHOICES, 
-        default='direction',
-        help_text="Default view for this user (set by admin)"
-    ) 
+    can_view_module = models.BooleanField(default=True, help_text="Accès à la vue Module")
     ad_groups = models.JSONField(default=list, blank=True, help_text="Cached list of AD groups") 
     has_seen_onboarding = models.BooleanField(default=False, help_text="Indicates if the user has completed the onboarding guide")
 

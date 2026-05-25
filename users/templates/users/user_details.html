@@ -127,23 +127,7 @@
                     </div>
                 </div>
 
-                <!-- Default View Info (Optional) -->
-                {% if user_detail.default_view %}
-                <div class="card-theme p-8 flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <div class="size-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 border border-cyan-500/20">
-                            <span class="material-symbols-outlined">visibility</span>
-                        </div>
-                        <div>
-                            <h4 class="text-slate-900 dark:text-white font-bold tracking-tight">Vue par défaut</h4>
-                            <p class="text-xs text-slate-500 mt-0.5">La vue préférée de cet utilisateur lors de l'accès aux rapports.</p>
-                        </div>
-                    </div>
-                    <span class="px-4 py-1.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-full text-xs font-bold uppercase tracking-widest">
-                        {% if user_detail.default_view == 'direction' %}Direction{% else %}Pôle{% endif %}
-                    </span>
-                </div>
-                {% endif %}
+
             </div>
         </div>
     </div>

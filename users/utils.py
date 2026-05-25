@@ -51,7 +51,7 @@ def get_user_permissions(user):
         'add_customuser', 'change_customuser', 'delete_customuser', 'view_customuser',
         'add_role', 'change_role', 'delete_role', 'view_role',
         'add_userhistory', 'change_userhistory', 'delete_userhistory', 'view_userhistory',
-        'can_view_direction', 'can_view_pole', 'can_view_consolide', 'can_view_anomalie',
+        'can_view_direction', 'can_view_pole', 'can_view_consolide', 'can_view_anomalie', 'can_view_module',
     ]
     
     if not user.is_authenticated:
@@ -72,22 +72,18 @@ def get_user_permissions(user):
         permissions = {perm: perm in user_perm_set for perm in all_permissions}
     
     # Custom boolean permissions from the user model
-    permissions['can_view_anomalie'] = getattr(user, 'can_view_anomalie', False)
-    
-    # Direction and Pôle are filtered by default_view
-    # For admins, we show both to allow full navigation.
-    # For regular users, we default to 'direction' if not set.
     if user.is_admin:
         permissions['can_view_direction'] = True
         permissions['can_view_pole'] = True
         permissions['can_view_consolide'] = True
         permissions['can_view_anomalie'] = True
+        permissions['can_view_module'] = True
     else:
-        effective_view = user.default_view or 'direction'
-        permissions['can_view_direction'] = (effective_view == 'direction')
-        permissions['can_view_pole'] = (effective_view == 'pole')
+        permissions['can_view_direction'] = getattr(user, 'can_view_direction', False)
+        permissions['can_view_pole'] = getattr(user, 'can_view_pole', False)
         permissions['can_view_consolide'] = getattr(user, 'can_view_consolide', False)
-        # can_view_anomalie is already set from model attribute or False at line 76
+        permissions['can_view_anomalie'] = getattr(user, 'can_view_anomalie', False)
+        permissions['can_view_module'] = getattr(user, 'can_view_module', True)
     
     return permissions
 

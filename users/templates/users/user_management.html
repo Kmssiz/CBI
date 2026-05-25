@@ -85,14 +85,13 @@
                         <th class="px-6 py-4">Utilisateur</th>
                         <th class="px-6 py-4">Email</th>
                         <th class="px-6 py-4">Rôle</th>
-                        <th class="px-6 py-4 text-center">Vue par défaut</th>
                         <th class="px-6 py-4 text-center">Statut</th>
                         <th class="px-6 py-4 text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
                     {% for user in users %}
-                    <tr class="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-all group" data-permission="true" data-user-id="{{ user.id }}" data-user-role="{{ user.role.id }}" data-user-view="{{ user.default_view }}" data-user-status="{{ user.status|lower }}" data-user-can-anomalie="{{ user.can_view_anomalie|yesno:"true,false" }}">
+                    <tr class="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-all group" data-permission="true" data-user-id="{{ user.id }}" data-user-role="{{ user.role.id }}" data-user-status="{{ user.status|lower }}" data-user-can-anomalie="{{ user.can_view_anomalie|yesno:"true,false" }}">
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm" style="background-color: {% if not user.profile_image %}{{ user.get_avatar_color }}{% endif %};">
@@ -111,11 +110,6 @@
                         <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">{{ user.email }}</td>
                         <td class="px-6 py-4">
                             <span class="text-sm font-medium text-slate-600 dark:text-slate-400">{{ user.role|default:"None" }}</span>
-                        </td>
-                        <td class="px-6 py-4 text-center">
-                            <span class="inline-flex px-2 py-1 rounded-md {% if user.default_view == 'direction' %}bg-primary/10 text-primary{% else %}bg-cyan-500/10 text-cyan-400{% endif %} text-[10px] font-bold uppercase tracking-wider">
-                                {% if user.default_view == 'direction' %}Direction{% else %}Pôle{% endif %}
-                            </span>
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider">
@@ -136,16 +130,16 @@
                                 {% if permissions.view_userhistory %}
                                 <a href="{% url 'user_history_user' user.id %}?source=users_view" class="px-3 py-1.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Activité</a>
                                 {% endif %}
-
+ 
                                 {% if permissions.change_customuser %}
-                                <button class="px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" onclick="openEditModal({{ user.id }}, '{{ user.role.id }}', '{{ user.default_view }}', {{ user.can_view_anomalie|yesno:"true,false" }}, {{ user.can_view_consolide|yesno:"true,false" }})">Modifier</button>
+                                <button class="px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" onclick="openEditModal({{ user.id }}, '{{ user.role.id }}', {{ user.can_view_anomalie|yesno:"true,false" }}, {{ user.can_view_consolide|yesno:"true,false" }}, {{ user.can_view_direction|yesno:"true,false" }}, {{ user.can_view_pole|yesno:"true,false" }}, {{ user.can_view_module|yesno:"true,false" }})">Modifier</button>
                                 {% endif %}
                             </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="px-6 py-12 text-center text-slate-500 dark:text-slate-600 font-medium italic">Aucun utilisateur trouvé.</td>
+                        <td colspan="6" class="px-6 py-12 text-center text-slate-500 dark:text-slate-600 font-medium italic">Aucun utilisateur trouvé.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -198,7 +192,7 @@
 
 <!-- Edit Modal -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content card-theme rounded-2xl shadow-2xl border-0 overflow-hidden">
             <form id="editUserForm" method="post" action="{% url 'user_edit' 0 %}">
                 {% csrf_token %}
@@ -228,29 +222,84 @@
                             <span class="material-symbols-outlined text-amber-500 text-[22px]">shield_person</span>
                             <div>
                                 <p class="text-sm font-bold text-amber-600 dark:text-amber-400">Accès Administrateur Complet</p>
-                                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Les administrateurs ont un accès illimité à toutes les sections (Direction, Pôle, Anomalie, Consolidé) par défaut.</p>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Les administrateurs ont un accès illimité à toutes les sections (Direction, Pôle, Module, Anomalie, Consolidé) par défaut.</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Non-admin settings (hidden when admin role is selected) -->
-                    <div id="nonAdminSettings">
-                        <div class="space-y-2">
-                            <label for="editUserView" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Vue par défaut</label>
-                            <select name="default_view" id="editUserView" class="w-full bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-slate-700/50 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all">
-                                <option value="direction">Vue Direction</option>
-                                <option value="pole">Vue Pôle</option>
-                            </select>
-                        </div>
-
-                        <div class="space-y-4 pt-4">
-                            <label class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/50 transition-all group">
-                                <input type="checkbox" name="can_view_anomalie" id="editCanViewAnomalie" class="w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary/20 transition-all">
-                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-primary transition-colors">Autoriser l'accès à la section Anomalie</span>
+                    <div id="nonAdminSettings" class="space-y-4">
+                        <h6 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 mb-2">Accès aux Sections</h6>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                            <!-- Direction -->
+                            <label class="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/40 hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-all group m-0">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:scale-105 transition-transform">
+                                        <span class="material-symbols-outlined text-[20px]">folder</span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 group-hover:text-primary transition-colors">Direction</span>
+                                        <span class="text-[10px] text-slate-500 dark:text-slate-400">Rapports par direction</span>
+                                    </div>
+                                </div>
+                                <input type="checkbox" name="can_view_direction" id="editCanViewDirection" class="w-4 h-4 text-primary bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 rounded focus:ring-primary/20 transition-all cursor-pointer">
                             </label>
-                            <label class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/50 transition-all group">
-                                <input type="checkbox" name="can_view_consolide" id="editCanViewConsolide" class="w-4 h-4 text-cyan-500 bg-slate-100 border-slate-300 rounded focus:ring-cyan-500/20 transition-all">
-                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-cyan-500 transition-colors">Autoriser l'accès à la section Consolidé</span>
+
+                            <!-- Pôle -->
+                            <label class="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/40 hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-all group m-0">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-cyan-500/10 text-cyan-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                        <span class="material-symbols-outlined text-[20px]">corporate_fare</span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 group-hover:text-cyan-500 transition-colors">Pôle</span>
+                                        <span class="text-[10px] text-slate-500 dark:text-slate-400">Rapports par pôle</span>
+                                    </div>
+                                </div>
+                                <input type="checkbox" name="can_view_pole" id="editCanViewPole" class="w-4 h-4 text-cyan-500 bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 rounded focus:ring-cyan-500/20 transition-all cursor-pointer">
+                            </label>
+
+                            <!-- Module -->
+                            <label class="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/40 hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-all group m-0">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                        <span class="material-symbols-outlined text-[20px]">view_module</span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 group-hover:text-emerald-500 transition-colors">Module</span>
+                                        <span class="text-[10px] text-slate-500 dark:text-slate-400">Rapports par module</span>
+                                    </div>
+                                </div>
+                                <input type="checkbox" name="can_view_module" id="editCanViewModule" class="w-4 h-4 text-emerald-500 bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 rounded focus:ring-emerald-500/20 transition-all cursor-pointer">
+                            </label>
+
+                            <!-- Anomalie -->
+                            <label class="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/40 hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-all group m-0">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                        <span class="material-symbols-outlined text-[20px]">warning</span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 group-hover:text-amber-500 transition-colors">Anomalie</span>
+                                        <span class="text-[10px] text-slate-500 dark:text-slate-400">Rapports d'anomalies</span>
+                                    </div>
+                                </div>
+                                <input type="checkbox" name="can_view_anomalie" id="editCanViewAnomalie" class="w-4 h-4 text-amber-500 bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 rounded focus:ring-amber-500/20 transition-all cursor-pointer">
+                            </label>
+
+                            <!-- Consolidé -->
+                            <label class="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/40 hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-all group m-0">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                        <span class="material-symbols-outlined text-[20px]">analytics</span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 group-hover:text-indigo-500 transition-colors">Consolidé</span>
+                                        <span class="text-[10px] text-slate-500 dark:text-slate-400">Indicateurs consolidés</span>
+                                    </div>
+                                </div>
+                                <input type="checkbox" name="can_view_consolide" id="editCanViewConsolide" class="w-4 h-4 text-indigo-500 bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 rounded focus:ring-indigo-500/20 transition-all cursor-pointer">
                             </label>
                         </div>
                     </div>
@@ -325,16 +374,15 @@
     }, 100);
   }
 
-  // Function to open the edit modal
-  function openEditModal(userId, currentRole, currentView, canAnomalie, canConsolide) {
+  function openEditModal(userId, currentRole, canAnomalie, canConsolide, canDirection, canPole, canModule) {
     document.getElementById('editUserId').value = userId;
     const roleSelect = document.getElementById('editUserRole');
     roleSelect.value = currentRole; 
 
-    const viewSelect = document.getElementById('editUserView');
-    viewSelect.value = currentView || 'direction'; 
-
     // Set permission checkboxes
+    document.getElementById('editCanViewDirection').checked = canDirection;
+    document.getElementById('editCanViewPole').checked = canPole;
+    document.getElementById('editCanViewModule').checked = canModule;
     document.getElementById('editCanViewAnomalie').checked = canAnomalie;
     document.getElementById('editCanViewConsolide').checked = canConsolide;
 

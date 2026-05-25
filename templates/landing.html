@@ -42,14 +42,8 @@
                             Rapports
                         </a>
                     {% else %}
-                        {% if permissions.can_view_direction and user.default_view == 'direction' %}
-                            <a href="{% url 'powerbi_report:custom_direction' %}" class="px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
-                                <span class="material-symbols-outlined">analytics</span>
-                                Accéder à mes rapports
-                                <span class="material-symbols-outlined">arrow_forward</span>
-                            </a>
-                        {% elif permissions.can_view_pole and user.default_view == 'pole' %}
-                            <a href="{% url 'powerbi_report:custom_pole' %}" class="px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
+                        {% if permissions.can_view_module %}
+                            <a href="{% url 'powerbi_report:custom_module' %}" class="px-8 py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
                                 <span class="material-symbols-outlined">analytics</span>
                                 Accéder à mes rapports
                                 <span class="material-symbols-outlined">arrow_forward</span>
@@ -123,8 +117,10 @@
         </a>
 
         {% else %}
-        <!-- User: Rapport (direction or pole depending on permissions and default_view) -->
-        {% if permissions.can_view_direction %}
+        <!-- User: Rapport (module, direction or pole depending on permissions) -->
+        {% if permissions.can_view_module %}
+        <a href="{% url 'powerbi_report:custom_module' %}" class="card-theme p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
+        {% elif permissions.can_view_direction %}
         <a href="{% url 'powerbi_report:custom_direction' %}" class="card-theme p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">
         {% elif permissions.can_view_pole %}
         <a href="{% url 'powerbi_report:custom_pole' %}" class="card-theme p-6 hover:shadow-xl hover:border-primary/30 transition-all group block">

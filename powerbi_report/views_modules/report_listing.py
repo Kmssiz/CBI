@@ -18,15 +18,17 @@ def get_allowed_report_types_for_view(view_type):
     Keep in sync with views.py version.
     """
     if view_type == 'pole':
-        return (['dashboard'], 'pole') # Required field 'pole'
+        return (['dashboard'], 'poles') # Required field 'poles'
     elif view_type == 'direction':
-        return (['dashboard'], 'direction') # Required field 'direction'
+        return (['dashboard'], 'directions') # Required field 'directions'
     elif view_type == 'consolide':
         return (['dashboard'], 'is_consolide') # Required boolean 'is_consolide'
     elif view_type == 'biblio':
         return (['bibliotheque'], None)
     elif view_type == 'anomalie':
         return (['anomalie'], None)
+    elif view_type == 'module':
+        return ([], 'modules') # Required field 'modules'
     return ([], None)
 
 
@@ -128,9 +130,9 @@ def report_list_view(
     reports = local_reports_getter(request.user, request=request)
 
     # Collect metadata for filters (from the unfiltered list of accessible reports)
-    all_directions = sorted(list({r.get("direction") for r in reports if r.get("direction")}))
-    all_poles = sorted(list({r.get("pole") for r in reports if r.get("pole")}))
-    all_societes = sorted(list({r.get("societe") for r in reports if r.get("societe")}))
+    all_directions = sorted(list({d for r in reports for d in r.get("directions", [])}))
+    all_poles = sorted(list({p for r in reports for p in r.get("poles", [])}))
+    all_societes = sorted(list({s for r in reports for s in r.get("societes", [])}))
     
     # Calculate metadata relationships for cascading filters
     metadata_relations = {
@@ -138,15 +140,17 @@ def report_list_view(
         'poles': {} # pole -> [societes]
     }
     for r in reports:
-        d = r.get('direction')
-        p = r.get('pole')
-        s = r.get('societe')
-        if d:
+        dirs = r.get('directions', [])
+        pols = r.get('poles', [])
+        socs = r.get('societes', [])
+        for d in dirs:
             if d not in metadata_relations['directions']: metadata_relations['directions'][d] = set()
-            if p: metadata_relations['directions'][d].add(p)
-        if p:
+            for p in pols:
+                metadata_relations['directions'][d].add(p)
+        for p in pols:
             if p not in metadata_relations['poles']: metadata_relations['poles'][p] = set()
-            if s: metadata_relations['poles'][p].add(s)
+            for s in socs:
+                metadata_relations['poles'][p].add(s)
     
     # Convert sets to sorted lists for JSON serialization if needed, or just pass as is
     for d in metadata_relations['directions']:
@@ -158,11 +162,11 @@ def report_list_view(
     if query:
         reports = [r for r in reports if query.lower() in r.get("Name", "").lower()]
     if f_direction:
-        reports = [r for r in reports if r.get("direction") == f_direction]
+        reports = [r for r in reports if f_direction in r.get("directions", [])]
     if f_pole:
-        reports = [r for r in reports if r.get("pole") == f_pole]
+        reports = [r for r in reports if f_pole in r.get("poles", [])]
     if f_societe:
-        reports = [r for r in reports if r.get("societe") == f_societe]
+        reports = [r for r in reports if f_societe in r.get("societes", [])]
     if f_type:
         reports = [r for r in reports if r.get("report_type") == f_type]
     if f_consolide:
@@ -196,20 +200,17 @@ def report_list_view(
     
     from powerbi_report.models import MetadataOption
     import json as _json
-    metadata_options = MetadataOption.objects.all()
-    all_metadata_poles = [opt.name for opt in metadata_options if opt.option_type == 'pole']
-    all_metadata_directions = [opt.name for opt in metadata_options if opt.option_type == 'direction']
-    all_metadata_societes = [opt.name for opt in metadata_options if opt.option_type == 'societe']
+    metadata_options = MetadataOption.objects.all().select_related('parent')
+    all_metadata_poles = [opt for opt in metadata_options if opt.option_type == 'pole']
+    all_metadata_directions = [opt for opt in metadata_options if opt.option_type == 'direction']
+    all_metadata_societes = [opt for opt in metadata_options if opt.option_type == 'societe']
+    all_metadata_modules = [opt for opt in metadata_options if opt.option_type == 'module']
 
-    # Build Pôle → Société mapping from MetadataOption parent FK
-    pole_societe_map = {}
-    pole_objs = {opt.id: opt.name for opt in metadata_options if opt.option_type == 'pole'}
+    # Map Société ID → Pôle ID
+    societe_pole_map = {}
     for opt in metadata_options:
-        if opt.option_type == 'societe' and opt.parent_id and opt.parent_id in pole_objs:
-            pole_name = pole_objs[opt.parent_id]
-            pole_societe_map.setdefault(pole_name, []).append(opt.name)
-    for k in pole_societe_map:
-        pole_societe_map[k].sort()
+        if opt.option_type == 'societe' and opt.parent_id:
+            societe_pole_map[opt.id] = opt.parent_id
 
     return render(
         request,
@@ -235,6 +236,7 @@ def report_list_view(
             "all_metadata_poles": all_metadata_poles,
             "all_metadata_directions": all_metadata_directions,
             "all_metadata_societes": all_metadata_societes,
-            "metadata_pole_societe_map_json": _json.dumps(pole_societe_map),
+            "all_metadata_modules": all_metadata_modules,
+            "societe_pole_map_json": _json.dumps(societe_pole_map),
         },
     )

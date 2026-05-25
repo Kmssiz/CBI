@@ -165,12 +165,13 @@
             </div>
         </div>
         
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto w-full">
             <table class="w-full text-left border-collapse min-w-[1000px]" id="reportTable">
                 <thead>
                     <tr class="bg-slate-50 dark:bg-black/50 border-b border-slate-200 dark:border-slate-800">
                          <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Nom</th>
                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Chemin</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Serveur</th>
                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Pôle</th>
                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Direction</th>
                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Société</th>
@@ -192,6 +193,12 @@
                             <div class="flex items-center gap-2 group/path" title="{{ report.Path }}">
                                 <span class="material-symbols-outlined text-slate-400 text-[18px]">folder</span>
                                 <span class="text-sm text-slate-500 dark:text-slate-400 truncate max-w-[200px]">{{ report.Path|truncatechars:30 }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-2" title="{{ report.server_url }}">
+                                <span class="material-symbols-outlined text-slate-400 text-[18px]">dns</span>
+                                <span class="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[180px]">{{ report.server_url|default:"-" }}</span>
                             </div>
                         </td>
                         <td class="px-6 py-4">
@@ -599,43 +606,62 @@
                     </div>
 
                     <div class="space-y-4">
-                        <!-- Pôle and Direction (always visible) -->
-                        <div class="grid grid-cols-2 gap-4">
-                            <!-- Pôle -->
-                            <div class="space-y-1.5">
-                                <label for="add_pole" class="text-xs font-bold ar-label uppercase tracking-widest">Pôle</label>
-                                <select id="add_pole" name="pole"
-                                    class="ar-input w-full rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm appearance-none cursor-pointer">
-                                    <option value="">Sélectionnez un Pôle</option>
-                                    {% for pole_opt in all_metadata_poles %}
-                                        <option value="{{ pole_opt }}">{{ pole_opt }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <!-- Direction -->
-                            <div class="space-y-1.5">
-                                <label for="add_direction" class="text-xs font-bold ar-label uppercase tracking-widest">Direction</label>
-                                <select id="add_direction" name="direction"
-                                    class="ar-input w-full rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm appearance-none cursor-pointer">
-                                    <option value="">Sélectionnez une Direction</option>
+                        <!-- Directions -->
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold ar-label uppercase tracking-widest">Directions</label>
+                            <div class="relative custom-multiselect w-full" data-name="directions">
+                                <button type="button" class="multiselect-btn w-full ar-input rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
+                                    <span class="selected-labels truncate text-slate-400">Sélectionner des directions...</span>
+                                    <span class="material-symbols-outlined text-[18px] text-slate-400">expand_more</span>
+                                </button>
+                                <div class="multiselect-dropdown absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-2 max-h-48 overflow-y-auto hidden custom-scrollbar">
                                     {% for dir_opt in all_metadata_directions %}
-                                        <option value="{{ dir_opt }}">{{ dir_opt }}</option>
+                                    <label class="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg cursor-pointer m-0">
+                                        <input type="checkbox" name="directions" value="{{ dir_opt.id }}" class="multiselect-checkbox w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary/20" data-label="{{ dir_opt.name }}">
+                                        <span class="text-sm text-slate-700 dark:text-slate-300">{{ dir_opt.name }}</span>
+                                    </label>
                                     {% endfor %}
-                                </select>
+                                </div>
                             </div>
                         </div>
 
+
+
                         <!-- Société (hidden when Consolidé is on) -->
-                        <div id="arSocieteField">
-                            <div class="space-y-1.5">
-                                <label for="add_societe" class="text-xs font-bold ar-label uppercase tracking-widest">Société</label>
-                                <select id="add_societe" name="societe"
-                                    class="ar-input w-full rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm appearance-none cursor-pointer">
-                                    <option value="">Sélectionnez une Société</option>
+                        <div id="arSocieteField" class="space-y-1.5">
+                            <label class="text-xs font-bold ar-label uppercase tracking-widest">Société</label>
+                            <div class="relative custom-multiselect w-full" data-name="societes">
+                                <button type="button" class="multiselect-btn w-full ar-input rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
+                                    <span class="selected-labels truncate text-slate-400">Sélectionner des sociétés...</span>
+                                    <span class="material-symbols-outlined text-[18px] text-slate-400">expand_more</span>
+                                </button>
+                                <div class="multiselect-dropdown absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-2 max-h-48 overflow-y-auto hidden custom-scrollbar">
                                     {% for soc_opt in all_metadata_societes %}
-                                        <option value="{{ soc_opt }}">{{ soc_opt }}</option>
+                                    <label class="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg cursor-pointer m-0">
+                                        <input type="checkbox" name="societes" value="{{ soc_opt.id }}" class="multiselect-checkbox add-societe-checkbox w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary/20" data-parent-pole-id="{{ soc_opt.parent.id|default:'' }}" data-label="{{ soc_opt.name }}">
+                                        <span class="text-sm text-slate-700 dark:text-slate-300">{{ soc_opt.name }}</span>
+                                    </label>
                                     {% endfor %}
-                                </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modules -->
+                        <div id="arModuleField" class="space-y-1.5">
+                            <label class="text-xs font-bold ar-label uppercase tracking-widest">Modules</label>
+                            <div class="relative custom-multiselect w-full" data-name="modules">
+                                <button type="button" class="multiselect-btn w-full ar-input rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
+                                    <span class="selected-labels truncate text-slate-400">Sélectionner des modules...</span>
+                                    <span class="material-symbols-outlined text-[18px] text-slate-400">expand_more</span>
+                                </button>
+                                <div class="multiselect-dropdown absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-2 max-h-48 overflow-y-auto hidden custom-scrollbar">
+                                    {% for mod_opt in all_metadata_modules %}
+                                    <label class="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg cursor-pointer m-0">
+                                        <input type="checkbox" name="modules" value="{{ mod_opt.id }}" class="multiselect-checkbox w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary/20" data-label="{{ mod_opt.name }}">
+                                        <span class="text-sm text-slate-700 dark:text-slate-300">{{ mod_opt.name }}</span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
 
@@ -784,9 +810,9 @@ html.dark .ar-cancel:hover { color: #f1f5f9; }
 /* Consolidé badge bg (the Tailwind /8 opacity trick can be purged) */
 #arConsolideBadge > div { background: rgba(139,92,246,0.08); }
 
-/* Société field collapse animation */
-#arSocieteField { transition: opacity .2s, max-height .25s cubic-bezier(0.4,0,0.2,1); max-height: 200px; overflow: hidden; opacity: 1; }
-#arSocieteField.ar-collapsed { max-height: 0; opacity: 0; pointer-events: none; }
+/* Société & Module field collapse animation */
+#arSocieteField, #arModuleField { transition: opacity .2s, max-height .25s cubic-bezier(0.4,0,0.2,1); max-height: 200px; opacity: 1; }
+#arSocieteField.ar-collapsed, #arModuleField.ar-collapsed { max-height: 0; opacity: 0; pointer-events: none; overflow: hidden; }
 
 /* Upload overlay */
 #arUploadOverlay.ar-overlay { background: rgba(255,255,255,0.92); }
@@ -818,21 +844,37 @@ function resetArForm() {
     setSubmitReady();
     // Reset consolide state
     toggleConsolide(false);
+    
+    // Clear all checkboxes and update labels
+    document.querySelectorAll('#addReportModal .multiselect-checkbox').forEach(cb => {
+        cb.checked = false;
+        cb.dispatchEvent(new Event('change'));
+    });
 }
 
 function toggleConsolide(checked) {
     const societeField  = document.getElementById('arSocieteField');
+    const moduleField   = document.getElementById('arModuleField');
     const badge         = document.getElementById('arConsolideBadge');
     const checkbox      = document.getElementById('is_consolide');
     if (checkbox) checkbox.checked = checked;
     if (checked) {
-        societeField.classList.add('ar-collapsed');
+        if (societeField) societeField.classList.add('ar-collapsed');
+        if (moduleField) moduleField.classList.add('ar-collapsed');
         badge.classList.remove('hidden');
-        // Clear only societe value (pole & direction remain)
-        const socEl = document.getElementById('add_societe');
-        if (socEl) socEl.value = '';
+        // Clear societe and module checkboxes
+        document.querySelectorAll('#addReportModal .add-societe-checkbox, #addReportModal input[name="modules"]').forEach(cb => {
+            cb.checked = false;
+            cb.dispatchEvent(new Event('change'));
+        });
+        const dashboardRadio = document.getElementById('type_dashboard_add');
+        if (dashboardRadio) {
+            dashboardRadio.checked = true;
+            dashboardRadio.dispatchEvent(new Event('change'));
+        }
     } else {
-        societeField.classList.remove('ar-collapsed');
+        if (societeField) societeField.classList.remove('ar-collapsed');
+        if (moduleField) moduleField.classList.remove('ar-collapsed');
         badge.classList.add('hidden');
     }
 }
@@ -851,58 +893,68 @@ function handleFileSelected(input) {
     hideFeedback();
 }
 
-/* ── Cascading Pôle → Société dropdown (Add Report) ───────────────────────── */
-(function() {
-    const poleSocieteMap = {{ metadata_pole_societe_map_json|safe }};
-    const poleSelect = document.getElementById('add_pole');
-    const societeSelect = document.getElementById('add_societe');
-    if (!poleSelect || !societeSelect) return;
 
-    // Store all original societe options
-    const allSocieteOptions = [];
-    for (let i = 0; i < societeSelect.options.length; i++) {
-        allSocieteOptions.push({
-            value: societeSelect.options[i].value,
-            text: societeSelect.options[i].text
+
+/* ── Multiselect Dropdowns Label & Toggle Handling (Add Report Modal) ── */
+document.addEventListener('DOMContentLoaded', function() {
+    const multiselects = document.querySelectorAll('#addReportModal .custom-multiselect');
+    
+    multiselects.forEach(ms => {
+        const btn = ms.querySelector('.multiselect-btn');
+        const dropdown = ms.querySelector('.multiselect-dropdown');
+        const checkboxes = ms.querySelectorAll('.multiselect-checkbox');
+        const labelSpan = ms.querySelector('.selected-labels');
+        const searchName = ms.getAttribute('data-name');
+        
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.querySelectorAll('#addReportModal .multiselect-dropdown').forEach(d => {
+                if (d !== dropdown) d.classList.add('hidden');
+            });
+            dropdown.classList.toggle('hidden');
         });
-    }
-
-    poleSelect.addEventListener('change', function() {
-        const selectedPole = this.value;
-        const currentSociete = societeSelect.value;
-
-        // Clear all options except the first placeholder
-        while (societeSelect.options.length > 1) {
-            societeSelect.remove(1);
-        }
-
-        if (selectedPole && poleSocieteMap[selectedPole]) {
-            // Only add societes linked to this pole
-            poleSocieteMap[selectedPole].forEach(function(soc) {
-                const opt = document.createElement('option');
-                opt.value = soc;
-                opt.text = soc;
-                if (soc === currentSociete) opt.selected = true;
-                societeSelect.add(opt);
+        
+        dropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+        
+        function updateLabel() {
+            const selectedLabels = [];
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    selectedLabels.push(cb.getAttribute('data-label'));
+                }
             });
-        } else {
-            // No pole selected: restore all societe options
-            allSocieteOptions.forEach(function(item) {
-                if (!item.value) return; // skip placeholder
-                const opt = document.createElement('option');
-                opt.value = item.value;
-                opt.text = item.text;
-                if (item.value === currentSociete) opt.selected = true;
-                societeSelect.add(opt);
-            });
+            
+            if (selectedLabels.length === 0) {
+                if (searchName === 'directions') labelSpan.textContent = "Sélectionner des directions...";
+                else if (searchName === 'poles') labelSpan.textContent = "Sélectionner des pôles...";
+                else if (searchName === 'societes') labelSpan.textContent = "Sélectionner des sociétés...";
+                else if (searchName === 'modules') labelSpan.textContent = "Sélectionner des modules...";
+                else labelSpan.textContent = "Sélectionner...";
+                labelSpan.classList.add('text-slate-400');
+            } else if (selectedLabels.length <= 2) {
+                labelSpan.textContent = selectedLabels.join(', ');
+                labelSpan.classList.remove('text-slate-400');
+            } else {
+                labelSpan.textContent = `${selectedLabels.length} sélectionnés`;
+                labelSpan.classList.remove('text-slate-400');
+            }
         }
-
-        // If current societe is not in new list, reset
-        if (societeSelect.value !== currentSociete) {
-            societeSelect.value = '';
-        }
+        
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateLabel);
+        });
+        
+        updateLabel();
     });
-})();
+    
+    document.addEventListener('click', function() {
+        document.querySelectorAll('#addReportModal .multiselect-dropdown').forEach(d => {
+            d.classList.add('hidden');
+        });
+    });
+});
 
 /* ── Feedback banner ───────────────────────────────────────────────────────── */
 function showError(msg) {

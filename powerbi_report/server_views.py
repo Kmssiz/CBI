@@ -21,19 +21,28 @@ def server_management_list(request):
     unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
 
-    metadata_options = MetadataOption.objects.all()
+    metadata_options = MetadataOption.objects.all().select_related('parent')
     poles = [opt for opt in metadata_options if opt.option_type == 'pole']
     directions = [opt for opt in metadata_options if opt.option_type == 'direction']
     societes = [opt for opt in metadata_options if opt.option_type == 'societe']
+    modules = [opt for opt in metadata_options if opt.option_type == 'module']
+
+    # Map Pôle ID -> child Société IDs
+    pole_societe_ids = {}
+    for opt in metadata_options:
+        if opt.option_type == 'societe' and opt.parent_id:
+            pole_societe_ids.setdefault(opt.parent_id, []).append(opt.id)
 
     context = {
         'servers': servers,
         'poles': poles,
         'directions': directions,
         'societes': societes,
+        'modules': modules,
         'notifications': notifications,
         'unread': unread,
         'permissions': permissions,
+        'pole_societe_ids_json': json.dumps(pole_societe_ids),
     }
     return render(request, 'powerbi_report/server_management.html', context)
 
@@ -137,6 +146,12 @@ def metadata_option_create(request):
             option.parent = parent
             option.save()
 
+        # Link child Sociétés to Pôle on creation
+        if option_type == 'pole':
+            societe_ids = request.POST.getlist('societe_ids')
+            if societe_ids:
+                MetadataOption.objects.filter(id__in=societe_ids, option_type='societe').update(parent=option)
+
         messages.success(request, f"L'option '{name}' a été ajoutée avec succès.")
     except Exception as e:
         logger.error(f"Error creating metadata option: {e}")
@@ -159,16 +174,6 @@ def metadata_option_edit(request, option_id):
             return redirect('powerbi_report:server_management_list')
 
         old_name = option.name
-        
-        # Propagate change to ReportRef instances
-        if old_name != name:
-            if option.option_type == 'pole':
-                ReportRef.objects.filter(pole=old_name).update(pole=name)
-            elif option.option_type == 'direction':
-                ReportRef.objects.filter(direction=old_name).update(direction=name)
-            elif option.option_type == 'societe':
-                ReportRef.objects.filter(societe=old_name).update(societe=name)
-
         option.name = name
         
         if option.option_type == 'societe':
@@ -179,6 +184,28 @@ def metadata_option_edit(request, option_id):
                 option.parent = None
         
         option.save()
+
+        # Update child Sociétés when Pôle is edited
+        if option.option_type == 'pole':
+            societe_ids = request.POST.getlist('societe_ids')
+            MetadataOption.objects.filter(parent=option, option_type='societe').update(parent=None)
+            if societe_ids:
+                MetadataOption.objects.filter(id__in=societe_ids, option_type='societe').update(parent=option)
+
+        # Propagate change to legacy CharFields on affected ReportRef instances
+        if old_name != name:
+            if option.option_type == 'pole':
+                for r in ReportRef.objects.filter(poles=option):
+                    r.pole = ", ".join([p.name for p in r.poles.all()])
+                    r.save()
+            elif option.option_type == 'direction':
+                for r in ReportRef.objects.filter(directions=option):
+                    r.direction = ", ".join([d.name for d in r.directions.all()])
+                    r.save()
+            elif option.option_type == 'societe':
+                for r in ReportRef.objects.filter(societes=option):
+                    r.societe = ", ".join([s.name for s in r.societes.all()])
+                    r.save()
         messages.success(request, f"L'option '{name}' a été modifiée avec succès.")
     except Exception as e:
         logger.error(f"Error editing metadata option {option_id}: {e}")
@@ -194,15 +221,27 @@ def metadata_option_delete(request, option_id):
         option = get_object_or_404(MetadataOption, id=option_id)
         name = option.name
         
-        # Propagate delete to ReportRef: set matching fields to None
+        # Propagate delete to legacy CharFields on affected ReportRef instances
         if option.option_type == 'pole':
-            ReportRef.objects.filter(pole=name).update(pole=None)
+            reports_to_sync = list(ReportRef.objects.filter(poles=option))
+            option.delete()
+            for r in reports_to_sync:
+                r.pole = ", ".join([p.name for p in r.poles.all()]) or None
+                r.save()
         elif option.option_type == 'direction':
-            ReportRef.objects.filter(direction=name).update(direction=None)
+            reports_to_sync = list(ReportRef.objects.filter(directions=option))
+            option.delete()
+            for r in reports_to_sync:
+                r.direction = ", ".join([d.name for d in r.directions.all()]) or None
+                r.save()
         elif option.option_type == 'societe':
-            ReportRef.objects.filter(societe=name).update(societe=None)
-            
-        option.delete()
+            reports_to_sync = list(ReportRef.objects.filter(societes=option))
+            option.delete()
+            for r in reports_to_sync:
+                r.societe = ", ".join([s.name for s in r.societes.all()]) or None
+                r.save()
+        else:
+            option.delete()
         messages.success(request, f"L'option '{name}' a été supprimée avec succès.")
     except Exception as e:
         logger.error(f"Error deleting metadata option {option_id}: {e}")

@@ -66,6 +66,7 @@ urlpatterns = [
     path('custom/consolide/', views.custom_folders_list, {'view_type': 'consolide'}, name='custom_consolide'),
     path('custom/anomalie/', views.custom_folders_list, {'view_type': 'anomalie'}, name='custom_anomalie'),
     path('custom/pole/', views.custom_folders_list, {'view_type': 'pole'}, name='custom_pole'),
+    path('custom/module/', views.custom_folders_list, {'view_type': 'module'}, name='custom_module'),
     
     path('custom/<str:view_type>/<int:folder_id>/', views.custom_folders_list, name='custom_folder_detail'),
     path('custom/folder/<str:view_type>/<int:folder_id>/report/<int:report_id>/', views.embed_custom_report, name='embed_custom_report'),
