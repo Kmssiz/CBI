@@ -313,33 +313,8 @@
     </div>
 </div>
 
-<!-- Loading Overlay for Sync -->
-<div id="syncLoadingOverlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999]" style="display: none;">
-  <div class="card-theme bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl max-w-sm mx-4">
-    <div class="relative">
-      <span class="material-symbols-outlined text-[48px] text-primary animate-spin">sync</span>
-    </div>
-    <div class="text-center">
-      <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">Synchronisation en cours...</h3>
-      <p class="text-sm text-slate-500 dark:text-slate-400">Récupération des utilisateurs depuis Active Directory. Cette opération peut prendre plusieurs minutes.</p>
-    </div>
-    <div class="flex items-center gap-2 mt-2">
-      <div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-      <div class="w-2 h-2 bg-primary rounded-full animate-pulse" style="animation-delay: 0.2s;"></div>
-      <div class="w-2 h-2 bg-primary rounded-full animate-pulse" style="animation-delay: 0.4s;"></div>
-    </div>
-  </div>
-</div>
 
-<!-- Loading Prompt for Permissions -->
-<div id="loadingPrompt" class="loading-overlay">
-  <div class="loading-content">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
-    </div>
-    <p>Récupération des permissions... Veuillez patienter.</p>
-  </div>
-</div>
+
 
 <script>
   const ADMIN_ROLE_NAME = '{{ admin_role_name|lower }}';
@@ -365,8 +340,12 @@
 
   // Function to start user sync with loading overlay
   function startSyncUsers() {
-    const overlay = document.getElementById('syncLoadingOverlay');
-    overlay.style.display = 'flex';
+    if (window.showLoadingOverlay) {
+      window.showLoadingOverlay(
+        "Synchronisation des Utilisateurs",
+        "Récupération et synchronisation des comptes utilisateurs depuis Active Directory..."
+      );
+    }
     
     // Navigate to sync URL after a small delay to ensure overlay is visible
     setTimeout(function() {
@@ -410,17 +389,16 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     const permissionButtons = document.querySelectorAll(".btn-outline-permission");
-    const loadingPrompt = document.getElementById("loadingPrompt");
 
     permissionButtons.forEach(button => {
       button.addEventListener("click", function () {
-        loadingPrompt.style.display = "flex";
+        if (window.showLoadingOverlay) {
+          window.showLoadingOverlay(
+            "Accès Utilisateur",
+            "Chargement de l'écran de gestion des permissions..."
+          );
+        }
       });
-    });
-
-    // Hide the prompt when the page is fully loaded
-    window.addEventListener("load", function () {
-      loadingPrompt.style.display = "none";
     });
   });
 </script>
@@ -443,36 +421,6 @@
 
 
 <style>
-  /* Loading styles */
-  .loading-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(10, 15, 20, 0.8);
-    backdrop-blur: 4px;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-  }
-
-  .loading-content {
-    text-align: center;
-    color: var(--primary);
-    background: white;
-    padding: 32px;
-    border-radius: 20px;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
-  }
-
-  .dark .loading-content {
-    background: #121922;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-  }
 
   /* Fix dark-mode dropdown option readability */
   #editModal select option {

@@ -713,6 +713,68 @@
     });
   }
 </script>
+
+<!-- Global Premium Loading Overlay -->
+<div id="globalLoadingOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[10000] hidden transition-opacity duration-300 opacity-0">
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 flex flex-col items-center gap-6 shadow-2xl max-w-sm mx-4 text-center transform scale-95 transition-transform duration-300">
+    <div class="relative flex items-center justify-center">
+      <!-- Inner pulse glow -->
+      <div class="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse"></div>
+      <!-- Modern rotating gradient border ring -->
+      <div class="w-16 h-16 rounded-full border-4 border-slate-100 dark:border-slate-800 border-t-primary animate-spin"></div>
+      <!-- Inner icon -->
+      <span class="material-symbols-outlined text-[24px] text-primary absolute animate-pulse">sync</span>
+    </div>
+    <div>
+      <h3 id="globalLoadingTitle" class="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">Chargement...</h3>
+      <p id="globalLoadingMessage" class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Veuillez patienter durant le traitement.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0s;"></div>
+      <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0.15s;"></div>
+      <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0.3s;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showLoadingOverlay(title, message) {
+    const overlay = document.getElementById('globalLoadingOverlay');
+    const titleEl = document.getElementById('globalLoadingTitle');
+    const msgEl = document.getElementById('globalLoadingMessage');
+    
+    if (!overlay) return;
+    
+    if (title) titleEl.textContent = title;
+    if (message) msgEl.textContent = message;
+    
+    overlay.classList.remove('hidden');
+    // Trigger browser reflow to enable CSS transition
+    overlay.offsetWidth;
+    overlay.classList.remove('opacity-0');
+    overlay.querySelector('.transform').classList.remove('scale-95');
+  }
+
+  function hideLoadingOverlay() {
+    const overlay = document.getElementById('globalLoadingOverlay');
+    if (!overlay) return;
+    
+    overlay.classList.add('opacity-0');
+    overlay.querySelector('.transform').classList.add('scale-95');
+    setTimeout(() => {
+      overlay.classList.add('hidden');
+    }, 300);
+  }
+
+  // Attach functions globally
+  window.showLoadingOverlay = showLoadingOverlay;
+  window.hideLoadingOverlay = hideLoadingOverlay;
+
+  // Make sure to hide overlay when page loads (e.g. back button navigation)
+  window.addEventListener('pageshow', function(event) {
+    hideLoadingOverlay();
+  });
+</script>
 </body>
 
 </html>

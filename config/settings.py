@@ -94,6 +94,8 @@ PBIRS_SYNC_POLICY_TIMEOUT = config("PBIRS_SYNC_POLICY_TIMEOUT", default=15, cast
 PBIRS_SYNC_POLICY_RETRIES = config("PBIRS_SYNC_POLICY_RETRIES", default=2, cast=int)
 PBIRS_SYNC_POLICY_RETRY_DELAY = config("PBIRS_SYNC_POLICY_RETRY_DELAY", default=1.5, cast=float)
 PBIRS_SYNC_POLICY_REQUEST_DELAY = config("PBIRS_SYNC_POLICY_REQUEST_DELAY", default=0.05, cast=float)
+PBIRS_SYNC_MAX_WORKERS = config("PBIRS_SYNC_MAX_WORKERS", default=20, cast=int)
+
 
 
 # Role names (centralized to avoid hardcoded strings)

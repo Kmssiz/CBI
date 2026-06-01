@@ -116,6 +116,12 @@ def get_group_members(
                 unique_members.add(cleaned_member)
                 continue
 
+            # Check if this member is already cached as not a group
+            not_group_cache_key = f"not_a_group:{cleaned_member}"
+            if cache.get(not_group_cache_key):
+                unique_members.add(cleaned_member)
+                continue
+
             sub_url = _group_members_url(cleaned_member)
             try:
                 sub_response = requests.get(sub_url, timeout=10)
@@ -130,8 +136,10 @@ def get_group_members(
                     unique_members.update(sub_members)
                 else:
                     unique_members.add(cleaned_member)
+                    cache.set(not_group_cache_key, True, timeout=86400)  # Cache for 24 hours
             except requests.RequestException:
                 unique_members.add(cleaned_member)
+                cache.set(not_group_cache_key, True, timeout=86400)
                 logger.debug(
                     "Failed to validate nested LDAP group '%s'; treating as user.",
                     cleaned_member,
@@ -156,6 +164,12 @@ def get_group_members(
                     final_members.add(member)
                     continue
 
+                # Check if this member is already cached as not a group
+                not_group_cache_key = f"not_a_group:{member}"
+                if cache.get(not_group_cache_key):
+                    final_members.add(member)
+                    continue
+
                 sub_url = _group_members_url(member)
                 try:
                     sub_response = requests.get(sub_url, timeout=10)
@@ -171,8 +185,10 @@ def get_group_members(
                         final_members.update(sub_members)
                     else:
                         final_members.add(member)
+                        cache.set(not_group_cache_key, True, timeout=86400)
                 except requests.RequestException:
                     final_members.add(member)
+                    cache.set(not_group_cache_key, True, timeout=86400)
                     logger.debug(
                         "Failed final LDAP group check for '%s'; treating as user.",
                         member,
@@ -185,6 +201,7 @@ def get_group_members(
             return final_members
 
         final_members = resolve_groups(unique_members, visited_groups.copy(), depth, max_depth)
+
         cache.set(cache_key, list(final_members), timeout=86400)
         logger.debug("Cached resolved LDAP members for group '%s'.", group_name)
         return final_members
