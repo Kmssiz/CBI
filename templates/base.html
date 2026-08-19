@@ -85,6 +85,301 @@
         z-index: 1050;
     }
   </style>
+
+  <!-- Legacy CBI visual skin. The application shell keeps the current routes and
+       permission-aware navigation, while matching the previous portal chrome. -->
+  <style>
+    :root {
+      --legacy-charcoal: #1c1d22;
+      --legacy-charcoal-soft: #25262d;
+      --legacy-text: #bdbdbd;
+      --legacy-green: #a5cf4b;
+      --legacy-canvas: #f5f5f5;
+    }
+
+    body.legacy-shell {
+      overflow: hidden;
+      background: var(--legacy-canvas) !important;
+      color: #2a2b30;
+      font-family: 'Avenir Next', Avenir, 'Helvetica Neue', Lato, 'Segoe UI', Arial, sans-serif;
+    }
+
+    body.legacy-shell > .legacy-app {
+      display: block;
+      min-height: 100vh;
+      width: 100%;
+    }
+
+    body.legacy-shell .pc-sidebar {
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 1050;
+      display: flex;
+      width: 300px !important;
+      min-width: 300px;
+      height: 100vh;
+      transform: none;
+      overflow: hidden;
+      background: var(--legacy-charcoal) !important;
+      border: 0 !important;
+      color: var(--legacy-text);
+    }
+
+    body.legacy-shell .legacy-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 300px;
+      height: 200px;
+      min-height: 200px;
+      padding: 1.5rem;
+      background: var(--legacy-charcoal);
+      border: 0 !important;
+    }
+
+    body.legacy-shell .legacy-brand a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    body.legacy-shell .legacy-brand img {
+      width: auto;
+      max-width: 180px;
+      height: 120px;
+      object-fit: contain;
+    }
+
+    body.legacy-shell .legacy-brand img.hidden { display: none !important; }
+    body.legacy-shell .legacy-brand .logo-title { display: none; }
+    body.legacy-shell .legacy-brand,
+    body.legacy-shell .legacy-nav,
+    body.legacy-shell .legacy-sidebar-footer { display: none !important; }
+    body.legacy-shell .legacy-visual-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 300px;
+      height: 200px;
+      min-height: 200px;
+      background: #1c1d22;
+    }
+    body.legacy-shell .legacy-visual-brand a { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+    body.legacy-shell .legacy-visual-brand img { width: 165px; height: 120px; object-fit: contain; }
+    body.legacy-shell .legacy-visual-nav {
+      display: block;
+      width: 300px;
+      height: calc(100vh - 200px);
+      padding: 3.5em 0 1em;
+      overflow-x: hidden;
+      overflow-y: auto;
+      background: #1c1d22;
+      scrollbar-width: none;
+    }
+    body.legacy-shell .legacy-visual-nav::-webkit-scrollbar { display: none; }
+    body.legacy-shell .legacy-visual-nav > a,
+    body.legacy-shell .legacy-visual-nav > details > summary {
+      display: flex;
+      align-items: center;
+      position: relative;
+      width: 250px;
+      min-height: 48px;
+      margin: 0;
+      padding: 1em 2.5em 1em 1.5em;
+      color: #bdbdbd;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.15;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    body.legacy-shell .legacy-visual-nav > a:hover,
+    body.legacy-shell .legacy-visual-nav > a:focus,
+    body.legacy-shell .legacy-visual-nav > a.is-current,
+    body.legacy-shell .legacy-visual-nav > details > summary:hover,
+    body.legacy-shell .legacy-visual-nav > details[open] > summary { color: #a5cf4b; }
+    body.legacy-shell .legacy-visual-nav > a.is-current::before,
+    body.legacy-shell .legacy-visual-nav > details[open] > summary::before {
+      content: '\00b7';
+      position: absolute;
+      left: .5em;
+      top: 50%;
+      color: #a5cf4b;
+      font-size: 1.5em;
+      line-height: 0;
+    }
+    body.legacy-shell .legacy-visual-nav details { width: 300px; }
+    body.legacy-shell .legacy-visual-nav summary { list-style: none; }
+    body.legacy-shell .legacy-visual-nav summary::-webkit-details-marker { display: none; }
+    body.legacy-shell .legacy-visual-nav .legacy-visual-submenu { width: 250px; padding: 0 0 8px 28px; }
+    body.legacy-shell .legacy-visual-nav .legacy-visual-submenu a { display: block; padding: 8px 18px; color: #8f9097; font-size: 12px; text-decoration: none; }
+    body.legacy-shell .legacy-visual-nav .legacy-visual-submenu a:hover,
+    body.legacy-shell .legacy-visual-nav .legacy-visual-submenu a.is-current { color: #a5cf4b; }
+    body.legacy-shell .legacy-visual-nav .legacy-visual-submenu a:hover { background: #25262d !important; }
+
+    body.legacy-shell .legacy-nav {
+      width: 300px;
+      padding: 2.5rem 0 1rem !important;
+      overflow-x: hidden;
+      overflow-y: auto;
+      background: var(--legacy-charcoal);
+      scrollbar-width: thin;
+      scrollbar-color: #3a3b43 transparent;
+    }
+
+    body.legacy-shell .legacy-nav p {
+      padding: 0 1.5rem !important;
+      margin: 0.75rem 0 0.5rem !important;
+      color: #62636c !important;
+      font-size: 0.65rem !important;
+      letter-spacing: 0.16em;
+    }
+
+    body.legacy-shell .legacy-nav a {
+      display: flex;
+      align-items: center;
+      width: calc(100% - 3rem);
+      min-height: 48px;
+      margin: 0.1rem 1.5rem;
+      padding: 0.85rem 1rem !important;
+      border-radius: 0 !important;
+      color: var(--legacy-text) !important;
+      background: transparent !important;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: color .15s ease, background .15s ease, border-color .15s ease;
+    }
+
+    body.legacy-shell .legacy-nav a:hover,
+    body.legacy-shell .legacy-nav a:focus,
+    body.legacy-shell .legacy-nav a.bg-primary\/10 {
+      color: var(--legacy-green) !important;
+      background: var(--legacy-charcoal-soft) !important;
+    }
+
+    body.legacy-shell .legacy-nav a.bg-primary\/10 {
+      border-left: 3px solid var(--legacy-green);
+      padding-left: calc(1rem - 3px) !important;
+    }
+
+    body.legacy-shell .legacy-nav a span:first-child {
+      margin-right: 0.75rem;
+      color: #777983 !important;
+      font-size: 1.15rem !important;
+    }
+
+    body.legacy-shell .legacy-nav a:hover span:first-child,
+    body.legacy-shell .legacy-nav a.bg-primary\/10 span:first-child {
+      color: var(--legacy-green) !important;
+    }
+
+    body.legacy-shell .legacy-sidebar-footer {
+      padding: 0.75rem 1.5rem !important;
+      border-top: 1px solid #303139 !important;
+      background: var(--legacy-charcoal);
+    }
+
+    body.legacy-shell .legacy-sidebar-footer a {
+      width: 100%;
+      margin: 0;
+      color: #d27b7b !important;
+      background: transparent !important;
+    }
+
+    body.legacy-shell .legacy-sidebar-footer a:hover {
+      color: #f0a3a3 !important;
+      background: #302329 !important;
+    }
+
+    body.legacy-shell > .legacy-app > main {
+      display: flex;
+      width: calc(100% - 300px);
+      height: 100vh;
+      min-height: 100vh;
+      margin-left: 300px;
+      overflow: hidden;
+      background: var(--legacy-canvas);
+    }
+
+    body.legacy-shell .legacy-header {
+      height: 72px;
+      min-height: 72px;
+      padding: 0 2rem;
+      background: #fff;
+      border-bottom: 1px solid #e4e4e6;
+      box-shadow: 0 1px 0 rgba(28,29,34,.03);
+    }
+
+    body.legacy-shell .legacy-header h1 {
+      color: #2a2b30 !important;
+      font-size: 1.25rem;
+      letter-spacing: .01em;
+    }
+
+    body.legacy-shell .legacy-header p { color: #85858b !important; }
+    body.legacy-shell .legacy-header button,
+    body.legacy-shell .legacy-header a { color: #6a6b73 !important; }
+    body.legacy-shell .legacy-header button:hover,
+    body.legacy-shell .legacy-header a:hover { color: var(--legacy-green) !important; }
+
+    body.legacy-shell .legacy-content {
+      background: var(--legacy-canvas);
+      scrollbar-width: thin;
+      scrollbar-color: #c9c9cc transparent;
+    }
+
+    body.legacy-shell .legacy-content > * { max-width: none; }
+    body.legacy-shell .card-theme { border-radius: 4px !important; box-shadow: 0 1px 3px rgba(28,29,34,.08) !important; }
+    body.legacy-shell .bg-primary { background-color: var(--legacy-green) !important; }
+    body.legacy-shell .text-primary { color: #71952b !important; }
+    body.legacy-shell .border-primary { border-color: var(--legacy-green) !important; }
+    body.legacy-shell .ring-primary { --tw-ring-color: var(--legacy-green) !important; }
+
+    body.legacy-shell.legacy-collapsed .pc-sidebar {
+      width: 0 !important;
+      min-width: 0 !important;
+      transform: translateX(-100%);
+    }
+    body.legacy-shell.legacy-collapsed > .legacy-app > main {
+      width: 100%;
+      margin-left: 0;
+    }
+    body.legacy-shell.legacy-collapsed .legacy-shell-toggle .material-symbols-outlined {
+      transform: rotate(180deg);
+    }
+
+    /* Old dashboard cards were compact, square-edged panels on a neutral
+       canvas. These late rules also cover page-specific inline styles. */
+    body.legacy-shell .dashboard-card,
+    body.legacy-shell .dashboard-stat-card,
+    body.legacy-shell .glass-panel {
+      border-radius: 4px !important;
+      border: 1px solid #e1e1e4 !important;
+      box-shadow: 0 2px 6px rgba(28,29,34,.08) !important;
+      background: #fff !important;
+    }
+    body.legacy-shell .dashboard-card-header {
+      border-bottom: 1px solid #ececef !important;
+      background: #fafafa !important;
+    }
+    body.legacy-shell .dashboard-stat-card:hover { transform: none !important; box-shadow: 0 3px 8px rgba(28,29,34,.12) !important; }
+    body.legacy-shell .dashboard-toggle-group button.active,
+    body.legacy-shell .dashboard-toggle-group button:hover {
+      color: #fff !important;
+      background: var(--legacy-green) !important;
+    }
+    body.legacy-shell .pagination-footer { background: #fafafa !important; border-color: #e4e4e6 !important; }
+
+    @media (max-width: 1023px) {
+      body.legacy-shell .pc-sidebar { transform: translateX(-100%) !important; }
+      body.legacy-shell .pc-sidebar:not(.-translate-x-full) { transform: translateX(0) !important; }
+      body.legacy-shell > .legacy-app > main { width: 100%; margin-left: 0; }
+      body.legacy-shell .legacy-header { padding: 0 1rem; }
+    }
+  </style>
   
   <!-- Theme CSS overrides -->
   <style>
@@ -333,26 +628,286 @@
     gtag('config', 'G-14K1GBX9FG');
   </script>
 
+  <!-- Final legacy reference overrides. These sit after the component theme so
+       the old portal proportions win without changing any page functionality. -->
+  <style id="legacy-reference-overrides">
+    @font-face { font-family: LegacyRoboto; src: url("{% static 'assets/fonts/roboto/Roboto-Regular.ttf' %}"); font-weight: 400; }
+    @font-face { font-family: LegacyRoboto; src: url("{% static 'assets/fonts/roboto/Roboto-Medium.ttf' %}"); font-weight: 500; }
+    @font-face { font-family: LegacyRoboto; src: url("{% static 'assets/fonts/roboto/Roboto-Bold.ttf' %}"); font-weight: 700; }
+
+    body.legacy-shell {
+      overflow: hidden;
+      background: #f2f2f2 !important;
+      color: #2a2b30;
+      font-family: LegacyRoboto, Roboto, Arial, sans-serif;
+    }
+    body.legacy-shell .legacy-app { min-height: 100vh; }
+    body.legacy-shell .pc-sidebar {
+      width: 300px !important;
+      min-width: 300px;
+      height: 100vh;
+      background: #1c1d22 !important;
+      color: #bdbdbd;
+    }
+    body.legacy-shell .legacy-brand {
+      width: 300px;
+      height: 200px;
+      min-height: 200px;
+      padding: 0;
+      background: #1c1d22;
+    }
+    body.legacy-shell .legacy-brand a { width: 100%; height: 100%; }
+    body.legacy-shell .legacy-brand img {
+      width: 165px;
+      height: 120px;
+      max-width: none;
+      object-fit: contain;
+    }
+    body.legacy-shell .legacy-brand .logo-title { display: none; }
+    body.legacy-shell .legacy-nav {
+      width: 300px;
+      padding: 3.5em 0 1em !important;
+      background: #1c1d22;
+      overflow-x: hidden;
+    }
+    body.legacy-shell .legacy-nav p { display: none; }
+    body.legacy-shell .legacy-nav > a,
+    body.legacy-shell .legacy-nav > details > summary {
+      display: flex;
+      align-items: center;
+      position: relative;
+      width: 250px;
+      min-height: 48px;
+      margin: 0;
+      padding: 1em 2.5em 1em 1.5em !important;
+      border: 0;
+      border-radius: 0 !important;
+      background: transparent !important;
+      color: #bdbdbd !important;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.15;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    body.legacy-shell .legacy-nav > a:hover,
+    body.legacy-shell .legacy-nav > a:focus,
+    body.legacy-shell .legacy-nav > a.bg-primary\/10,
+    body.legacy-shell .legacy-nav > details > summary:hover,
+    body.legacy-shell .legacy-nav > details[open] > summary {
+      color: #a5cf4b !important;
+      background: transparent !important;
+    }
+    body.legacy-shell .legacy-nav > a.bg-primary\/10::before,
+    body.legacy-shell .legacy-nav > details[open] > summary::before {
+      content: '\00b7';
+      position: absolute;
+      left: .5em;
+      top: 50%;
+      color: #a5cf4b;
+      font-size: 1.5em;
+      line-height: 0;
+    }
+    body.legacy-shell .legacy-nav > a > span:first-child,
+    body.legacy-shell .legacy-nav > details > summary > span:first-child { display: none; }
+    body.legacy-shell .legacy-nav > details { width: 300px; }
+    body.legacy-shell .legacy-nav > details > summary { list-style: none; }
+    body.legacy-shell .legacy-nav > details > summary::-webkit-details-marker { display: none; }
+    body.legacy-shell .legacy-submenu {
+      width: 250px;
+      padding: 0 0 8px 28px;
+      background: #1c1d22;
+    }
+    body.legacy-shell .legacy-submenu a {
+      display: block;
+      padding: 8px 18px;
+      color: #8f9097;
+      font-size: 12px;
+      text-decoration: none;
+    }
+    body.legacy-shell .legacy-submenu a:hover { color: #a5cf4b; background: #25262d !important; }
+    body.legacy-shell .legacy-sidebar-footer { display: none; }
+    body.legacy-shell > .legacy-app > main {
+      width: calc(100% - 300px);
+      height: 100vh;
+      min-height: 100vh;
+      margin-left: 300px;
+      overflow: hidden;
+      background: #f2f2f2;
+    }
+    body.legacy-shell .legacy-header { display: none !important; }
+    body.legacy-shell .legacy-content {
+      width: 100%;
+      height: 100vh;
+      overflow: auto;
+      background: #f2f2f2;
+    }
+    body.legacy-shell .legacy-content > * { max-width: none; }
+    body.legacy-shell.legacy-collapsed .pc-sidebar { width: 0 !important; min-width: 0; }
+    body.legacy-shell.legacy-collapsed > .legacy-app > main { width: 100%; margin-left: 0; }
+    @media (max-width: 1023px) {
+      body.legacy-shell .pc-sidebar { width: 300px !important; min-width: 300px; }
+      body.legacy-shell > .legacy-app > main { width: 100%; margin-left: 0; }
+    }
+  </style>
+  <!-- Shared light/dark theme treatment for every legacy-shell page. -->
+  <style id="legacy-theme-overrides">
+    body.legacy-shell .legacy-theme-slot { position: absolute; right: 24px; bottom: 18px; left: 24px; z-index: 4; }
+    body.legacy-shell .legacy-theme-toggle { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; min-height: 40px; padding: 0 12px; border: 1px solid #34353d; border-radius: 4px; background: #25262d; color: #c9cad0; font-family: LegacyRoboto, Roboto, Arial, sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: border-color .16s ease, color .16s ease, background .16s ease; }
+    body.legacy-shell .legacy-theme-toggle:hover { border-color: var(--legacy-green); color: var(--legacy-green); background: #2d2e36; }
+    body.legacy-shell .legacy-theme-toggle .material-symbols-outlined { font-size: 18px; }
+    body.legacy-shell .legacy-visual-brand a:hover { background: rgba(255,255,255,.03) !important; }
+    html:not(.dark) body.legacy-shell [class*="hover:bg-white"]:hover,
+    html:not(.dark) body.legacy-shell [class*="hover:bg-slate-50"]:hover,
+    html:not(.dark) body.legacy-shell [class*="hover:bg-slate-100"]:hover { background-color: #f1f5e9 !important; }
+    html:not(.dark) body.legacy-shell .legacy-visual-nav > a:hover,
+    html:not(.dark) body.legacy-shell .legacy-visual-nav > details > summary:hover { background: #25262d !important; }
+    html.dark body.legacy-shell {
+      --legacy-canvas: #111318;
+      --legacy-surface: #1c1e24;
+      --legacy-surface-raised: #24262d;
+      --legacy-border: #363943;
+      --legacy-ink: #f1f2f4;
+      --legacy-muted: #a8abb4;
+      background: var(--legacy-canvas) !important;
+      color: var(--legacy-ink) !important;
+    }
+    html.dark body.legacy-shell > .legacy-app > main,
+    html.dark body.legacy-shell .legacy-content { background: var(--legacy-canvas) !important; }
+    html.dark body.legacy-shell .legacy-visual-brand,
+    html.dark body.legacy-shell .legacy-visual-nav,
+    html.dark body.legacy-shell .legacy-submenu { background: #17181d !important; }
+    html.dark body.legacy-shell .legacy-visual-nav > a:not(.is-current),
+    html.dark body.legacy-shell .legacy-visual-nav > details > summary:not(.is-current):not(:hover) {
+      color: #a8abb4 !important;
+    }
+    html.dark body.legacy-shell .legacy-visual-nav > a.is-current,
+    html.dark body.legacy-shell .legacy-visual-nav > details > summary.is-current,
+    html.dark body.legacy-shell .legacy-visual-nav > details[open] > summary {
+      color: var(--legacy-green) !important;
+    }
+    html.dark body.legacy-shell .legacy-visual-nav > a.is-current::before,
+    html.dark body.legacy-shell .legacy-visual-nav > details[open] > summary::before {
+      color: var(--legacy-green) !important;
+    }
+    html.dark body.legacy-shell .legacy-visual-submenu a:not(.is-current) {
+      color: #a8abb4 !important;
+      background: transparent !important;
+    }
+    html.dark body.legacy-shell .legacy-visual-submenu a:hover,
+    html.dark body.legacy-shell .legacy-visual-submenu a.is-current {
+      color: var(--legacy-green) !important;
+      background: #25262d !important;
+    }
+    html.dark body.legacy-shell .legacy-theme-toggle { border-color: #3b3e48; background: #24262d; color: #d7d9de; }
+    html.dark body.legacy-shell .legacy-theme-toggle:hover { border-color: var(--legacy-green); color: var(--legacy-green); background: #2d3038; }
+    html.dark body.legacy-shell .card-theme,
+    html.dark body.legacy-shell .card-theme-alt,
+    html.dark body.legacy-shell .dashboard-card,
+    html.dark body.legacy-shell .dashboard-stat-card,
+    html.dark body.legacy-shell .glass-panel,
+    html.dark body.legacy-shell .modal-content { background: var(--legacy-surface) !important; border-color: var(--legacy-border) !important; color: var(--legacy-ink) !important; }
+    html.dark body.legacy-shell .dashboard-card-header,
+    html.dark body.legacy-shell .pagination-footer { background: var(--legacy-surface-raised) !important; border-color: var(--legacy-border) !important; }
+    html.dark body.legacy-shell input,
+    html.dark body.legacy-shell select,
+    html.dark body.legacy-shell textarea,
+    html.dark body.legacy-shell .input-theme { background: var(--legacy-surface-raised) !important; border-color: var(--legacy-border) !important; color: var(--legacy-ink) !important; }
+    html.dark body.legacy-shell table { color: var(--legacy-ink); }
+    html.dark body.legacy-shell th,
+    html.dark body.legacy-shell td { border-color: var(--legacy-border) !important; }
+    html.dark body.legacy-shell .bg-white { background-color: var(--legacy-surface) !important; }
+    html.dark body.legacy-shell .bg-slate-50 { background-color: var(--legacy-surface-raised) !important; }
+    html.dark body.legacy-shell .text-slate-900,
+    html.dark body.legacy-shell .text-slate-800,
+    html.dark body.legacy-shell .text-slate-700 { color: var(--legacy-ink) !important; }
+    html.dark body.legacy-shell .text-slate-600,
+    html.dark body.legacy-shell .text-slate-500,
+    html.dark body.legacy-shell .text-slate-400 { color: var(--legacy-muted) !important; }
+    html.dark body.legacy-shell .border-slate-200,
+    html.dark body.legacy-shell .border-slate-100 { border-color: var(--legacy-border) !important; }
+  </style>
 </head>
 
 
-<body data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" data-pc-theme="light" class="bg-background-light dark:bg-background-dark text-slate-700 dark:text-slate-300 min-h-screen font-display overflow-x-hidden">
+<body data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" data-pc-theme="light" class="legacy-shell bg-background-light dark:bg-background-dark text-slate-700 dark:text-slate-300 min-h-screen font-display overflow-x-hidden">
   <!-- Sidebar Overlay (Mobile) -->
   <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1040] hidden lg:hidden transition-opacity duration-300 opacity-0"></div>
 
-  <div class="flex h-screen w-full relative">
+  <div class="legacy-app flex h-screen w-full relative">
 
   <!-- [ Sidebar Menu ] start -->
   <aside class="pc-sidebar sidebar-theme w-64 flex flex-col border-r z-[1050] fixed inset-y-0 left-0 lg:relative lg:inset-auto h-full -translate-x-full lg:translate-x-0 transition-transform duration-300 overflow-hidden" id="sidebar">
-    <div class="p-6 flex items-center border-b border-slate-200 dark:border-slate-800/10">
+    <!-- Reference-era navigation chrome. The existing permission-aware menu
+         remains below as a hidden compatibility layer for templates/scripts. -->
+    <div class="legacy-visual-brand">
+      <a href="{% url 'home' %}" aria-label="Accueil">
+        <img src="{% static 'assets/images/legacy/Gsh Logo White.svg' %}" alt="Groupe Hasnaoui">
+      </a>
+    </div>
+    <nav class="legacy-visual-nav" aria-label="Navigation principale">
+      {% if user.is_authenticated %}
+        <a href="{% url 'landing' %}" class="{% if request.resolver_match.url_name == 'landing' %}is-current{% endif %}">Accueil</a>
+        {% if user.is_admin %}
+          <a href="{% url 'powerbi_report:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}is-current{% endif %}">Dashboard</a>
+        {% endif %}
+        {% if user.is_admin or permissions.can_view_direction or permissions.can_view_pole or permissions.can_view_consolide or permissions.can_view_anomalie or permissions.can_view_module %}
+          <details class="legacy-report-group" {% if 'custom/' in request.path %}open{% endif %}>
+            <summary class="{% if 'custom/' in request.path %}is-current{% endif %}">Tableau de bord</summary>
+            <div class="legacy-visual-submenu">
+              {% if user.is_admin or permissions.can_view_direction %}
+                <a href="{% url 'powerbi_report:custom_direction' %}" class="{% if 'custom/direction' in request.path %}is-current{% endif %}">Direction</a>
+              {% endif %}
+              {% if user.is_admin or permissions.can_view_pole %}
+                <a href="{% url 'powerbi_report:custom_pole' %}" class="{% if 'custom/pole' in request.path %}is-current{% endif %}">Pôle</a>
+              {% endif %}
+              {% if user.is_admin or permissions.can_view_consolide %}
+                <a href="{% url 'powerbi_report:custom_consolide' %}" class="{% if 'custom/consolide' in request.path %}is-current{% endif %}">Consolidé</a>
+              {% endif %}
+              <a href="{% url 'powerbi_report:custom_biblio' %}" class="{% if 'custom/biblio' in request.path %}is-current{% endif %}">Bibliothèque</a>
+              {% if user.is_admin or permissions.can_view_module %}
+                <a href="{% url 'powerbi_report:custom_module' %}" class="{% if 'custom/module' in request.path %}is-current{% endif %}">Module</a>
+              {% endif %}
+              {% if user.is_admin or permissions.can_view_anomalie %}
+                <a href="{% url 'powerbi_report:custom_anomalie' %}" class="{% if 'custom/anomalie' in request.path %}is-current{% endif %}">Anomalie</a>
+              {% endif %}
+            </div>
+          </details>
+        {% endif %}
+        {% if user.is_admin %}
+          <details {% if request.resolver_match.url_name in 'users_view report_list report_list_hierarchy report_list_hierarchy_folder report_list_flat embed_report server_management_list user_history' or request.path|slice:':7' == '/admin/' %}open{% endif %}>
+            <summary class="{% if request.resolver_match.url_name in 'users_view report_list report_list_hierarchy report_list_hierarchy_folder report_list_flat embed_report server_management_list user_history' or request.path|slice:':7' == '/admin/' %}is-current{% endif %}">Admin</summary>
+            <div class="legacy-visual-submenu">
+              <a href="{% url 'users_view' %}">Utilisateurs</a>
+              <a href="{% url 'powerbi_report:report_list' %}">Rapports</a>
+              <a href="{% url 'powerbi_report:server_management_list' %}">Serveurs</a>
+              <a href="{% url 'user_history' %}">Historique</a>
+              <a href="{% url 'admin:index' %}" target="_blank">Admin Panel</a>
+            </div>
+          </details>
+        {% endif %}
+        <a href="{% url 'tickets:ticket_list' %}" class="{% if 'tickets' in request.path %}is-current{% endif %}">Tickets</a>
+        <a href="{% url 'logout' %}">Déconnexion</a>
+      {% endif %}
+    </nav>
+    {% if user.is_authenticated %}
+    <div class="legacy-theme-slot">
+      <button id="theme-toggle" class="legacy-theme-toggle" type="button" aria-pressed="false" title="Activer le mode sombre">
+        <span class="material-symbols-outlined" id="theme-icon" aria-hidden="true">dark_mode</span>
+        <span id="theme-label">Mode sombre</span>
+      </button>
+    </div>
+    {% endif %}
+    <div class="legacy-brand p-6 flex items-center border-b border-slate-200 dark:border-slate-800/10">
       <a href="{% url 'home' %}" class="flex items-center gap-3">
-        <img src="{% static 'assets/images/logo_W_big-rem.png' %}" alt="Portail BI" class="h-12 w-auto object-contain dark:hidden" />
-        <img src="{% static 'assets/images/logo_Dark-rem.png' %}" alt="Portail BI" class="h-12 w-auto object-contain hidden dark:block" />
+        <img src="{% static 'assets/images/legacy/Cbi Logo White.svg' %}" alt="Portail BI" class="h-12 w-auto object-contain" />
         <span class="logo-title text-lg font-bold tracking-tight text-black dark:text-white">Portail BI</span>
       </a>
     </div>
 
-    <div class="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
+    <div class="legacy-nav flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
       {% if user.is_authenticated %}
         
         {% if user.is_admin %}
@@ -397,15 +952,14 @@
           <span class="text-sm font-medium">Consolidé</span>
         </a>
         {% endif %}
+        <a href="{% url 'powerbi_report:custom_module' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/module' in request.path or request.GET.context == 'module' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
+          <span class="material-symbols-outlined text-[20px]">view_module</span>
+          <span class="text-sm font-medium">Module</span>
+        </a>
 
         <a href="{% url 'powerbi_report:custom_biblio' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/biblio' in request.path or request.GET.context == 'biblio' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">library_books</span>
           <span class="text-sm font-medium">Bibliothèque</span>
-        </a>
-
-        <a href="{% url 'powerbi_report:custom_module' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if 'custom/module' in request.path or request.GET.context == 'module' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
-          <span class="material-symbols-outlined text-[20px]">view_module</span>
-          <span class="text-sm font-medium">Module</span>
         </a>
 
         {% if permissions.can_view_anomalie %}
@@ -426,11 +980,6 @@
         <div class="h-4"></div>
         <p class="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-2">Paramètres</p>
         
-        <a href="{% url 'notifications' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'notifications' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
-          <span class="material-symbols-outlined text-[20px]">notifications</span>
-          <span class="text-sm font-medium">Notifications</span>
-        </a>
-
         <a href="{% url 'user_history' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg {% if request.resolver_match.url_name == 'user_history' %}bg-primary/10 text-primary{% else %}text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5{% endif %} transition-all group">
           <span class="material-symbols-outlined text-[20px]">history</span>
           <span class="text-sm font-medium">Historique</span>
@@ -447,7 +996,7 @@
 
     <!-- Sidebar Footer (Logout) -->
     {% if user.is_authenticated %}
-    <div class="p-2 border-t border-slate-200 dark:border-slate-800/10 mt-auto">
+    <div class="legacy-sidebar-footer p-2 border-t border-slate-200 dark:border-slate-800/10 mt-auto">
       <a href="{% url 'logout' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-500 hover:text-white hover:bg-red-500/10 transition-all group">
         <span class="material-symbols-outlined text-[20px]">logout</span>
         <span class="text-sm font-bold">Déconnexion</span>
@@ -461,7 +1010,7 @@
 
 
   <main class="flex-1 flex flex-col relative overflow-auto">
-    <header class="h-20 flex items-center justify-between px-4 lg:px-8 bg-white/80 dark:bg-transparent backdrop-blur-md sticky top-0 z-[100] shrink-0">
+    <header class="legacy-header h-20 flex items-center justify-between px-4 lg:px-8 bg-white/80 dark:bg-transparent backdrop-blur-md sticky top-0 z-[100] shrink-0">
       <div class="flex items-center gap-4">
         <button id="mobile-menu-toggle" class="lg:hidden p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
           <span class="material-symbols-outlined text-[24px]">menu</span>
@@ -475,8 +1024,12 @@
       <div class="flex items-center gap-4">
         {% if user.is_authenticated %}
           <!-- Theme Toggle -->
-          <button id="theme-toggle" class="size-9 flex items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/20 transition-all" title="Changer le thème">
-            <span class="material-symbols-outlined text-[20px]" id="theme-icon">light_mode</span>
+          <button id="theme-toggle-header" class="size-9 flex items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/20 transition-all" title="Changer le thème">
+            <span class="material-symbols-outlined text-[20px]" id="theme-icon-header">light_mode</span>
+          </button>
+
+          <button id="legacy-shell-toggle" class="legacy-shell-toggle size-9 flex items-center justify-center rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/20 transition-all" title="Plein écran">
+            <span class="material-symbols-outlined text-[20px]">fullscreen</span>
           </button>
 
           {% if user.is_admin %}
@@ -571,13 +1124,14 @@
       </div>
     </header>
 
-    <div class="flex-1 overflow-auto">
+    <div class="legacy-content flex-1 overflow-auto">
       {% block content %}
       {% endblock %}
     </div>
 
     {% block footer %}{% endblock %}
   </main>
+
 </div>
 
   <!-- Modals Block - Rendered at body level to avoid z-index issues -->
@@ -601,27 +1155,29 @@
   <script src="{% static 'assets/js/plugins/feather.min.js' %}"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    // Theme Toggle Functionality
+    // Shared theme control. The preference is stored once and is reused by every page.
     const themeToggle = document.getElementById('theme-toggle');
     const themeIcon = document.getElementById('theme-icon');
+    const themeLabel = document.getElementById('theme-label');
     const html = document.documentElement;
 
-    function updateThemeIcon() {
-      if (themeIcon) {
-        themeIcon.textContent = html.classList.contains('dark') ? 'dark_mode' : 'light_mode';
+    function applyTheme(theme) {
+      const isDark = theme === 'dark';
+      html.classList.toggle('dark', isDark);
+      html.dataset.theme = isDark ? 'dark' : 'light';
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      if (themeToggle) {
+        themeToggle.setAttribute('aria-pressed', String(isDark));
+        themeToggle.title = isDark ? 'Activer le mode clair' : 'Activer le mode sombre';
       }
+      if (themeIcon) themeIcon.textContent = isDark ? 'light_mode' : 'dark_mode';
+      if (themeLabel) themeLabel.textContent = isDark ? 'Mode clair' : 'Mode sombre';
     }
 
-    // Initialize icon based on current theme
-    updateThemeIcon();
-
-    // Theme toggle click handler
+    applyTheme(localStorage.getItem('theme') === 'dark' ? 'dark' : 'light');
     if (themeToggle) {
       themeToggle.addEventListener('click', () => {
-        html.classList.toggle('dark');
-        const newTheme = html.classList.contains('dark') ? 'dark' : 'light';
-        localStorage.setItem('theme', newTheme);
-        updateThemeIcon();
+        applyTheme(html.classList.contains('dark') ? 'light' : 'dark');
       });
     }
 
@@ -683,7 +1239,7 @@
   </script>
 
   <script>
-    layout_change('light');
+    layout_change(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
     change_box_container('false');
     layout_caption_change('true');
     layout_rtl_change('false');
@@ -774,6 +1330,22 @@
   window.addEventListener('pageshow', function(event) {
     hideLoadingOverlay();
   });
+</script>
+
+<script>
+  // Legacy portal fullscreen affordance. It only changes the shell width;
+  // the current page, report iframe, and all feature state remain untouched.
+  (function () {
+    const shellToggle = document.getElementById('legacy-shell-toggle');
+    const handleToggle = function () {
+      if (window.innerWidth < 1024) {
+        toggleSidebar();
+        return;
+      }
+      document.body.classList.toggle('legacy-collapsed');
+    };
+    if (shellToggle) shellToggle.addEventListener('click', handleToggle);
+  }());
 </script>
 </body>
 

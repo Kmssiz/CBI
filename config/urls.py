@@ -32,6 +32,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
 from config.views import custom_404_view, custom_403_view
@@ -39,6 +40,8 @@ from config.views import custom_404_view, custom_403_view
 urlpatterns = [
     path('biadmin/', admin.site.urls),
     path('', include('users.urls')),
+    # Compatibility route for the old dashboard URL.
+    path('dashboard/', RedirectView.as_view(pattern_name='powerbi_report:dashboard', permanent=False)),
     path('notifications/', include('notifications.urls')),
     path('powerbi/', include('powerbi_report.urls', namespace='powerbi_report')),
     path('tickets/', include('tickets.urls')),

@@ -1,324 +1,245 @@
 {% load static %}
-<!DOCTYPE html>
-<html lang="fr" id="html-root">
-
+<!doctype html>
+<html lang="fr">
 <head>
-    <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Connexion | Portail BI</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-        rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;500;700;800&amp;display=swap"
-        rel="stylesheet" />
-    <link rel="icon" href='{% static "assets/images/W_logo-favicon.png" %}' />
-    <script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#137fec",
-                        "background-light": "#f6f7f8",
-                        "background-dark": "#101922",
-                    },
-                    fontFamily: {
-                        "display": ["Manrope", "sans-serif"]
-                    },
-                    borderRadius: {
-                        "DEFAULT": "0.25rem",
-                        "lg": "0.5rem",
-                        "xl": "0.75rem",
-                        "full": "9999px"
-                    },
-                },
-            },
-        }
-    </script>
     <script>
-        // Inline script to prevent theme flicker
-        const theme = localStorage.getItem('theme');
-        if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
+        (function () { if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark'); }());
     </script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CBI</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'assets/images/legacy/Cbi Logo White.svg' %}">
     <style>
-        body {
-            font-family: 'Manrope', sans-serif;
-        }
+        @font-face { font-family: LegacyRoboto; src: url("{% static 'assets/fonts/roboto/Roboto-Regular.ttf' %}"); font-weight: 400; }
+        @font-face { font-family: LegacyRoboto; src: url("{% static 'assets/fonts/roboto/Roboto-Medium.ttf' %}"); font-weight: 500; }
+        @font-face { font-family: LegacyRoboto; src: url("{% static 'assets/fonts/roboto/Roboto-Bold.ttf' %}"); font-weight: 700; }
 
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
+        * { box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; margin: 0; }
+        body { overflow: hidden; background: #666; font-family: LegacyRoboto, Roboto, Arial, sans-serif; }
+        button, input { font: inherit; }
+        button { border: 0; cursor: pointer; }
 
-        ::-webkit-scrollbar {
-            width: 8px;
+        .legacy-login-page { width: 100%; min-height: 100vh; display: flex; align-items: stretch; }
+        .legacy-login-art {
+            width: calc(100% - 560px);
+            min-height: 100vh;
+            position: relative;
+            order: 1;
+            background: #d9d9d9 url("{% static 'assets/images/legacy/Login.svg' %}") center center / 1697px 900px no-repeat;
         }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
+        .legacy-login-form {
+            width: 560px;
+            min-height: 100vh;
+            order: 2;
+            padding: 173px 55px 55px;
+            background: #1c1d22;
+            color: #f2f2f2;
         }
-
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+        .legacy-login-form h1 {
+            width: 100%;
+            margin: 0 0 58px;
+            color: #f2f2f2;
+            font-size: 35px;
+            line-height: 1.2;
+            font-weight: 700;
+            text-align: center;
+        }
+        .legacy-login-form form { width: 100%; margin: 0; }
+        .legacy-login-field {
+            display: flex;
+            align-items: stretch;
+            position: relative;
+            width: 100%;
+            height: 60px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            border: 1px solid #e6e6e6;
             border-radius: 10px;
+            background: #f2f2f2;
         }
-
-        .dark ::-webkit-scrollbar-thumb {
-            background: #283039;
+        .legacy-login-field input {
+            display: block;
+            width: 100%;
+            height: 100%;
+            padding: 0 24px;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            color: #555;
+            font-size: 18px;
         }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+        .legacy-login-field input::placeholder { color: #999; opacity: 1; }
+        .legacy-login-field:focus-within { border-color: #a5cf4b; box-shadow: 0 0 0 1px #a5cf4b; }
+        .legacy-login-help {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 52px;
+            color: #c8c8c8;
+            font-size: 14px;
+            cursor: pointer;
         }
+        .legacy-login-help a { color: #c8c8c8; text-decoration: underline; }
+        .legacy-login-help a:hover { color: #a5cf4b; }
+        .legacy-login-submit-wrap { display: flex; justify-content: center; width: 100%; }
+        .legacy-login-submit {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 80%;
+            height: 50px;
+            padding: 0 20px;
+            border-radius: 10px;
+            background: #a5cf4b;
+            color: #1c1d22;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.2;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .legacy-login-submit:hover { background: #a5ce4a; }
+        .legacy-login-error {
+            margin: -32px 0 24px;
+            color: #ef9ca7;
+            font-size: 13px;
+            text-align: center;
+        }
+        .legacy-login-logo { display: block; width: 200px; height: auto; margin: 0 auto; padding-top: 70%; }
+        .legacy-login-status { margin-top: 16px; color: #92939a; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: .12em; }
+        .legacy-login-status button { color: inherit; text-decoration: underline; }
+        .legacy-login-theme-toggle { position: fixed; top: 20px; right: 22px; z-index: 5; display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 12px; border: 1px solid rgba(255,255,255,.25); border-radius: 18px; background: rgba(28,29,34,.84); color: #f2f2f2; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .legacy-login-theme-toggle:hover { border-color: #a5cf4b; color: #a5cf4b; }
+        .legacy-login-theme-toggle .material-symbols-outlined { font-size: 17px; }
 
-        .dark ::-webkit-scrollbar-thumb:hover {
-            background: #3b4754;
+        html.dark body { background: #111318; }
+        html.dark .legacy-login-art { background-color: #24262d; filter: brightness(.7) saturate(.8); }
+        html.dark .legacy-login-form { background: #111318; color: #f1f2f4; }
+        html.dark .legacy-login-form h1 { color: #f1f2f4; }
+        html.dark .legacy-login-field { border-color: #3a3d46; background: #24262d; }
+        html.dark .legacy-login-field input { color: #f1f2f4; }
+        html.dark .legacy-login-field input::placeholder { color: #a8abb4; }
+        html.dark .legacy-login-help,
+        html.dark .legacy-login-help a { color: #a8abb4; }
+        html.dark .legacy-login-theme-toggle { border-color: #3a3d46; background: #24262d; color: #f1f2f4; }
+        html.dark .legacy-status-card { background: #24262d; color: #f1f2f4; }
+        html.dark .legacy-status-card p { color: #a8abb4; }
+
+        .legacy-status-modal { position: fixed; inset: 0; z-index: 10; display: none; align-items: center; justify-content: center; padding: 1rem; background: rgba(0,0,0,.65); }
+        .legacy-status-modal.is-open { display: flex; }
+        .legacy-status-card { width: min(100%, 360px); padding: 28px; border-radius: 4px; background: #f2f2f2; color: #1c1d22; text-align: center; }
+        .legacy-status-card h2 { margin: 0 0 8px; font-size: 18px; }
+        .legacy-status-card p { margin: 0 0 20px; color: #666; font-size: 14px; }
+        .legacy-status-card button { width: 100%; padding: 11px; border-radius: 3px; background: #a5cf4b; color: #1c1d22; font-weight: 700; }
+
+        @media (max-width: 992px) {
+            .legacy-login-art { width: 50%; background-size: cover; }
+            .legacy-login-form { width: 50%; padding-left: 30px; padding-right: 30px; }
+            .legacy-login-logo { padding-top: 45%; }
+        }
+        @media (max-width: 768px) {
+            .legacy-login-art { display: none; }
+            .legacy-login-form { width: 100%; padding: 70px 30px 30px; }
+            .legacy-login-logo { padding-top: 45%; }
+        }
+        @media (max-width: 576px) {
+            .legacy-login-form { padding-left: 15px; padding-right: 15px; }
+            .legacy-login-logo { padding-top: 25%; }
         }
     </style>
 </head>
-
-<body class="bg-background-light dark:bg-background-dark min-h-screen font-display transition-colors duration-300">
-    <div class="flex min-h-screen w-full relative">
-        <!-- Theme Toggle Button -->
-        <button id="theme-toggle"
-            class="absolute top-6 right-6 z-50 size-10 flex items-center justify-center rounded-full bg-white/10 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all backdrop-blur-md">
-            <span class="material-symbols-outlined" id="theme-icon">light_mode</span>
+<body>
+    <main class="legacy-login-page">
+        <button class="legacy-login-theme-toggle" type="button" id="legacy-login-theme-toggle" aria-pressed="false" title="Activer le mode sombre">
+            <span class="material-symbols-outlined" id="legacy-login-theme-icon" aria-hidden="true">dark_mode</span>
+            <span id="legacy-login-theme-label">Mode sombre</span>
         </button>
+        <section class="legacy-login-art" aria-label="Portail CBI"></section>
+        <section class="legacy-login-form" aria-label="Connexion">
+            <h1>Accéder à votre session.</h1>
 
-        <!-- Left Side: Visual/Branding (Hidden on mobile/tablet if needed, but here kept responsive) -->
-        <div class="hidden lg:flex lg:w-1/2 xl:w-3/5 relative overflow-hidden bg-[#0a0f14]">
-            <div class="absolute inset-0 z-10 bg-gradient-to-r from-background-dark/80 via-transparent to-transparent">
-            </div>
-            <div class="h-full w-full bg-center bg-no-repeat bg-cover opacity-80 transition-all duration-700"
-                style="background-image: url('{% static 'assets/images/login_bg.png' %}');">
-            </div>
-            <div class="absolute bottom-12 left-12 z-20 max-w-lg">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="h-20">
-                        <img src="{% static 'assets/images/logo_Dark-rem.png' %}" alt="Portail BI" class="h-full w-auto object-contain" />
-                    </div>
-                    <span class="text-2xl font-bold tracking-tight text-white">Portail BI</span>
+            {% if messages %}
+                <div class="legacy-login-error">
+                    {% for message in messages %}{{ message }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
                 </div>
-                <h1 class="text-white text-3xl md:text-5xl font-black leading-tight tracking-tight mb-4">Pilotez votre
-                    performance par la donnée.</h1>
-                <p class="text-[#9dabb9] text-base md:text-lg">Des solutions d'analyse de données avancées propulsées
-                    par Power BI pour une visualisation claire et stratégique.</p>
-            </div>
-        </div>
+            {% endif %}
 
-        <!-- Right Side: Login Form -->
-        <div
-            class="w-full lg:w-1/2 xl:w-2/5 flex flex-col justify-center items-center p-6 md:p-16 lg:p-24 bg-white dark:bg-background-dark transition-colors duration-300">
-            <div class="w-full max-w-[420px] flex flex-col gap-8">
-                <div class="flex flex-col gap-3">
-                    <div class="lg:hidden flex items-center gap-4 mb-6">
-                        <img src="{% static 'assets/images/logo_Dark-rem.png' %}" alt="Portail BI" class="h-16 w-auto object-contain">
-                        <span class="text-2xl font-bold tracking-tight text-black dark:text-white">Portail BI</span>
-                    </div>
-                    <h2
-                        class="text-slate-900 dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-tight">
-                        Bienvenue</h2>
-                    <p class="text-slate-500 dark:text-[#9dabb9] text-base font-normal">Accédez à vos tableaux de bord.
-                    </p>
+            <form method="post" action="{% url 'login' %}" onsubmit="return submitLegacyLogin(this)">
+                {% csrf_token %}
+                <div class="legacy-login-field">
+                    <input type="text" name="username" id="legacy-username" placeholder="Email/ad2000" autocomplete="username" required>
+                </div>
+                <div class="legacy-login-field">
+                    <input type="password" name="password" id="legacy-password" placeholder="Mot de passe" autocomplete="current-password" required>
                 </div>
 
-                <!-- Django Messages/Errors -->
-                {% if messages %}
-                <div class="flex flex-col gap-2">
-                    {% for message in messages %}
-                    <div
-                        class="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 text-sm font-medium animate-pulse">
-                        {{ message }}
-                    </div>
-                    {% endfor %}
+                <div class="legacy-login-help">
+                    <a href="mailto:dsi@groupe-hasnaoui.com">Signaler un problème&nbsp;?</a>
                 </div>
-                {% endif %}
 
-                <form class="flex flex-col gap-5" method="POST" action="{% url 'login' %}"
-                    onsubmit="handleLoginSubmit(event)">
-                    {% csrf_token %}
-                    <div class="flex flex-col gap-2">
-                        <label class="text-slate-900 dark:text-white text-sm font-semibold">Identifiant ou Email
-                            professionnel</label>
-                        <input name="username"
-                            class="form-input w-full rounded-lg border border-slate-200 dark:border-[#3b4754] bg-slate-50 dark:bg-[#1c2127] text-slate-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary h-14 px-4 placeholder:text-slate-400 dark:placeholder:text-[#9dabb9] text-base transition-all"
-                            placeholder="nom@entreprise.com" type="text" required />
-                    </div>
-                    <div class="flex flex-col gap-2">
-                        <div class="flex justify-between items-center">
-                            <label class="text-slate-900 dark:text-white text-sm font-semibold">Mot de passe</label>
-                        </div>
-                        <div class="relative flex items-center">
-                            <input id="password-input" name="password"
-                                class="form-input w-full rounded-lg border border-slate-200 dark:border-[#3b4754] bg-slate-50 dark:bg-[#1c2127] text-slate-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary h-14 pl-4 pr-12 placeholder:text-slate-400 dark:placeholder:text-[#9dabb9] text-base transition-all"
-                                placeholder="••••••••" type="password" required />
-                            <button id="toggle-password"
-                                class="absolute right-4 text-slate-400 dark:text-[#9dabb9] hover:text-primary transition-colors"
-                                type="button">
-                                <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
-                            </button>
-                        </div>
-                    </div>
+                <div class="legacy-login-submit-wrap">
+                    <button class="legacy-login-submit" type="submit" id="legacy-login-submit">Connexion</button>
+                </div>
 
-                    <button id="submit-btn" type="submit"
-                        class="mt-4 flex w-full cursor-pointer items-center justify-center rounded-lg h-14 bg-primary text-white text-base font-bold leading-normal tracking-wide hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-[0.98]">
-                        <span id="btn-text">Se connecter</span>
-                        <div id="btn-loader" class="hidden">
-                            <svg class="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
-                                    fill="none"></circle>
-                                <path class="opacity-75" fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                </path>
-                            </svg>
-                        </div>
-                    </button>
-                    {% comment %} TODO: Add link to DSI {% endcomment %}
-                    <div class="mt-4 text-center">
-                        <p class="text-slate-500 dark:text-[#9dabb9] text-sm">
-                            Vous n'avez pas accès ? <a href="mailto:dsi@groupe-hasnaoui.com"
-                                class="text-primary font-semibold hover:underline">Demandez l'accès au DSI</a>
-                        </p>
-                    </div>
-                </form>
+                <img class="legacy-login-logo" src="{% static 'assets/images/legacy/Logo CBI Login.svg' %}" alt="Cellule Business Intelligence">
+            </form>
 
-                <footer class="mt-8 flex flex-col items-center gap-4">
-                    <button id="status-link"
-                        class="text-slate-400 dark:text-[#506071] text-[10px] uppercase font-bold tracking-widest hover:text-primary transition-colors">
-                        Statut Système
-                    </button>
-                </footer>
+            <div class="legacy-login-status">
+                <button type="button" id="legacy-status-link">Statut système</button>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
-    <!-- Status Modal -->
-    <div id="status-modal"
-        class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-        <div class="bg-white dark:bg-[#1c2127] w-full max-w-sm rounded-xl shadow-2xl border border-slate-200 dark:border-[#3b4754] overflow-hidden scale-90 opacity-0 transition-all duration-300"
-            id="modal-container">
-            <div class="p-6 flex flex-col items-center gap-6">
-                <div class="relative">
-                    <div id="ping-ring"
-                        class="size-16 rounded-full border-4 border-primary/20 flex items-center justify-center">
-                        <div id="ping-dot"
-                            class="size-4 rounded-full bg-primary animate-pulse shadow-[0_0_15px_rgba(19,127,236,0.6)]">
-                        </div>
-                    </div>
-                </div>
-                <div class="text-center">
-                    <h3 class="text-slate-900 dark:text-white text-lg font-bold mb-1">Vérification du système</h3>
-                    <p id="status-text" class="text-slate-500 dark:text-[#9dabb9] text-sm italic">Connexion au serveur
-                        en cours...</p>
-                </div>
-                <button id="close-modal"
-                    class="w-full py-3 rounded-lg bg-slate-100 dark:bg-[#283039] text-slate-900 dark:text-white text-sm font-bold hover:bg-slate-200 dark:hover:bg-[#3b4754] transition-all">
-                    Fermer
-                </button>
-            </div>
+    <div class="legacy-status-modal" id="legacy-status-modal" role="dialog" aria-modal="true" aria-labelledby="legacy-status-title">
+        <div class="legacy-status-card">
+            <h2 id="legacy-status-title">Vérification du système</h2>
+            <p id="legacy-status-text">Connexion au serveur en cours…</p>
+            <button type="button" id="legacy-status-close">Fermer</button>
         </div>
     </div>
 
     <script>
-        // Theme Management
-        const themeToggle = document.getElementById('theme-toggle');
-        const themeIcon = document.getElementById('theme-icon');
-        const html = document.documentElement;
-
-        function updateThemeIcon() {
-            themeIcon.textContent = html.classList.contains('dark') ? 'dark_mode' : 'light_mode';
-        }
-
-        updateThemeIcon();
-
-        themeToggle.addEventListener('click', () => {
-            html.classList.toggle('dark');
-            const newTheme = html.classList.contains('dark') ? 'dark' : 'light';
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon();
-        });
-
-        // Password Visibility Toggle
-        const togglePassword = document.getElementById('toggle-password');
-        const passwordInput = document.getElementById('password-input');
-
-        togglePassword.addEventListener('click', function () {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            this.querySelector('span').textContent = type === 'password' ? 'visibility' : 'visibility_off';
-        });
-
-        // Form Submit Loader
-        function handleLoginSubmit(event) {
-            const btn = document.getElementById('submit-btn');
-            const btnText = document.getElementById('btn-text');
-            const btnLoader = document.getElementById('btn-loader');
-
-            btn.disabled = true;
-            btnText.classList.add('hidden');
-            btnLoader.classList.remove('hidden');
-            btn.classList.add('opacity-80', 'cursor-not-allowed');
-        }
-
-        // Status Modal Logic
-        const statusLink = document.getElementById('status-link');
-        const statusModal = document.getElementById('status-modal');
-        const modalContainer = document.getElementById('modal-container');
-        const closeModal = document.getElementById('close-modal');
-        const statusText = document.getElementById('status-text');
-        const pingDot = document.getElementById('ping-dot');
-
-        statusLink.addEventListener('click', async () => {
-            statusModal.classList.remove('hidden');
-            setTimeout(() => {
-                modalContainer.classList.remove('scale-90', 'opacity-0');
-                modalContainer.classList.add('scale-100', 'opacity-100');
-            }, 10);
-
-            statusText.textContent = "Connexion au serveur en cours...";
-            statusText.classList.remove('text-green-500', 'text-red-500');
-            pingDot.classList.remove('bg-green-500', 'bg-red-500');
-            pingDot.classList.add('animate-pulse', 'bg-primary');
-
-            try {
-                const startTime = Date.now();
-                const response = await fetch('{% url "server_status" %}');
-                const endTime = Date.now();
-                const latency = endTime - startTime;
-
-                if (response.ok) {
-                    setTimeout(() => {
-                        pingDot.classList.remove('animate-pulse', 'bg-primary');
-                        pingDot.classList.add('bg-green-500');
-                        statusText.textContent = `Serveur Opérationnel (${latency}ms)`;
-                        statusText.classList.add('text-green-500');
-                    }, 800);
-                } else {
-                    throw new Error();
-                }
-            } catch (error) {
-                setTimeout(() => {
-                    pingDot.classList.remove('animate-pulse', 'bg-primary');
-                    pingDot.classList.add('bg-red-500');
-                    statusText.textContent = "Serveur Indisponible";
-                    statusText.classList.add('text-red-500');
-                }, 800);
+        (function () {
+            var toggle = document.getElementById('legacy-login-theme-toggle');
+            var icon = document.getElementById('legacy-login-theme-icon');
+            var label = document.getElementById('legacy-login-theme-label');
+            var root = document.documentElement;
+            function applyTheme(theme) {
+                var dark = theme === 'dark';
+                root.classList.toggle('dark', dark);
+                localStorage.setItem('theme', dark ? 'dark' : 'light');
+                toggle.setAttribute('aria-pressed', String(dark));
+                toggle.title = dark ? 'Activer le mode clair' : 'Activer le mode sombre';
+                icon.textContent = dark ? 'light_mode' : 'dark_mode';
+                label.textContent = dark ? 'Mode clair' : 'Mode sombre';
             }
-        });
+            applyTheme(localStorage.getItem('theme') === 'dark' ? 'dark' : 'light');
+            toggle.addEventListener('click', function () { applyTheme(root.classList.contains('dark') ? 'light' : 'dark'); });
+        }());
 
-        const closeFunc = () => {
-            modalContainer.classList.remove('scale-100', 'opacity-100');
-            modalContainer.classList.add('scale-90', 'opacity-0');
-            setTimeout(() => statusModal.classList.add('hidden'), 300);
-        };
+        function submitLegacyLogin(form) {
+            var button = document.getElementById('legacy-login-submit');
+            if (button) { button.disabled = true; button.textContent = 'Connexion…'; }
+            return true;
+        }
 
-        closeModal.addEventListener('click', closeFunc);
-        statusModal.addEventListener('click', (e) => { if (e.target === statusModal) closeFunc(); });
+        (function () {
+            var open = document.getElementById('legacy-status-link');
+            var modal = document.getElementById('legacy-status-modal');
+            var close = document.getElementById('legacy-status-close');
+            var text = document.getElementById('legacy-status-text');
+            if (!open || !modal || !close) return;
+            open.addEventListener('click', function () {
+                modal.classList.add('is-open');
+                text.textContent = 'Connexion au serveur en cours…';
+                fetch('{% url "server_status" %}')
+                    .then(function (response) { text.textContent = response.ok ? 'Serveur opérationnel.' : 'Serveur indisponible.'; })
+                    .catch(function () { text.textContent = 'Serveur indisponible.'; });
+            });
+            close.addEventListener('click', function () { modal.classList.remove('is-open'); });
+            modal.addEventListener('click', function (event) { if (event.target === modal) modal.classList.remove('is-open'); });
+        }());
     </script>
 </body>
-
 </html>
