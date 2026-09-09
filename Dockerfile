@@ -1,36 +1,28 @@
 FROM python:3.12-slim
 
-# Install system dependencies for Python packages
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    build-essential \
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install only runtime libraries. All Python dependencies currently resolve to
+# prebuilt wheels, so a compiler toolchain is not needed in the application image.
+RUN apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update && apt-get install -y --no-install-recommends \
     curl \
     gnupg \
     apt-transport-https \
-    libssl-dev \
-    libffi-dev \
-    libjpeg-dev \
-    zlib1g-dev \
-    libblas-dev \
-    liblapack-dev \
-    libpq-dev \
     unixodbc \
-    unixodbc-dev \
-    gfortran \
+    libpq5 \
+    libjpeg62-turbo \
+    zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Microsoft ODBC SQL Server driver (Linux runtime for pyodbc).
-# Fallback to Debian 12 if version 13 (trixie) is detected, as Microsoft hasn't released 13 packages yet.
+# Install Microsoft ODBC SQL Server drivers (Linux runtime for pyodbc).
+# Microsoft publishes the Debian 12 repository, which is compatible with the
+# Debian-based Python image used here.
 RUN set -eux; \
-    apt-get update && apt-get install -y --no-install-recommends curl ca-certificates gnupg2; \
-    . /etc/os-release; \
-    export MSSQL_VER=$VERSION_ID; \
-    if [ "$VERSION_ID" -ge "13" ] || [ "$VERSION_CODENAME" = "trixie" ]; then export MSSQL_VER=12; fi; \
-    curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg; \
-    echo "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/${MSSQL_VER}/prod bookworm main" > /etc/apt/sources.list.d/mssql-release.list; \
-    apt-get update; \
-    ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql17 msodbcsql18 unixodbc-dev; \
+    apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update && apt-get install -y --no-install-recommends curl ca-certificates gnupg2; \
+    curl --fail --show-error --silent --location --retry 3 --connect-timeout 10 --max-time 60 https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg; \
+    echo "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/mssql-release.list; \
+    apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update; \
+    ACCEPT_EULA=Y apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends msodbcsql17 msodbcsql18 unixodbc-dev; \
     rm -rf /var/lib/apt/lists/*
 
 # Set environment variables
@@ -42,10 +34,15 @@ WORKDIR /app
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --disable-pip-version-check -r requirements.txt
 
 # Copy project files
 COPY . .
+
+# Do not run the web application as root.
+RUN addgroup --system cbi && adduser --system --ingroup cbi cbi \
+    && chown -R cbi:cbi /app
+USER cbi
 
 # Expose Django port
 EXPOSE 8000

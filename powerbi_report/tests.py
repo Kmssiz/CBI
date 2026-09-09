@@ -11,7 +11,7 @@ User = get_user_model()
 class RefreshPlanTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
-        self.user = User.objects.create_user(username='testuser', password='password')
+        self.user = User.objects.create_superuser(username='testuser', password='password')
         self.report_id = 'test-report-id'
 
     @patch('powerbi_report.views.get_current_user_auth')

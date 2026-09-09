@@ -47,7 +47,7 @@ from notifications.models import Notification
 from users.models import CustomUser, UserHistory, Role
 from users.utils import log_history, get_user_permissions, admin_required
 
-from .models import ReportRef, CustomFolder, FolderReportItem, UserReportPermission, PermissionSyncLog, PBIRSServer
+from .models import ReportRef, CustomFolder, FolderReportItem, UserReportPermission, PermissionSyncLog, PBIRSServer, MetadataOption
 from .services import (
     PBIRSClient,
     get_active_pbirs_server_urls,
@@ -1019,18 +1019,15 @@ def add_report_local(request):
             }
         )
 
-        # Update ManyToMany fields
-        if is_consolide:
-            report_ref.societes.clear()
-            report_ref.poles.clear()
-        else:
-            report_ref.societes.set(selected_societes)
-            parent_pole_ids = MetadataOption.objects.filter(
-                id__in=selected_societes,
-                option_type='societe',
-                parent__isnull=False
-            ).values_list('parent_id', flat=True).distinct()
-            report_ref.poles.set(parent_pole_ids)
+        # Consolidated reports may still carry Société/Module metadata for
+        # organizational navigation and filtering.
+        report_ref.societes.set(selected_societes)
+        parent_pole_ids = MetadataOption.objects.filter(
+            id__in=selected_societes,
+            option_type='societe',
+            parent__isnull=False
+        ).values_list('parent_id', flat=True).distinct()
+        report_ref.poles.set(parent_pole_ids)
         report_ref.directions.set(selected_directions)
         report_ref.modules.set(selected_modules)
 
@@ -1104,20 +1101,17 @@ def update_report_metadata_local(request, report_id: str):
     report_ref.modified_by = request.user
     report_ref.save()
 
-    # Update ManyToMany fields
-    if is_consolide:
-        report_ref.societes.clear()
-        report_ref.poles.clear()
-    else:
-        selected_societes = request.POST.getlist('societes')
-        report_ref.societes.set(selected_societes)
-        # Derive poles from societes parent relationship
-        parent_pole_ids = MetadataOption.objects.filter(
-            id__in=selected_societes,
-            option_type='societe',
-            parent__isnull=False
-        ).values_list('parent_id', flat=True).distinct()
-        report_ref.poles.set(parent_pole_ids)
+    # Consolidation changes navigation context, but must not destroy the
+    # report's organizational metadata when the toggle is enabled.
+    selected_societes = request.POST.getlist('societes')
+    report_ref.societes.set(selected_societes)
+    # Derive poles from Société parent relationships.
+    parent_pole_ids = MetadataOption.objects.filter(
+        id__in=selected_societes,
+        option_type='societe',
+        parent__isnull=False
+    ).values_list('parent_id', flat=True).distinct()
+    report_ref.poles.set(parent_pole_ids)
 
     selected_directions = request.POST.getlist('directions')
     report_ref.directions.set(selected_directions)
@@ -2268,6 +2262,7 @@ def user_permission(request, username):
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
+    metadata_options = MetadataOption.objects.all().select_related('parent')
 
     return render(request, 'powerbi_report/user_permission.html', {
         'selected_user': username,
@@ -2276,6 +2271,16 @@ def user_permission(request, username):
         'notifications': notifications,
         'unread': unread,
         'permissions': permissions,
+        'metadata_directions': [o for o in metadata_options if o.option_type == 'direction'],
+        'metadata_societes': [o for o in metadata_options if o.option_type == 'societe'],
+        'metadata_modules': [o for o in metadata_options if o.option_type == 'module'],
+        'metadata_poles': [o for o in metadata_options if o.option_type == 'pole'],
+        'metadata_groups': [
+            ('Directions', 'directions', [o for o in metadata_options if o.option_type == 'direction']),
+            ('Sociétés', 'societes', [o for o in metadata_options if o.option_type == 'societe']),
+            ('Modules', 'modules', [o for o in metadata_options if o.option_type == 'module']),
+            ('Pôles', 'poles', [o for o in metadata_options if o.option_type == 'pole']),
+        ],
     })
 
 
@@ -2676,6 +2681,37 @@ def add_selected_permissions(request, username):
     
     messages.error(request, "Invalid request method. Please use POST to add user permissions.")
     return redirect('powerbi_report:missing_permissions', username=username)
+
+
+@admin_required
+def add_metadata_permissions(request, username):
+    """Grant direct access to every local report matching selected metadata."""
+    if request.method != 'POST':
+        return redirect('powerbi_report:user_permission', username=username)
+
+    from django.db.models import Q
+    directions = request.POST.getlist('directions')
+    societes = request.POST.getlist('societes')
+    modules = request.POST.getlist('modules')
+    poles = request.POST.getlist('poles')
+    if not any((directions, societes, modules, poles)):
+        messages.error(request, "Sélectionnez au moins une métadonnée.")
+        return redirect('powerbi_report:user_permission', username=username)
+
+    report_ids = list(ReportRef.objects.filter(
+        Q(directions__id__in=directions)
+        | Q(societes__id__in=societes)
+        | Q(modules__id__in=modules)
+        | Q(poles__id__in=poles)
+    ).distinct().values_list('pbirs_id', flat=True))
+    if not report_ids:
+        messages.warning(request, "Aucun rapport ne correspond aux métadonnées sélectionnées.")
+        return redirect('powerbi_report:user_permission', username=username)
+
+    post_data = request.POST.copy()
+    post_data.setlist('report_ids', report_ids)
+    request.POST = post_data
+    return add_selected_permissions(request, username)
 
 
 #################################################################################################################
@@ -3195,7 +3231,7 @@ def get_visible_report_ids(request, view_type=None):
                 qs = qs.filter(**{f"{req_field}__isnull": False}).distinct()
             else:
                 qs = qs.exclude(**{f"{req_field}__isnull": True}).exclude(**{req_field: ""})
-        if view_type and view_type != 'consolide':
+        if view_type and view_type not in {'consolide', 'direction', 'pole', 'module'}:
             qs = qs.exclude(is_consolide=True)
         return set(qs.values_list('pbirs_id', flat=True))
 
@@ -3214,7 +3250,8 @@ def get_visible_report_ids(request, view_type=None):
         filtered_ids = set()
         for report in leaf_reports:
             if not report.pbirs_id: continue
-            if view_type and view_type != 'consolide' and report.is_consolide: continue
+            if view_type and view_type not in {'consolide', 'direction', 'pole', 'module'} and report.is_consolide:
+                continue
             if allowed_types and report.report_type not in allowed_types: continue
             if req_field:
                 if req_field == 'is_consolide':
@@ -3389,6 +3426,7 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
     permitted_reports = ReportRef.objects.filter(pbirs_id__in=visible_report_ids)
 
     current_folder = None
+    parent_folder = None
     subfolders = []
     reports = []
     breadcrumbs = []
@@ -3418,6 +3456,25 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
         else:
             reports_qs = permitted_reports.filter(directions=current_folder)
 
+        if view_type != 'consolide' and grouping_type in {'direction', 'pole'} and current_folder.option_type == grouping_type:
+            subfolders = list(
+                MetadataOption.objects.filter(
+                    option_type='societe',
+                    societe_reports__in=reports_qs,
+                ).distinct().order_by('name')
+            )
+            reports_qs = reports_qs.filter(societes__isnull=True).distinct()
+        elif current_folder.option_type == 'societe':
+            parent_id = request.GET.get('parent_id')
+            if parent_id:
+                parent_folder = MetadataOption.objects.filter(
+                    id=parent_id, option_type=grouping_type
+                ).first()
+            reports_qs = permitted_reports.filter(societes=current_folder)
+            if parent_folder:
+                parent_field = 'directions' if grouping_type == 'direction' else 'poles'
+                reports_qs = reports_qs.filter(**{parent_field: parent_folder})
+
         for r in reports_qs.order_by('name'):
             reports.append({
                 'id': r.id,
@@ -3426,7 +3483,7 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
                 'path': r.path,
                 'embed_url': r.embed_url,
             })
-        breadcrumbs = [current_folder]
+        breadcrumbs = [folder for folder in (parent_folder, current_folder) if folder]
 
     # Admin only: list all reports for assignment (not applicable now, but kept for compatibility or empty)
     all_reports = []
@@ -3454,6 +3511,7 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
         'subfolders': subfolders,
         'reports': reports,
         'breadcrumbs': breadcrumbs,
+        'parent_folder': parent_folder,
         'all_reports': all_reports,
         'notifications': notifications,
         'unread': unread,
@@ -3744,6 +3802,9 @@ def embed_custom_report(request, view_type, folder_id, report_id):
     """
     Embed a report within the context of a custom folder to preserve breadcrumbs.
     """
+    # This route is reached from a metadata grouping (direction, pôle, or
+    # module). Preserve its parent chain so the report page can show the full
+    # path a user used to reach the report.
     from powerbi_report.models import MetadataOption
     folder = get_object_or_404(MetadataOption, id=folder_id)
     report_ref = get_object_or_404(ReportRef, id=report_id)
@@ -3772,8 +3833,21 @@ def embed_custom_report(request, view_type, folder_id, report_id):
         'current_folder': folder,
     }
     
-    # Breadcrumbs (flat structure metadata option)
-    breadcrumbs = [folder]
+    breadcrumbs = []
+    parent_id = request.GET.get('parent_id')
+    parent_folder = None
+    if parent_id and folder.option_type == 'societe' and view_type in {'direction', 'pole'}:
+        parent_folder = MetadataOption.objects.filter(
+            id=parent_id, option_type=view_type
+        ).first()
+    if parent_folder:
+        breadcrumbs.append(parent_folder)
+    else:
+        breadcrumb_folder = folder.parent
+        while breadcrumb_folder:
+            breadcrumbs.insert(0, breadcrumb_folder)
+            breadcrumb_folder = breadcrumb_folder.parent
+    breadcrumbs.append(folder)
     context['breadcrumbs'] = breadcrumbs
     
     log_history(request.user, f"Rapport consulté '{report_ref.name}' dans le dossier '{folder.name}'")

@@ -1,9 +1,23 @@
 from django import forms
+from django.core.exceptions import ValidationError
 
 from .models import Ticket, TicketMessage
 
 
-class TicketForm(forms.ModelForm):
+MAX_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024
+
+
+class ImageUploadValidationMixin:
+    """Reject unexpectedly large image uploads before they reach storage."""
+
+    def clean_attachment(self):
+        attachment = self.cleaned_data.get("attachment")
+        if attachment and attachment.size > MAX_IMAGE_UPLOAD_BYTES:
+            raise ValidationError("L'image ne doit pas dépasser 5 Mo.")
+        return attachment
+
+
+class TicketForm(ImageUploadValidationMixin, forms.ModelForm):
     class Meta:
         model = Ticket
         fields = ["title", "description", "ticket_type", "category", "priority", "attachment"]
@@ -25,7 +39,7 @@ class TicketForm(forms.ModelForm):
         }
 
 
-class TicketMessageForm(forms.ModelForm):
+class TicketMessageForm(ImageUploadValidationMixin, forms.ModelForm):
     class Meta:
         model = TicketMessage
         fields = ["content", "attachment"]

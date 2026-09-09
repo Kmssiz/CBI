@@ -48,8 +48,7 @@ SECRET_KEY = config("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production.
 DEBUG = _config_bool("DEBUG", default=False)
 
-# ALLOWED_HOSTS = _config_list("ALLOWED_HOSTS", default="127.0.0.1,localhost")
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = _config_list("ALLOWED_HOSTS", default="127.0.0.1,localhost")
 CSRF_TRUSTED_ORIGINS = _config_list("CSRF_TRUSTED_ORIGINS", default="")
 
 # Base URL of your report server 
@@ -239,13 +238,22 @@ USE_TZ = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = _config_bool('SESSION_COOKIE_SECURE', default=not DEBUG)
 CSRF_COOKIE_SECURE = _config_bool('CSRF_COOKIE_SECURE', default=not DEBUG)
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_AGE = config('SESSION_COOKIE_AGE', default=28800, cast=int)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = _config_bool('SESSION_EXPIRE_AT_BROWSER_CLOSE', default=True)
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = config('SECURE_REFERRER_POLICY', default='strict-origin-when-cross-origin')
+# Reports are embedded *inside* CBI; CBI itself does not need to be framed.
+X_FRAME_OPTIONS = 'DENY'
 SECURE_SSL_REDIRECT = _config_bool('SECURE_SSL_REDIRECT', default=not DEBUG)
 SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000 if not DEBUG else 0, cast=int)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = _config_bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=not DEBUG)
 SECURE_HSTS_PRELOAD = _config_bool('SECURE_HSTS_PRELOAD', default=not DEBUG)
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# Enable this only when the application is reachable exclusively through a
+# trusted reverse proxy that overwrites X-Forwarded-Proto.
+if _config_bool('USE_X_FORWARDED_PROTO', default=False):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Static files (CSS, JavaScript, Images)
@@ -258,6 +266,8 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+FILE_UPLOAD_MAX_MEMORY_SIZE = config('FILE_UPLOAD_MAX_MEMORY_SIZE', default=5 * 1024 * 1024, cast=int)
+DATA_UPLOAD_MAX_MEMORY_SIZE = config('DATA_UPLOAD_MAX_MEMORY_SIZE', default=6 * 1024 * 1024, cast=int)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

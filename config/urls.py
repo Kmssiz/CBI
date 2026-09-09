@@ -47,14 +47,10 @@ urlpatterns = [
     path('tickets/', include('tickets.urls')),
 ]
 
-from django.urls import re_path
-from django.views.static import serve
-
-urlpatterns += [
-    re_path(r'^media/(?P<path>.*)$', serve, {
-        'document_root': settings.MEDIA_ROOT,
-    }),
-]
+# Uploaded media must be served by the reverse proxy/object storage in
+# production. Django's static file view is intentionally development-only.
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 handler404 = custom_404_view
 handler403 = custom_403_view

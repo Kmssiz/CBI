@@ -40,3 +40,5 @@ staticfiles/
 # Celery beat schedule file
 #celerybeat-schedule
 #anomaly_detection/models/
+UPGRADE_NOTES.md
+.env

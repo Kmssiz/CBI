@@ -44,7 +44,7 @@ class CustomUser(AbstractUser):
     def get_avatar_color(self) -> str:
         """Returns a deterministic hex color based on the username."""
         colors = [
-            '#137fec', # Primary Blue
+            '#a5cf4b', # Primary Blue
             '#059669', # Emerald
             '#7c3aed', # Violet
             '#db2777', # Pink

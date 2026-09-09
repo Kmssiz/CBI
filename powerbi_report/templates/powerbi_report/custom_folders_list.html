@@ -39,7 +39,7 @@
 
         <div class="d-flex justify-content-between align-items-center mb-3">
             {% if current_folder %}
-            <a href="{% if current_folder.parent %}{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=current_folder.parent.id %}{% else %}{% url 'powerbi_report:custom_'|add:view_type %}{% endif %}"
+            <a href="{% if parent_folder %}{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=parent_folder.id %}{% elif current_folder.parent %}{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=current_folder.parent.id %}{% else %}{% url 'powerbi_report:custom_'|add:view_type %}{% endif %}"
                 class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 dark:!bg-slate-800 dark:!border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-bold rounded-lg transition-all shadow-sm">
                 <i class="feather icon-arrow-left"></i> Retour
             </a>
@@ -62,13 +62,13 @@
             {% for folder in subfolders %}
             <!-- Subfolder Card -->
             <div class="group relative card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-6 hover:border-primary/30 transition-all duration-300">
-                <a href="{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=folder.id %}"
+                <a href="{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=folder.id %}{% if current_folder and current_folder.option_type == view_type %}?parent_id={{ current_folder.id }}{% endif %}"
                     class="block">
                     <div class="size-14 rounded-xl bg-yellow-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                         <span class="material-symbols-outlined text-[32px] text-yellow-500">folder</span>
                     </div>
                     <h3 class="text-base font-bold text-theme text-slate-900 mb-1 truncate">{{ folder.name }}</h3>
-                    <p class="text-xs text-slate-500">Dossier de rapports</p>
+                    <p class="text-xs text-slate-500">{% if folder.option_type == 'societe' %}Société{% else %}Dossier de rapports{% endif %}</p>
                 </a>
             </div>
             {% endfor %}
@@ -76,7 +76,7 @@
             {% for report in reports %}
             <!-- Report Card -->
             <div class="group relative card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-6 hover:border-primary/30 transition-all duration-300">
-                <a href="{% url 'powerbi_report:embed_custom_report' view_type=view_type folder_id=current_folder.id report_id=report.id %}"
+                <a href="{% url 'powerbi_report:embed_custom_report' view_type=view_type folder_id=current_folder.id report_id=report.id %}{% if parent_folder %}?parent_id={{ parent_folder.id }}{% endif %}"
                     class="block">
                     <div class="size-14 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
                         <span class="material-symbols-outlined text-[32px]">bar_chart</span>

@@ -7,8 +7,8 @@
     </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CBI</title>
-    <link rel="icon" type="image/svg+xml" href="{% static 'assets/images/legacy/Cbi Logo White.svg' %}">
+    <title>PBI</title>
+    <link rel="icon" type="image/png" href="{% static 'assets/images/W_logo-favicon.png' %}">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <style>
         @font-face { font-family: LegacyRoboto; src: url("{% static 'assets/fonts/roboto/Roboto-Regular.ttf' %}"); font-weight: 400; }
@@ -108,9 +108,15 @@
             font-size: 13px;
             text-align: center;
         }
-        .legacy-login-logo { display: block; width: 200px; height: auto; margin: 0 auto; padding-top: 70%; }
+        .legacy-login-logo {
+            display: block;
+            width: min(200px, 100%);
+            height: auto;
+            margin: 0 auto 32px;
+        }
+        html.dark .legacy-login-logo { filter: invert(1) hue-rotate(180deg); }
         .legacy-login-status { margin-top: 16px; color: #92939a; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: .12em; }
-        .legacy-login-status button { color: inherit; text-decoration: underline; }
+        .legacy-login-status button { padding: 0; background: transparent; color: inherit; text-decoration: underline; }
         .legacy-login-theme-toggle { position: fixed; top: 20px; right: 22px; z-index: 5; display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 12px; border: 1px solid rgba(255,255,255,.25); border-radius: 18px; background: rgba(28,29,34,.84); color: #f2f2f2; font-size: 11px; font-weight: 700; cursor: pointer; }
         .legacy-login-theme-toggle:hover { border-color: #a5cf4b; color: #a5cf4b; }
         .legacy-login-theme-toggle .material-symbols-outlined { font-size: 17px; }
@@ -138,16 +144,13 @@
         @media (max-width: 992px) {
             .legacy-login-art { width: 50%; background-size: cover; }
             .legacy-login-form { width: 50%; padding-left: 30px; padding-right: 30px; }
-            .legacy-login-logo { padding-top: 45%; }
         }
         @media (max-width: 768px) {
             .legacy-login-art { display: none; }
             .legacy-login-form { width: 100%; padding: 70px 30px 30px; }
-            .legacy-login-logo { padding-top: 45%; }
         }
         @media (max-width: 576px) {
             .legacy-login-form { padding-left: 15px; padding-right: 15px; }
-            .legacy-login-logo { padding-top: 25%; }
         }
     </style>
 </head>
@@ -159,6 +162,8 @@
         </button>
         <section class="legacy-login-art" aria-label="Portail CBI"></section>
         <section class="legacy-login-form" aria-label="Connexion">
+            <img class="legacy-login-logo" src="{% static 'assets/images/PortailBI-logo.svg' %}" alt="Cellule Business Intelligence">
+
             <h1>Accéder à votre session.</h1>
 
             {% if messages %}
@@ -184,7 +189,6 @@
                     <button class="legacy-login-submit" type="submit" id="legacy-login-submit">Connexion</button>
                 </div>
 
-                <img class="legacy-login-logo" src="{% static 'assets/images/legacy/Logo CBI Login.svg' %}" alt="Cellule Business Intelligence">
             </form>
 
             <div class="legacy-login-status">

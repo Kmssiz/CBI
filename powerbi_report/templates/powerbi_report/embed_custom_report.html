@@ -10,8 +10,14 @@
     <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_direction' %}">CBI</a>
   {% elif view_type == 'biblio' %}
     <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_biblio' %}">Bibliothèque</a>
+  {% elif view_type == 'pole' %}
+    <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_pole' %}">Pôle</a>
+  {% elif view_type == 'consolide' %}
+    <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_consolide' %}">Consolidé</a>
+  {% elif view_type == 'module' %}
+    <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_module' %}">Module</a>
   {% else %}
-    <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_department' %}">Pôle</a>
+    <a class="hover:text-primary transition-colors" href="{% url 'powerbi_report:custom_anomalie' %}">Anomalie</a>
   {% endif %}
   
   {% for folder in breadcrumbs %}
@@ -25,7 +31,7 @@
 {% block content %}
 <div class="px-8 py-6 h-full flex flex-col">
 
-    <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+    <div class="flex-none flex flex-col md:flex-row justify-between items-center gap-4 mb-6" style="order: 1;">
       <div>
         <button id="backBtn" onclick="goBack()" class="flex items-center gap-2 px-4 py-2 card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 hover:text-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-sm font-bold shadow-sm">
           <span class="material-symbols-outlined text-[18px]">arrow_back</span> Retour
@@ -45,7 +51,29 @@
       </div>
     </div>
 
-    <div class="flex-grow card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden relative min-h-[600px] shadow-2xl glass-panel">
+    <nav class="flex-none relative z-10 flex flex-wrap items-center gap-x-1 gap-y-2 w-full mb-5 px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm text-sm" style="order: 2;" aria-label="Fil d'Ariane">
+      {% if view_type == 'direction' %}
+        <a class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-primary/10 transition-colors" href="{% url 'powerbi_report:custom_direction' %}"><span class="material-symbols-outlined text-[17px]">home</span> CBI</a>
+      {% elif view_type == 'biblio' %}
+        <a class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-primary/10 transition-colors" href="{% url 'powerbi_report:custom_biblio' %}"><span class="material-symbols-outlined text-[17px]">home</span> Bibliothèque</a>
+      {% elif view_type == 'pole' %}
+        <a class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-primary/10 transition-colors" href="{% url 'powerbi_report:custom_pole' %}"><span class="material-symbols-outlined text-[17px]">home</span> Pôle</a>
+      {% elif view_type == 'consolide' %}
+        <a class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-primary/10 transition-colors" href="{% url 'powerbi_report:custom_consolide' %}"><span class="material-symbols-outlined text-[17px]">home</span> Consolidé</a>
+      {% elif view_type == 'module' %}
+        <a class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-primary/10 transition-colors" href="{% url 'powerbi_report:custom_module' %}"><span class="material-symbols-outlined text-[17px]">home</span> Module</a>
+      {% else %}
+        <a class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-primary/10 transition-colors" href="{% url 'powerbi_report:custom_anomalie' %}"><span class="material-symbols-outlined text-[17px]">home</span> Anomalie</a>
+      {% endif %}
+      {% for folder in breadcrumbs %}
+        <span class="material-symbols-outlined text-[16px] text-slate-400 dark:text-slate-500">chevron_right</span>
+        <a class="px-2 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-primary/10 transition-colors" href="{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=folder.id %}">{{ folder.name }}</a>
+      {% endfor %}
+      <span class="material-symbols-outlined text-[16px] text-slate-400 dark:text-slate-500">chevron_right</span>
+      <span class="px-2 py-1 font-semibold text-slate-900 dark:text-white truncate max-w-full" aria-current="page">{{ report_name }}</span>
+    </nav>
+
+    <div class="flex-grow min-h-[600px] card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden relative shadow-2xl glass-panel" style="order: 3;">
       {% if embed_url %}
       <iframe id="reportIframe" src="{{ embed_url }}" class="w-full h-full border-none" allowfullscreen
         title="Power BI Report">

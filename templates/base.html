@@ -37,7 +37,7 @@
       theme: {
         extend: {
           colors: {
-            "primary": "#137fec",
+            "primary": "#a5cf4b",
             "background-dark": "#0a0f14",
             "background-light": "#f8fafc",
             "surface-dark": "#121922",
@@ -196,10 +196,12 @@
       text-decoration: none;
       cursor: pointer;
     }
+    /* Hover is deliberately lighter than the selected/open state: it must not
+       move, add an indicator, or make nearby menu items look selected. */
     body.legacy-shell .legacy-visual-nav > a:hover,
     body.legacy-shell .legacy-visual-nav > a:focus,
+    body.legacy-shell .legacy-visual-nav > details > summary:hover { color: #d1d3d8; background: #25262d; }
     body.legacy-shell .legacy-visual-nav > a.is-current,
-    body.legacy-shell .legacy-visual-nav > details > summary:hover,
     body.legacy-shell .legacy-visual-nav > details[open] > summary { color: #a5cf4b; }
     body.legacy-shell .legacy-visual-nav > a.is-current::before,
     body.legacy-shell .legacy-visual-nav > details[open] > summary::before {
@@ -216,9 +218,8 @@
     body.legacy-shell .legacy-visual-nav summary::-webkit-details-marker { display: none; }
     body.legacy-shell .legacy-visual-nav .legacy-visual-submenu { width: 250px; padding: 0 0 8px 28px; }
     body.legacy-shell .legacy-visual-nav .legacy-visual-submenu a { display: block; padding: 8px 18px; color: #8f9097; font-size: 12px; text-decoration: none; }
-    body.legacy-shell .legacy-visual-nav .legacy-visual-submenu a:hover,
-    body.legacy-shell .legacy-visual-nav .legacy-visual-submenu a.is-current { color: #a5cf4b; }
-    body.legacy-shell .legacy-visual-nav .legacy-visual-submenu a:hover { background: #25262d !important; }
+    body.legacy-shell .legacy-visual-nav .legacy-visual-submenu a:hover { color: #d1d3d8; background: #25262d !important; }
+    body.legacy-shell .legacy-visual-nav .legacy-visual-submenu a.is-current { color: #a5cf4b; background: transparent !important; }
 
     body.legacy-shell .legacy-nav {
       width: 300px;
@@ -433,6 +434,46 @@
       border-color: var(--border-dark) !important;
       color: #e2e8f0 !important;
     }
+    /* Use one reliable checkbox renderer across every page and theme. */
+    input[type="checkbox"]:not(.sr-only) {
+      accent-color: #a5cf4b;
+      color-scheme: light;
+    }
+    html.dark input[type="checkbox"]:not(.sr-only) {
+      accent-color: #a5cf4b;
+      color-scheme: dark;
+    }
+    input[type="checkbox"].appearance-none:not(.sr-only),
+    input[type="checkbox"].custom-checkbox:not(.sr-only) {
+      appearance: auto !important;
+      -webkit-appearance: checkbox !important;
+      width: 1.125rem !important;
+      height: 1.125rem !important;
+      background: transparent !important;
+      border: 1px solid #94a3b8 !important;
+      border-radius: .25rem !important;
+    }
+    html.dark input[type="checkbox"].appearance-none:not(.sr-only),
+    html.dark input[type="checkbox"].custom-checkbox:not(.sr-only) {
+      border-color: #64748b !important;
+      background: #1e293b !important;
+    }
+    input[type="checkbox"].appearance-none:not(.sr-only) + .material-symbols-outlined,
+    input[type="checkbox"].custom-checkbox:not(.sr-only) + .material-symbols-outlined {
+      display: none !important;
+    }
+    .filter-toggle {
+      color: #334155 !important;
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+    }
+    .filter-toggle:hover { background-color: #f8fafc !important; }
+    .dark .filter-toggle {
+      color: #e2e8f0 !important;
+      background-color: #1e293b !important;
+      border-color: #475569 !important;
+    }
+    .dark .filter-toggle:hover { background-color: #334155 !important; }
     .input-theme:focus {
       border-color: var(--primary);
       box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
@@ -783,6 +824,12 @@
     html.dark body.legacy-shell .legacy-visual-nav > details > summary:not(.is-current):not(:hover) {
       color: #a8abb4 !important;
     }
+    html.dark body.legacy-shell .legacy-visual-nav > a:hover,
+    html.dark body.legacy-shell .legacy-visual-nav > details > summary:hover,
+    html.dark body.legacy-shell .legacy-visual-submenu a:hover {
+      color: #d7d9de !important;
+      background: #25262d !important;
+    }
     html.dark body.legacy-shell .legacy-visual-nav > a.is-current,
     html.dark body.legacy-shell .legacy-visual-nav > details > summary.is-current,
     html.dark body.legacy-shell .legacy-visual-nav > details[open] > summary {
@@ -796,10 +843,9 @@
       color: #a8abb4 !important;
       background: transparent !important;
     }
-    html.dark body.legacy-shell .legacy-visual-submenu a:hover,
     html.dark body.legacy-shell .legacy-visual-submenu a.is-current {
       color: var(--legacy-green) !important;
-      background: #25262d !important;
+      background: transparent !important;
     }
     html.dark body.legacy-shell .legacy-theme-toggle { border-color: #3b3e48; background: #24262d; color: #d7d9de; }
     html.dark body.legacy-shell .legacy-theme-toggle:hover { border-color: var(--legacy-green); color: var(--legacy-green); background: #2d3038; }
@@ -851,7 +897,7 @@
       {% if user.is_authenticated %}
         <a href="{% url 'landing' %}" class="{% if request.resolver_match.url_name == 'landing' %}is-current{% endif %}">Accueil</a>
         {% if user.is_admin %}
-          <a href="{% url 'powerbi_report:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}is-current{% endif %}">Dashboard</a>
+          <a href="{% url 'powerbi_report:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}is-current{% endif %}">Overview</a>
         {% endif %}
         {% if user.is_admin or permissions.can_view_direction or permissions.can_view_pole or permissions.can_view_consolide or permissions.can_view_anomalie or permissions.can_view_module %}
           <details class="legacy-report-group" {% if 'custom/' in request.path %}open{% endif %}>
@@ -877,14 +923,14 @@
           </details>
         {% endif %}
         {% if user.is_admin %}
-          <details {% if request.resolver_match.url_name in 'users_view report_list report_list_hierarchy report_list_hierarchy_folder report_list_flat embed_report server_management_list user_history' or request.path|slice:':7' == '/admin/' %}open{% endif %}>
-            <summary class="{% if request.resolver_match.url_name in 'users_view report_list report_list_hierarchy report_list_hierarchy_folder report_list_flat embed_report server_management_list user_history' or request.path|slice:':7' == '/admin/' %}is-current{% endif %}">Admin</summary>
+          <details {% if request.resolver_match.url_name in 'users_view report_list report_list_hierarchy report_list_hierarchy_folder report_list_flat embed_report report_permissions missing_users user_permission missing_permissions server_management_list user_history' or request.path|slice:':7' == '/admin/' %}open{% endif %}>
+            <summary class="{% if request.resolver_match.url_name in 'users_view report_list report_list_hierarchy report_list_hierarchy_folder report_list_flat embed_report report_permissions missing_users user_permission missing_permissions server_management_list user_history' or request.path|slice:':7' == '/admin/' %}is-current{% endif %}">Admin</summary>
             <div class="legacy-visual-submenu">
-              <a href="{% url 'users_view' %}">Utilisateurs</a>
-              <a href="{% url 'powerbi_report:report_list' %}">Rapports</a>
-              <a href="{% url 'powerbi_report:server_management_list' %}">Serveurs</a>
-              <a href="{% url 'user_history' %}">Historique</a>
-              <a href="{% url 'admin:index' %}" target="_blank">Admin Panel</a>
+              <a href="{% url 'users_view' %}" class="{% if request.resolver_match.url_name == 'users_view' %}is-current{% endif %}">Utilisateurs</a>
+              <a href="{% url 'powerbi_report:report_list' %}" class="{% if request.resolver_match.app_name == 'powerbi_report' and request.resolver_match.url_name in 'report_list report_list_hierarchy report_list_hierarchy_folder report_list_flat embed_report report_permissions missing_users user_permission missing_permissions' %}is-current{% endif %}">Rapports</a>
+              <a href="{% url 'powerbi_report:server_management_list' %}" class="{% if request.resolver_match.url_name == 'server_management_list' %}is-current{% endif %}">Serveurs</a>
+              <a href="{% url 'user_history' %}" class="{% if request.resolver_match.url_name == 'user_history' %}is-current{% endif %}">Historique</a>
+              <a href="{% url 'admin:index' %}" target="_blank" class="{% if request.path|slice:':7' == '/admin/' %}is-current{% endif %}">Admin Panel</a>
             </div>
           </details>
         {% endif %}

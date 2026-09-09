@@ -50,8 +50,8 @@
           <div class="flex items-center gap-2">
             <!-- Filter toggle -->
             <button type="button" id="toggleFilters"
-  class="flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 text-slate-600 
-  dark:bg-slate-800 dark:text-black 
+  class="filter-toggle flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 text-slate-600
+  dark:bg-slate-800 dark:text-slate-200
   hover:bg-slate-50 dark:hover:bg-slate-700 
   text-xs font-bold rounded-xl transition-all dark:border-slate-700 group relative">
   
@@ -89,7 +89,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 px-1">Type</label>
-              <select id="reportTypeFilter" class="w-full bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-black focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none cursor-pointer">
+              <select id="reportTypeFilter" class="w-full bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none cursor-pointer">
                 <option value="">Tous les Types</option>
                 <option value="dashboard">Dashboard</option>
                 <option value="bibliotheque">Bibliothèque</option>
@@ -98,19 +98,19 @@
             </div>
             <div>
               <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 px-1">Direction</label>
-              <select id="directionFilter" class="w-full bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-black focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none cursor-pointer">
+              <select id="directionFilter" class="w-full bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none cursor-pointer">
                 <option value="">Toutes les Directions</option>
               </select>
             </div>
             <div id="poleFilterContainer">
               <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 px-1">Pôle</label>
-              <select id="poleFilter" class="w-full bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-black focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none cursor-pointer">
+              <select id="poleFilter" class="w-full bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none cursor-pointer">
                 <option value="">Tous les Pôles</option>
               </select>
             </div>
             <div id="societeFilterContainer">
               <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 px-1">Société</label>
-              <select id="societeFilter" class="w-full bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-black focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none cursor-pointer">
+              <select id="societeFilter" class="w-full bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl py-2.5 px-4 text-xs text-slate-900 dark:text-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none cursor-pointer">
                 <option value="">Toutes les Sociétés</option>
               </select>
             </div>
@@ -134,6 +134,52 @@
         </div>
       </div>
     </div>
+
+    <!-- Grant direct access by metadata -->
+    <details class="card-theme bg-white border border-slate-200 dark:border-slate-800/50 rounded-2xl mb-8 shadow-sm group">
+      <summary class="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer list-none select-none">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="material-symbols-outlined text-primary">dataset</span>
+          <div class="min-w-0">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-widest">Accès par métadonnées</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">Accorder l'accès aux rapports correspondant à au moins une sélection.</p>
+          </div>
+        </div>
+        <span class="material-symbols-outlined text-slate-400 transition-transform group-open:rotate-180">expand_more</span>
+      </summary>
+      <div class="border-t border-slate-200 dark:border-slate-800 px-5 py-4">
+        <form method="post" action="{% url 'powerbi_report:add_metadata_permissions' selected_user %}" class="space-y-4">
+          {% csrf_token %}
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            {% for group_name, field_name, options in metadata_groups %}
+            <div class="metadata-dropdown relative min-w-0" data-field="{{ field_name }}">
+              <span class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">{{ group_name }}</span>
+              <button type="button" class="metadata-dropdown-toggle w-full flex items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:border-primary/50 transition-all">
+                <span class="metadata-dropdown-label truncate">Sélectionner...</span>
+                <span class="material-symbols-outlined text-[17px] text-slate-400">expand_more</span>
+              </button>
+              <div class="metadata-dropdown-menu hidden absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl">
+                {% for option in options %}
+                <label class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer text-xs text-slate-700 dark:text-slate-300">
+                  <span class="relative flex shrink-0">
+                    <input type="checkbox" name="{{ field_name }}" value="{{ option.id }}" class="metadata-checkbox peer" data-label="{{ option.name }}">
+                    <span class="metadata-checkbox-mark material-symbols-outlined pointer-events-none absolute inset-0 text-[13px] leading-4 text-white opacity-0 peer-checked:opacity-100">check</span>
+                  </span>
+                  <span class="truncate" title="{{ option.name }}">{{ option.name }}</span>
+                </label>
+                {% empty %}<span class="text-xs text-slate-400">Aucune option</span>{% endfor %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="flex justify-end">
+            <button type="submit" id="metadataAccessSubmit" class="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-xs font-bold transition-all">
+              <span class="material-symbols-outlined text-[17px]">person_add</span><span>Accorder les accès</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </details>
 
 
     <div class="card-theme bg-white border border-slate-200 dark:border-slate-800/50 rounded-3xl overflow-hidden shadow-2xl">
@@ -661,6 +707,95 @@
     updateButtonVisibility();
   });
 </script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const metadataForm = document.querySelector('form[action*="add-metadata-permissions"]');
+    const dropdowns = document.querySelectorAll('.metadata-dropdown');
+
+    function updateMetadataLabel(dropdown) {
+      const selected = [...dropdown.querySelectorAll('.metadata-checkbox:checked')];
+      const label = dropdown.querySelector('.metadata-dropdown-label');
+      if (!selected.length) {
+        label.textContent = 'Sélectionner...';
+        label.classList.add('text-slate-400');
+      } else if (selected.length <= 2) {
+        label.textContent = selected.map(input => input.dataset.label).join(', ');
+        label.classList.remove('text-slate-400');
+      } else {
+        label.textContent = `${selected.length} sélectionnés`;
+        label.classList.remove('text-slate-400');
+      }
+    }
+
+    dropdowns.forEach(dropdown => {
+      const toggle = dropdown.querySelector('.metadata-dropdown-toggle');
+      const menu = dropdown.querySelector('.metadata-dropdown-menu');
+      toggle.addEventListener('click', function (event) {
+        event.stopPropagation();
+        document.querySelectorAll('.metadata-dropdown-menu').forEach(other => {
+          if (other !== menu) other.classList.add('hidden');
+        });
+        menu.classList.toggle('hidden');
+      });
+      menu.addEventListener('click', event => event.stopPropagation());
+      dropdown.querySelectorAll('.metadata-checkbox').forEach(input => {
+        input.addEventListener('change', () => updateMetadataLabel(dropdown));
+      });
+      updateMetadataLabel(dropdown);
+    });
+
+    document.addEventListener('click', function () {
+      document.querySelectorAll('.metadata-dropdown-menu').forEach(menu => menu.classList.add('hidden'));
+    });
+
+    if (metadataForm) {
+      metadataForm.addEventListener('submit', function () {
+        const submit = document.getElementById('metadataAccessSubmit');
+        if (!submit) return;
+        submit.disabled = true;
+        submit.classList.add('opacity-70', 'cursor-wait');
+        submit.querySelector('.material-symbols-outlined').textContent = 'progress_activity';
+        submit.querySelector('span:last-child').textContent = 'Attribution en cours...';
+        if (window.showLoadingOverlay) {
+          window.showLoadingOverlay('Mise à jour des accès', 'Attribution des rapports sélectionnés...');
+        }
+      });
+    }
+  });
+</script>
+
+<style>
+  .metadata-checkbox {
+    appearance: auto !important;
+    -webkit-appearance: checkbox !important;
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    border: 1px solid #cbd5e1;
+    border-radius: .25rem;
+    background: transparent;
+    cursor: pointer;
+    transition: background-color .15s, border-color .15s, box-shadow .15s;
+  }
+  .metadata-checkbox:focus-visible {
+    outline: 2px solid #a5cf4b;
+    outline-offset: 2px;
+  }
+  .metadata-checkbox:checked {
+    background: #a5cf4b;
+    border-color: #a5cf4b;
+  }
+  html.dark .metadata-checkbox {
+    background: #1e293b;
+    border-color: #64748b;
+  }
+  html.dark .metadata-checkbox:checked {
+    background: #a5cf4b;
+    border-color: #a5cf4b;
+  }
+  .metadata-checkbox-mark { display: none !important; }
+</style>
 
 
 

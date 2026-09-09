@@ -588,7 +588,7 @@
                     </div>
 
                     <!-- Sociétés -->
-                    <div id="metaSocieteContainer" class="space-y-1.5 col-span-2 {% if report_ref.is_consolide %}ar-collapsed{% endif %}">
+                    <div id="metaSocieteContainer" class="space-y-1.5 col-span-2">
                         <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Sociétés</label>
                         <div class="relative custom-multiselect w-full" data-name="societes">
                             <button type="button" class="multiselect-btn w-full input-theme flex justify-between items-center px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm transition-all text-slate-700 dark:text-slate-300">
@@ -598,7 +598,7 @@
                             <div class="multiselect-dropdown absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-2 max-h-48 overflow-y-auto hidden custom-scrollbar">
                                 {% for soc_opt in all_metadata_societes %}
                                 <label class="flex items-center gap-3 px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg cursor-pointer m-0">
-                                    <input type="checkbox" name="societes" value="{{ soc_opt.id }}" class="multiselect-checkbox societe-checkbox w-4 h-4 text-primary bg-slate-100 border-slate-300 rounded focus:ring-primary/20" data-parent-pole-id="{{ soc_opt.parent.id|default:'' }}" {% if soc_opt.id in report_societe_ids %}checked{% endif %} data-label="{{ soc_opt.name }}">
+                                    <input type="checkbox" name="societes" value="{{ soc_opt.id }}" class="multiselect-checkbox societe-checkbox w-4 h-4 accent-primary bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-600 rounded focus:ring-primary/20" data-parent-pole-id="{{ soc_opt.parent.id|default:'' }}" {% if soc_opt.id in report_societe_ids %}checked{% endif %} data-label="{{ soc_opt.name }}">
                                     <span class="text-sm text-slate-700 dark:text-slate-300">{{ soc_opt.name }}</span>
                                 </label>
                                 {% endfor %}
@@ -606,7 +606,7 @@
                         </div>
                     </div>
                     <!-- Modules -->
-                    <div id="metaModuleContainer" class="space-y-1.5 col-span-2 {% if report_ref.is_consolide %}ar-collapsed{% endif %}">
+                    <div id="metaModuleContainer" class="space-y-1.5 col-span-2">
                         <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Modules</label>
                         <div class="relative custom-multiselect w-full" data-name="modules">
                             <button type="button" class="multiselect-btn w-full input-theme flex justify-between items-center px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm transition-all text-slate-700 dark:text-slate-300">
@@ -814,23 +814,12 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function toggleEditConsolide(checked) {
-    const societeContainer = document.getElementById('metaSocieteContainer');
-    const moduleContainer = document.getElementById('metaModuleContainer');
     if (checked) {
-        if (societeContainer) societeContainer.classList.add('ar-collapsed');
-        if (moduleContainer) moduleContainer.classList.add('ar-collapsed');
-        document.querySelectorAll('#metaSocieteContainer .multiselect-checkbox, #metaModuleContainer .multiselect-checkbox').forEach(cb => {
-            cb.checked = false;
-            cb.dispatchEvent(new Event('change'));
-        });
         const dashboardRadio = document.getElementById('meta_type_dashboard');
         if (dashboardRadio) {
             dashboardRadio.checked = true;
             dashboardRadio.dispatchEvent(new Event('change'));
         }
-    } else {
-        if (societeContainer) societeContainer.classList.remove('ar-collapsed');
-        if (moduleContainer) moduleContainer.classList.remove('ar-collapsed');
     }
 }
 
@@ -900,7 +889,19 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-#metaSocieteContainer, #metaModuleContainer { 
+.custom-multiselect .multiselect-checkbox {
+    appearance: auto !important;
+    -webkit-appearance: checkbox !important;
+    width: 1rem;
+    height: 1rem;
+    accent-color: #a5cf4b;
+    color-scheme: light;
+}
+html.dark .custom-multiselect .multiselect-checkbox {
+    accent-color: #a5cf4b;
+    color-scheme: dark;
+}
+#metaSocieteContainer, #metaModuleContainer {
     transition: opacity .2s, max-height .25s cubic-bezier(0.4,0,0.2,1), padding .2s, margin .2s; 
     max-height: 150px; 
     opacity: 1; 

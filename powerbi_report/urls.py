@@ -25,6 +25,7 @@ urlpatterns = [
 
     path('add_all_permissions/<str:username>/', views.add_all_permissions, name='add_all_permissions'),
     path('add_selected_permissions/<str:username>/', views.add_selected_permissions, name='add_selected_permissions'),
+    path('add-metadata-permissions/<str:username>/', views.add_metadata_permissions, name='add_metadata_permissions'),
     path('add_users/<str:report_id>/<str:username>/', views.add_users_to_report, name='add_users_to_report'),
     path('add_all_users/<str:report_id>/', views.add_all_users_to_report, name='add_all_users_to_report'),
 

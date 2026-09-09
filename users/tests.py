@@ -51,7 +51,10 @@ class UserManagementAndSyncTests(TestCase):
         mock_get_ad_users.assert_called_once_with("svc_user", "svc_password")
 
         flash_messages = [message.message for message in get_messages(response.wsgi_request)]
-        self.assertIn("Failed to fetch LDAP users or no users found.", flash_messages)
+        self.assertIn(
+            "Échec de la récupération des utilisateurs LDAP ou aucun utilisateur trouvé.",
+            flash_messages,
+        )
 
     @override_settings(LDAP_SERVICE_USERNAME="svc_user", LDAP_SERVICE_PASSWORD="svc_password")
     @patch("users.views.get_ad_users")
@@ -83,7 +86,7 @@ class UserManagementAndSyncTests(TestCase):
 
         flash_messages = [message.message for message in get_messages(response.wsgi_request)]
         self.assertTrue(
-            any("User synchronization completed. 1 new users added." in msg for msg in flash_messages)
+            any("Synchronisation des utilisateurs terminée. 1 nouveaux utilisateurs ajoutés." in msg for msg in flash_messages)
         )
 
     def test_sync_users_non_admin_redirects_without_crashing(self) -> None:
@@ -95,8 +98,7 @@ class UserManagementAndSyncTests(TestCase):
 
         response = self.client.get(reverse("sync_users"))
 
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse("powerbi_report:report_list"), fetch_redirect_response=False)
+        self.assertEqual(response.status_code, 403)
 
 
 class LDAPUtilsTests(SimpleTestCase):

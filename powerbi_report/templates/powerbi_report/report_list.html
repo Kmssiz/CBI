@@ -46,7 +46,7 @@
 
                     <!-- Advanced Filter Toggle -->
                     <button type="button" id="toggleFilters" 
-                            class="flex items-center gap-2 px-6 py-3 bg-white dark:bg-white border border-slate-200 dark:border-white rounded-xl text-sm font-bold text-black dark:text-black hover:bg-slate-50 dark:hover:bg-slate-100 transition-all shadow-sm relative group overflow-hidden w-full sm:w-auto">
+                            class="filter-toggle flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm relative group overflow-hidden w-full sm:w-auto">
                         <span class="material-symbols-outlined text-[20px] text-slate-500 dark:text-slate-500 group-hover:rotate-180 transition-all duration-500">tune</span>
                         Filtres
                         {% if active_filters_count > 0 %}
@@ -839,28 +839,17 @@ function resetArForm() {
 }
 
 function toggleConsolide(checked) {
-    const societeField  = document.getElementById('arSocieteField');
-    const moduleField   = document.getElementById('arModuleField');
     const badge         = document.getElementById('arConsolideBadge');
     const checkbox      = document.getElementById('is_consolide');
     if (checkbox) checkbox.checked = checked;
     if (checked) {
-        if (societeField) societeField.classList.add('ar-collapsed');
-        if (moduleField) moduleField.classList.add('ar-collapsed');
         badge.classList.remove('hidden');
-        // Clear societe and module checkboxes
-        document.querySelectorAll('#addReportModal .add-societe-checkbox, #addReportModal input[name="modules"]').forEach(cb => {
-            cb.checked = false;
-            cb.dispatchEvent(new Event('change'));
-        });
         const dashboardRadio = document.getElementById('type_dashboard_add');
         if (dashboardRadio) {
             dashboardRadio.checked = true;
             dashboardRadio.dispatchEvent(new Event('change'));
         }
     } else {
-        if (societeField) societeField.classList.remove('ar-collapsed');
-        if (moduleField) moduleField.classList.remove('ar-collapsed');
         badge.classList.add('hidden');
     }
 }
