@@ -28,7 +28,7 @@
             min-height: 100vh;
             position: relative;
             order: 1;
-            background: #d9d9d9 url("{% static 'assets/images/legacy/Login.svg' %}") center center / 1697px 900px no-repeat;
+            background: #d9d9d9 url("{% static 'assets/images/legacy/Login.svg' %}") center center / contain no-repeat;
         }
         .legacy-login-form {
             width: 560px;
@@ -42,7 +42,7 @@
             width: 100%;
             margin: 0 0 58px;
             color: #f2f2f2;
-            font-size: 35px;
+            font-size: 25px;
             line-height: 1.2;
             font-weight: 700;
             text-align: center;
@@ -110,11 +110,11 @@
         }
         .legacy-login-logo {
             display: block;
-            width: min(200px, 100%);
+            width: min(250px, 100%);
             height: auto;
             margin: 0 auto 32px;
+            filter: invert(1) hue-rotate(180deg);
         }
-        html.dark .legacy-login-logo { filter: invert(1) hue-rotate(180deg); }
         .legacy-login-status { margin-top: 16px; color: #92939a; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: .12em; }
         .legacy-login-status button { padding: 0; background: transparent; color: inherit; text-decoration: underline; }
         .legacy-login-theme-toggle { position: fixed; top: 20px; right: 22px; z-index: 5; display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 12px; border: 1px solid rgba(255,255,255,.25); border-radius: 18px; background: rgba(28,29,34,.84); color: #f2f2f2; font-size: 11px; font-weight: 700; cursor: pointer; }
