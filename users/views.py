@@ -11,6 +11,7 @@ from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from .ldap_utils import connexion_ad2000, get_ad_users
 from .utils import log_history, get_user_permissions, admin_required
@@ -268,10 +269,12 @@ def landing_page(request):
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
+    greeting = 'Bonsoir' if timezone.localtime().hour >= 18 else 'Bonjour'
     return render(request, 'landing.html', {
         'notifications': notifications,
         'unread': unread,
         'permissions': permissions,
+        'greeting': greeting,
     })
 
 
