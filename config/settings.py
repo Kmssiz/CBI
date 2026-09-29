@@ -69,9 +69,14 @@ LDAP_DOMAIN = config("LDAP_DOMAIN")
 LDAP_SEARCH_BASE = config("LDAP_SEARCH_BASE")
 LDAP_PORT = config("LDAP_PORT", default=389, cast=int)
 LDAP_USE_SSL = _config_bool("LDAP_USE_SSL", default=False)
+LDAP_CA_CERT_FILE = config("LDAP_CA_CERT_FILE", default="").strip() or None
 LDAP_CONNECT_TIMEOUT = config("LDAP_CONNECT_TIMEOUT", default=8, cast=int)
 LDAP_RECEIVE_TIMEOUT = config("LDAP_RECEIVE_TIMEOUT", default=20, cast=int)
 LDAP_ENABLE_PORT_FALLBACK = _config_bool("LDAP_ENABLE_PORT_FALLBACK", default=True)
+MOBILE_LOGIN_RATE_LIMIT_PER_IP = config("MOBILE_LOGIN_RATE_LIMIT_PER_IP", default=100, cast=int)
+MOBILE_LOGIN_RATE_LIMIT_PER_USER = config("MOBILE_LOGIN_RATE_LIMIT_PER_USER", default=10, cast=int)
+MOBILE_LOGIN_RATE_LIMIT_WINDOW = config("MOBILE_LOGIN_RATE_LIMIT_WINDOW", default=900, cast=int)
+MOBILE_LOGIN_CLIENT_IP_HEADER = config("MOBILE_LOGIN_CLIENT_IP_HEADER", default="").strip()
 LDAP_SERVER_ALTERNATES = [
     host.strip()
     for host in config("LDAP_SERVER_ALTERNATES", default="").split(",")
@@ -111,7 +116,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'users',
+    'users.apps.UsersConfig',
     'tickets',
 
     'notifications',
@@ -195,8 +200,11 @@ else:
 
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
+        'BACKEND': config(
+            'CACHE_BACKEND',
+            default='django.core.cache.backends.locmem.LocMemCache',
+        ),
+        'LOCATION': config('CACHE_LOCATION', default='unique-snowflake'),
     }
 }
 

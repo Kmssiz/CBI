@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
 
@@ -79,4 +81,33 @@ class UserHistory(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.action} at {self.timestamp}"
+
+
+class MobileFavorite(models.Model):
+    """A user's saved report shortcut for the mobile portal."""
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='mobile_favorites')
+    report = models.ForeignKey('powerbi_report.ReportRef', on_delete=models.CASCADE, related_name='mobile_favorites')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+        constraints = [models.UniqueConstraint(fields=['user', 'report'], name='unique_mobile_favorite')]
+
+    def __str__(self):
+        return f'{self.user} favorite: {self.report}'
+
+
+class MobileApiSession(models.Model):
+    """Revocable bearer session issued to one installation of the mobile app."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='mobile_api_sessions')
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['user', 'revoked_at'])]
+
+    def __str__(self):
+        return f'Mobile session for {self.user_id} ({self.id})'
 

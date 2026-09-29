@@ -36,8 +36,17 @@ from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
 from config.views import custom_404_view, custom_403_view
+from users import mobile_api
 
 urlpatterns = [
+    path('mobile/login/', mobile_api.mobile_login, name='mobile_login'),
+    path('mobile/logout/', mobile_api.mobile_logout, name='mobile_logout'),
+    path('mobile/bootstrap/', mobile_api.mobile_bootstrap, name='mobile_bootstrap'),
+    path('mobile/history/', mobile_api.mobile_history, name='mobile_history'),
+    path('mobile/favorite/<int:report_id>/', mobile_api.mobile_favorite, name='mobile_favorite'),
+    path('mobile/notifications/<int:notification_id>/read/', mobile_api.mobile_notification_read, name='mobile_notification_read'),
+    path('mobile/notifications/read-all/', mobile_api.mobile_notifications_read_all, name='mobile_notifications_read_all'),
+    path('mobile/embed/<int:report_id>/', mobile_api.mobile_embed, name='mobile_embed'),
     path('biadmin/', admin.site.urls),
     path('', include('users.urls')),
     # Compatibility route for the old dashboard URL.

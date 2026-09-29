@@ -6,8 +6,9 @@ and fetching user lists for synchronization.
 """
 
 import logging
+import ssl
 import ldap3
-from ldap3 import Server, Connection, NONE, NTLM
+from ldap3 import Connection, NONE, NTLM, Server, Tls
 from ldap3.core.exceptions import LDAPBindError, LDAPSocketOpenError, LDAPException
 from django.conf import settings
 
@@ -64,6 +65,14 @@ def _bind_connection(
             host,
             port=port,
             use_ssl=use_ssl,
+            tls=(
+                Tls(
+                    validate=ssl.CERT_REQUIRED,
+                    ca_certs_file=getattr(settings, "LDAP_CA_CERT_FILE", None) or None,
+                )
+                if use_ssl
+                else None
+            ),
             connect_timeout=connect_timeout,
             get_info=NONE,
         )
