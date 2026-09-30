@@ -18,7 +18,7 @@ services:
   web:
     container_name: PBI
     build: .
-    command: sh -c "python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8222 --workers 4 --timeout 300 --graceful-timeout 60 config.wsgi:application"
+    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8222 --workers 4 --timeout 300 --graceful-timeout 60 config.wsgi:application"
     ports:
       - "8222:8222"
     env_file:
