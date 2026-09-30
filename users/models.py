@@ -75,9 +75,20 @@ class CustomUser(AbstractUser):
 
 
 class UserHistory(models.Model):
+    SOURCE_WEB = 'web'
+    SOURCE_MOBILE = 'mobile'
+    SOURCE_CHOICES = ((SOURCE_WEB, 'Web'), (SOURCE_MOBILE, 'Mobile'))
+
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="history")
     action = models.CharField(max_length=255)
     timestamp = models.DateTimeField(auto_now_add=True)
+    # Optional details, filled for report consultations recorded by the mobile API.
+    report = models.ForeignKey(
+        'powerbi_report.ReportRef', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='history_entries',
+    )
+    duration_seconds = models.PositiveIntegerField(null=True, blank=True)
+    source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default=SOURCE_WEB)
 
     def __str__(self):
         return f"{self.user.username} - {self.action} at {self.timestamp}"
@@ -104,6 +115,9 @@ class MobileApiSession(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     revoked_at = models.DateTimeField(null=True, blank=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    device = models.CharField(max_length=120, blank=True, default='')
+    app_version = models.CharField(max_length=20, blank=True, default='')
 
     class Meta:
         indexes = [models.Index(fields=['user', 'revoked_at'])]

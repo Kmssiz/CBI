@@ -130,12 +130,23 @@ CBI/
 ├── users/               # User authentication and management
 │   ├── ldap_utils.py    # LDAP authentication
 │   └── views.py
+├── mobile/              # JSON API for the mobile app (docs/MOBILE_API.md)
 ├── notifications/       # In-app notifications
 ├── templates/           # HTML templates
 ├── static/              # Static files (CSS, JS)
 ├── requirements.txt     # Python dependencies
 └── Dockerfile           # Docker configuration
 ```
+
+---
+
+## Mobile API
+
+The CBI mobile app (Flutter, `PBI-app/new_app`) talks to `/mobile/v1/`, served by this
+same container. The full contract is in [docs/MOBILE_API.md](docs/MOBILE_API.md); the
+`MOBILE_*` variables in `.env.example` configure sessions, the minimum app version and
+the contact details. Reports are shown straight from the PBIRS server each report was
+synced from, so servers added in the admin (`/powerbi/servers/`) work on mobile too.
 
 ---
 

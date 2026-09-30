@@ -78,6 +78,15 @@ MOBILE_LOGIN_RATE_LIMIT_PER_IP = config("MOBILE_LOGIN_RATE_LIMIT_PER_IP", defaul
 MOBILE_LOGIN_RATE_LIMIT_PER_USER = config("MOBILE_LOGIN_RATE_LIMIT_PER_USER", default=10, cast=int)
 MOBILE_LOGIN_RATE_LIMIT_WINDOW = config("MOBILE_LOGIN_RATE_LIMIT_WINDOW", default=900, cast=int)
 MOBILE_LOGIN_CLIENT_IP_HEADER = config("MOBILE_LOGIN_CLIENT_IP_HEADER", default="").strip()
+# Mobile app (see docs/MOBILE_API.md)
+MOBILE_SESSION_DAYS = config("MOBILE_SESSION_DAYS", default=30, cast=int)
+MOBILE_MIN_APP_VERSION = config("MOBILE_MIN_APP_VERSION", default="3.0.0").strip()
+MOBILE_LATEST_APP_VERSION = config("MOBILE_LATEST_APP_VERSION", default=MOBILE_MIN_APP_VERSION).strip()
+MOBILE_APP_DOWNLOAD_URL = config("MOBILE_APP_DOWNLOAD_URL", default="").strip()
+MOBILE_CONTACT_EMAIL = config("MOBILE_CONTACT_EMAIL", default="cbi@groupe-hasnaoui.com").strip()
+MOBILE_CONTACT_PHONE = config("MOBILE_CONTACT_PHONE", default="3004").strip()
+MOBILE_WEBSITE_URL = config("MOBILE_WEBSITE_URL", default="https://cbi.groupe-hasnaoui.com").strip()
+MOBILE_NOTIFICATION_POLL_SECONDS = config("MOBILE_NOTIFICATION_POLL_SECONDS", default=60, cast=int)
 LDAP_SERVER_ALTERNATES = [
     host.strip()
     for host in config("LDAP_SERVER_ALTERNATES", default="").split(",")
@@ -122,6 +131,7 @@ INSTALLED_APPS = [
 
     'notifications',
     'powerbi_report',
+    'mobile',
     'guardian',
     'easyaudit',
 

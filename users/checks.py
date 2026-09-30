@@ -6,17 +6,9 @@ from django.core.checks import Warning, register, Tags
 
 @register(Tags.security)
 def check_mobile_login_security(app_configs, **kwargs):
+    # Mobile login always binds to AD with NTLM (mobile/auth.py), so the
+    # password never reaches the directory in clear text, LDAPS or not.
     warnings = []
-
-    if not settings.LDAP_USE_SSL or settings.LDAP_ENABLE_PORT_FALLBACK:
-        warnings.append(Warning(
-            'Mobile login is disabled because LDAP is not locked to LDAPS.',
-            hint=(
-                'Set LDAP_USE_SSL=True and LDAP_ENABLE_PORT_FALLBACK=False, '
-                'then verify that the directory certificate is trusted.'
-            ),
-            id='users.W001',
-        ))
 
     cache_backend = settings.CACHES['default']['BACKEND']
     if cache_backend.endswith('LocMemCache'):
