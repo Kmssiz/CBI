@@ -483,3 +483,116 @@ class TicketTests(MobileTestCase):
         detail = self.client.get(url('ticket', ticket_id), **self.auth).json()
         self.assertEqual(detail['messages_count'], 1)
         self.assertEqual(self.client.get(url('ticket', ticket_id), **self.bearer(other)).status_code, 404)
+
+
+def png_upload(name='logo.png', size=(40, 40), fmt='PNG'):
+    import io
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from PIL import Image
+    buffer = io.BytesIO()
+    Image.new('RGBA', size, (165, 207, 75, 255)).save(buffer, format=fmt)
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type=f'image/{fmt.lower()}')
+
+
+class LogoAndPhoneEditionTests(MobileTestCase):
+    def setUp(self):
+        super().setUp()
+        import tempfile
+        self.media = self.enterContext(override_settings(MEDIA_ROOT=tempfile.mkdtemp()))
+        self.admin = CustomUser.objects.create_user(username='admin.web', password='pw', role=self.admin_role,
+                                                    is_superuser=True, is_staff=True)
+        self.production = self.option('pole', 'Pôle Production')
+        self.mdm = self.option('societe', 'MDM', parent=self.production)
+        self.dco = self.option('direction', 'Direction Commerce')
+
+    def web_admin(self):
+        client = Client()
+        client.force_login(self.admin)
+        return client
+
+    def test_admin_uploads_replaces_and_removes_a_societe_logo(self):
+        client = self.web_admin()
+        edit = reverse('powerbi_report:metadata_option_edit', args=[self.mdm.pk])
+        response = client.post(edit, {'name': 'MDM', 'parent_id': self.production.pk, 'logo': png_upload()})
+        self.assertEqual(response.status_code, 302)
+        self.mdm.refresh_from_db()
+        first = self.mdm.logo.name
+        self.assertTrue(first.startswith('metadata_logos/societe-'))
+        self.assertEqual(client.get(reverse('powerbi_report:metadata_option_logo', args=[self.mdm.pk])).status_code, 200)
+
+        client.post(edit, {'name': 'MDM', 'parent_id': self.production.pk, 'logo': png_upload('new.webp', fmt='WEBP')})
+        self.mdm.refresh_from_db()
+        self.assertNotEqual(self.mdm.logo.name, first)
+        self.assertFalse(self.mdm.logo.storage.exists(first))  # old file cleaned up
+
+        client.post(edit, {'name': 'MDM', 'parent_id': self.production.pk, 'remove_logo': 'on'})
+        self.mdm.refresh_from_db()
+        self.assertFalse(self.mdm.logo)
+
+    def test_invalid_logo_is_rejected_without_creating_the_option(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        client = self.web_admin()
+        response = client.post(reverse('powerbi_report:metadata_option_create'), {
+            'option_type': 'societe', 'name': 'Nouvelle', 'parent_id': self.production.pk,
+            'logo': SimpleUploadedFile('x.png', b'not an image', content_type='image/png'),
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(MetadataOption.objects.filter(name='Nouvelle').exists())
+        gif = png_upload('x.gif', fmt='GIF')
+        client.post(reverse('powerbi_report:metadata_option_create'), {
+            'option_type': 'pole', 'name': 'Pôle GIF', 'logo': gif,
+        })
+        self.assertFalse(MetadataOption.objects.filter(name='Pôle GIF').exists())
+
+    def test_directions_never_get_a_logo(self):
+        self.web_admin().post(reverse('powerbi_report:metadata_option_edit', args=[self.dco.pk]),
+                              {'name': 'Direction Commerce', 'logo': png_upload()})
+        self.dco.refresh_from_db()
+        self.assertFalse(self.dco.logo)
+
+    def test_catalog_exposes_versioned_logo_urls_served_to_the_app(self):
+        self.mdm.logo = png_upload()
+        self.mdm.save()
+        self.report('CA MDM', poles=[self.production], societes=[self.mdm], directions=[self.dco])
+        body = self.client.get(url('catalog'), **self.auth).json()
+        group = next(s for s in body['sections'] if s['key'] == 'societe')['groups'][0]
+        self.assertIn(f'/mobile/v1/metadata/{self.mdm.pk}/logo/?v=societe-', group['logo_url'])
+
+        logo = self.client.get(group['logo_url'], **self.auth)
+        self.assertEqual(logo.status_code, 200)
+        self.assertEqual(logo['Content-Type'], 'image/png')
+        self.assertIn('immutable', logo['Cache-Control'])
+        self.assertEqual(self.client.get(group['logo_url']).status_code, 401)  # bearer required
+        self.assertEqual(self.client.get(url('metadata_logo', self.dco.pk), **self.auth).status_code, 404)
+
+    def test_phone_edition_is_attached_to_its_report_and_hidden_from_lists(self):
+        phone = self.report('CA MDM (téléphone)', poles=[self.production], societes=[self.mdm], directions=[self.dco])
+        full = self.report('CA MDM', poles=[self.production], societes=[self.mdm], directions=[self.dco],
+                           mobile_report=phone)
+        body = self.client.get(url('catalog'), **self.auth).json()
+        self.assertNotIn(str(phone.pk), body['reports'])
+        entry = body['reports'][str(full.pk)]
+        self.assertEqual(entry['phone']['id'], phone.pk)
+        self.assertIn('CA%20MDM%20%28t%C3%A9l%C3%A9phone%29', entry['phone']['embed_url'])
+        self.assertEqual(entry['phone']['server_id'], self.server.pk)
+
+        opened = self.post_json('report_open', full.pk).json()
+        self.assertEqual(opened['report']['phone']['id'], phone.pk)
+
+        # Without permission on the phone edition, the app only gets the full report.
+        UserReportPermission.objects.filter(report=phone).delete()
+        body = self.client.get(url('catalog'), **self.auth).json()
+        self.assertIsNone(body['reports'][str(full.pk)]['phone'])
+
+    def test_admin_links_a_phone_edition_from_the_report_page(self):
+        full = self.report('Plein')
+        phone = self.report('Portrait')
+        client = self.web_admin()
+        metadata = reverse('powerbi_report:update_report_metadata', args=[full.pbirs_id])
+        with patch('powerbi_report.views.get_user_permissions', return_value={'change_powerbireport': True}):
+            client.post(metadata, {'mobile_report_id': str(phone.pk)})
+            full.refresh_from_db()
+            self.assertEqual(full.mobile_report, phone)
+            client.post(metadata, {'mobile_report_id': str(full.pk)})  # itself: ignored → cleared
+            full.refresh_from_db()
+            self.assertIsNone(full.mobile_report)

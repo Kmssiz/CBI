@@ -629,6 +629,17 @@
                     </div>
                 </div>
             </div>
+            <!-- Phone edition for the mobile app -->
+            <div class="space-y-1.5">
+                <label for="meta_mobile_report" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Version téléphone (application mobile)</label>
+                <select name="mobile_report_id" id="meta_mobile_report" class="input-theme w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm transition-all text-slate-700 dark:text-slate-300">
+                    <option value="">Aucune (le rapport s'ouvre tel quel)</option>
+                    {% for candidate in mobile_report_candidates %}
+                    <option value="{{ candidate.id }}" {% if candidate.id == report_ref.mobile_report_id %}selected{% endif %}>{{ candidate.name }} — {{ candidate.path }}</option>
+                    {% endfor %}
+                </select>
+                <p class="text-[10px] text-slate-500">Rapport PBIRS conçu au format portrait. En mode portrait, l'application mobile ouvre cette version ; le rapport complet reste accessible en plein écran / paysage. La version téléphone n'apparaît plus séparément dans l'application.</p>
+            </div>
             <!-- Type -->
             <div class="space-y-2">
                 <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Type de rapport</label>

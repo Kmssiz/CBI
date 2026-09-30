@@ -121,7 +121,7 @@ Supports `If-None-Match` (returns `304` when nothing changed).
       ]
     },
     {"key": "pole", "title": "Pôle", "layout": "row", "groups": [{"key": "pole:3", "name": "Pôle Production", "code": "PP", "tabs": [ … ]}]},
-    {"key": "societe", "title": "Société", "layout": "grid", "groups": [{"key": "societe:9", "name": "MDM", "code": "MDM", "parent": "Pôle Production", "tabs": [ … ]}]},
+    {"key": "societe", "title": "Société", "layout": "grid", "groups": [{"key": "societe:9", "name": "MDM", "code": "MDM", "parent": "Pôle Production", "logo_url": "/mobile/v1/metadata/9/logo/?v=societe-3f2a9c1b7d4e", "tabs": [ … ]}]},
     {"key": "direction", "title": "Direction", "layout": "row", "groups": [ … ]},
     {"key": "module", "title": "Modules", "layout": "row", "groups": [ … ]},
     {"key": "anomalie", "title": "Anomalies", "layout": "row", "groups": [ … ]},
@@ -130,6 +130,7 @@ Supports `If-None-Match` (returns `304` when nothing changed).
   "reports": {
     "12": {"id": 12, "name": "Encaissement Clients", "description": "", "location": "Consolidé / DFC",
            "server_id": 1, "embed_url": "http://10.20.10.63/Reports/powerbi/Consolid%C3%A9/…?rs:embed=true",
+           "phone": {"id": 31, "server_id": 1, "embed_url": "http://10.20.10.63/Reports/powerbi/…%20(t%C3%A9l%C3%A9phone)?rs:embed=true"} | null,
            "modified_at": "…", "favorite": true}
   },
   "favorite_ids": [12],
@@ -158,6 +159,17 @@ Rules:
 - `reports` holds every report referenced by any tab, keyed by id (as a string).
 - `server_id` points into `servers`. The WebView may only send credentials to
   those hosts.
+- `logo_url` (pôle and société groups, only when an admin uploaded one on
+  `/powerbi/servers/`): the card shows the logo with the name underneath. The URL
+  changes whenever the logo changes, so it can be cached forever.
+- `phone`: the portrait "phone" edition an admin linked on the report page
+  (PBIRS cannot render a report's mobile layout in a browser). The app opens it in
+  portrait and the full report in landscape / full screen. `null` when there is
+  none or the user may not open it. Phone editions are never listed on their own.
+
+### `GET metadata/<option_id>/logo/`
+Logo bytes for a pôle/société (`image/png|jpeg|webp`), Bearer header required,
+`Cache-Control: immutable`. `404` when there is none.
 
 ### `GET reports/<id>/`
 One entry of `catalog.reports`. `404` when it doesn't exist or isn't visible.

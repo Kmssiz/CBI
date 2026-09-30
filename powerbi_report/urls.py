@@ -98,4 +98,5 @@ urlpatterns = [
     path('servers/metadata/create/', server_views.metadata_option_create, name='metadata_option_create'),
     path('servers/metadata/edit/<int:option_id>/', server_views.metadata_option_edit, name='metadata_option_edit'),
     path('servers/metadata/delete/<int:option_id>/', server_views.metadata_option_delete, name='metadata_option_delete'),
+    path('servers/metadata/<int:option_id>/logo/', server_views.metadata_option_logo, name='metadata_option_logo'),
 ]

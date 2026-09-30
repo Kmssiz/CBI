@@ -14,6 +14,7 @@ urlpatterns = [
     path('users/<int:user_id>/photo/', views.user_photo_view, name='user_photo'),
 
     path('catalog/', views.catalog_view, name='catalog'),
+    path('metadata/<int:option_id>/logo/', views.metadata_logo_view, name='metadata_logo'),
     path('reports/<int:report_id>/', views.report_detail_view, name='report'),
     path('reports/<int:report_id>/open/', views.report_open_view, name='report_open'),
     path('reports/<int:report_id>/close/', views.report_close_view, name='report_close'),

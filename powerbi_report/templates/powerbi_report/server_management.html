@@ -120,9 +120,9 @@
                 <ul class="space-y-1">
                     {% for option in poles %}
                     <li class="flex items-center justify-between px-3 py-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg group transition-colors">
-                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ option.name }}</span>
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{% if option.logo %}<img src="{% url 'powerbi_report:metadata_option_logo' option.id %}" alt="" class="size-7 rounded-md object-contain bg-white border border-slate-200 dark:border-slate-700 p-0.5 mr-2 inline-block align-middle">{% endif %}{{ option.name }}</span>
                         <div class="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                            <button type="button" onclick="editMetadataOption('{{ option.id }}', 'pole', '{{ option.name|escapejs }}', '')" class="text-slate-400 hover:text-blue-500 transition-colors p-1" title="Modifier">
+                            <button type="button" onclick="editMetadataOption('{{ option.id }}', 'pole', '{{ option.name|escapejs }}', '', '{% if option.logo %}{% url 'powerbi_report:metadata_option_logo' option.id %}{% endif %}')" class="text-slate-400 hover:text-blue-500 transition-colors p-1" title="Modifier">
                                 <span class="material-symbols-outlined text-[16px]">edit</span>
                             </button>
                             <form action="{% url 'powerbi_report:metadata_option_delete' option.id %}" method="POST" onsubmit="return confirm('Supprimer ce pôle ?')">
@@ -191,13 +191,13 @@
                     {% for option in societes %}
                     <li class="flex items-center justify-between px-3 py-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg group transition-colors">
                         <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
-                            {{ option.name }}
+                            {% if option.logo %}<img src="{% url 'powerbi_report:metadata_option_logo' option.id %}" alt="" class="size-7 rounded-md object-contain bg-white border border-slate-200 dark:border-slate-700 p-0.5 mr-2 inline-block align-middle">{% endif %}{{ option.name }}
                             {% if option.parent %}
                             <span class="text-xs text-slate-400 dark:text-slate-500 font-normal ml-1">(Pôle: {{ option.parent.name }})</span>
                             {% endif %}
                         </span>
                         <div class="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                            <button type="button" onclick="editMetadataOption('{{ option.id }}', 'societe', '{{ option.name|escapejs }}', '{% if option.parent %}{{ option.parent.id }}{% endif %}')" class="text-slate-400 hover:text-blue-500 transition-colors p-1" title="Modifier">
+                            <button type="button" onclick="editMetadataOption('{{ option.id }}', 'societe', '{{ option.name|escapejs }}', '{% if option.parent %}{{ option.parent.id }}{% endif %}', '{% if option.logo %}{% url 'powerbi_report:metadata_option_logo' option.id %}{% endif %}')" class="text-slate-400 hover:text-blue-500 transition-colors p-1" title="Modifier">
                                 <span class="material-symbols-outlined text-[16px]">edit</span>
                             </button>
                             <form action="{% url 'powerbi_report:metadata_option_delete' option.id %}" method="POST" onsubmit="return confirm('Supprimer cette société ?')">
@@ -408,7 +408,7 @@
     <div class="fixed inset-0 z-10 overflow-y-auto">
         <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
             <div class="relative transform overflow-hidden rounded-2xl card-theme bg-white dark:bg-surface-dark text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-slate-200 dark:border-slate-800 animate-slide-up">
-                <form action="{% url 'powerbi_report:metadata_option_create' %}" method="POST">
+                <form action="{% url 'powerbi_report:metadata_option_create' %}" method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
                     <input type="hidden" name="option_type" id="metadata_option_type">
                     
@@ -453,6 +453,15 @@
                                 {% endfor %}
                             </div>
                         </div>
+                        <!-- Logo (Pôle / Société): shown on the mobile app cards -->
+                        <div id="add_metadata_logo_container" class="hidden">
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Logo (application mobile)</label>
+                            <div class="flex items-center gap-3">
+                                <img id="add_metadata_logo_preview" alt="" class="hidden size-14 rounded-xl object-contain bg-white border border-slate-200 dark:border-slate-700 p-1">
+                                <input type="file" name="logo" id="add_metadata_logo" accept="image/png,image/jpeg,image/webp" class="block w-full text-sm text-slate-600 dark:text-slate-300 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer" onchange="previewMetadataLogo(this, 'add_metadata_logo_preview')">
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-2">PNG, JPEG ou WEBP, 2 Mo max. Idéalement carré, fond transparent. Affiché avec le nom en dessous dans l'application mobile.</p>
+                        </div>
                     </div>
                     
                     <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-white/5 flex justify-end gap-3">
@@ -471,7 +480,7 @@
     <div class="fixed inset-0 z-10 overflow-y-auto">
         <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
             <div class="relative transform overflow-hidden rounded-2xl card-theme bg-white dark:bg-surface-dark text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-slate-200 dark:border-slate-800 animate-slide-up">
-                <form id="editMetadataForm" method="POST">
+                <form id="editMetadataForm" method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
                     <input type="hidden" name="option_type" id="edit_metadata_option_type">
                     
@@ -515,6 +524,22 @@
                                 </label>
                                 {% endfor %}
                             </div>
+                        </div>
+                        <!-- Logo (Pôle / Société): shown on the mobile app cards -->
+                        <div id="edit_metadata_logo_container" class="hidden">
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Logo (application mobile)</label>
+                            <div id="edit_metadata_logo_current" class="hidden items-center gap-3 mb-3">
+                                <img id="edit_metadata_logo_img" alt="" class="size-14 rounded-xl object-contain bg-white border border-slate-200 dark:border-slate-700 p-1">
+                                <label class="flex items-center gap-2 cursor-pointer m-0">
+                                    <input type="checkbox" name="remove_logo" id="edit_metadata_remove_logo" class="w-4 h-4 text-red-500 bg-slate-100 border-slate-300 rounded">
+                                    <span class="text-sm text-slate-600 dark:text-slate-300">Supprimer le logo</span>
+                                </label>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <img id="edit_metadata_logo_preview" alt="" class="hidden size-14 rounded-xl object-contain bg-white border border-slate-200 dark:border-slate-700 p-1">
+                                <input type="file" name="logo" id="edit_metadata_logo" accept="image/png,image/jpeg,image/webp" class="block w-full text-sm text-slate-600 dark:text-slate-300 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer" onchange="previewMetadataLogo(this, 'edit_metadata_logo_preview')">
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-2">PNG, JPEG ou WEBP, 2 Mo max. Idéalement carré, fond transparent. Affiché avec le nom en dessous dans l'application mobile.</p>
                         </div>
                     </div>
                     
@@ -560,7 +585,34 @@
         document.body.style.overflow = 'auto';
     }
 
+    function previewMetadataLogo(input, previewId) {
+        const preview = document.getElementById(previewId);
+        const file = input.files && input.files[0];
+        if (!file) { preview.classList.add('hidden'); preview.removeAttribute('src'); return; }
+        preview.src = URL.createObjectURL(file);
+        preview.classList.remove('hidden');
+    }
+
+    function resetMetadataLogo(prefix, type, logoUrl) {
+        const container = document.getElementById(prefix + '_logo_container');
+        document.getElementById(prefix + '_logo').value = '';
+        document.getElementById(prefix + '_logo_preview').classList.add('hidden');
+        container.classList.toggle('hidden', !(type === 'pole' || type === 'societe'));
+        const current = document.getElementById(prefix + '_logo_current');
+        if (!current) return;
+        document.getElementById(prefix + '_remove_logo').checked = false;
+        if (logoUrl) {
+            document.getElementById(prefix + '_logo_img').src = logoUrl;
+            current.classList.remove('hidden');
+            current.classList.add('flex');
+        } else {
+            current.classList.add('hidden');
+            current.classList.remove('flex');
+        }
+    }
+
     function openMetadataModal(type, title) {
+        resetMetadataLogo('add_metadata', type, '');
         document.getElementById('metadata_option_type').value = type;
         document.getElementById('metadataModalTitle').textContent = title;
         
@@ -590,7 +642,8 @@
         openModal('addMetadataModal');
     }
 
-    function editMetadataOption(id, type, name, parentId) {
+    function editMetadataOption(id, type, name, parentId, logoUrl) {
+        resetMetadataLogo('edit_metadata', type, logoUrl || '');
         const form = document.getElementById('editMetadataForm');
         form.action = "{% url 'powerbi_report:metadata_option_edit' 999999 %}".replace('999999', id);
         

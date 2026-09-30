@@ -5,6 +5,16 @@ from users.models import CustomUser
 
 # Unused models removed for cleanup
 
+LOGO_OPTION_TYPES = ('pole', 'societe')
+
+
+def metadata_logo_path(instance, filename: str) -> str:
+    """Unique name per upload, so a new logo gets a new URL (mobile caches by URL)."""
+    import os
+    import uuid
+    extension = os.path.splitext(filename)[1].lower() or '.png'
+    return f"metadata_logos/{instance.option_type}-{uuid.uuid4().hex[:12]}{extension}"
+
 class PBIRSServer(models.Model):
     name = models.CharField(max_length=255, unique=True, help_text="A display name for this PBIRS instance")
     base_url = models.URLField(max_length=512, help_text="Base URL for the PBIRS API (e.g., http://server/Reports/api/v2.0)")
@@ -115,6 +125,17 @@ class ReportRef(models.Model):
         blank=True,
         limit_choices_to={'option_type': 'module'},
         help_text="Modules concernés par le rapport"
+    )
+    # Portrait "phone" edition of this report (a separate PBIRS report). PBIRS cannot
+    # render a report's mobile layout in a browser, so the mobile app opens this one
+    # in portrait and the regular report in landscape / full screen.
+    mobile_report = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='desktop_versions',
+        help_text="Version téléphone (rapport au format portrait) affichée par l'application mobile"
     )
 
     class Meta:
@@ -323,6 +344,8 @@ class MetadataOption(models.Model):
         related_name='children',
         help_text="Parent option (e.g. link Société to a Pôle)"
     )
+    # Card image shown by the mobile app for pôles and sociétés.
+    logo = models.ImageField(upload_to=metadata_logo_path, null=True, blank=True)
     
     class Meta:
         verbose_name = "Metadata Option"

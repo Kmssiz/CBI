@@ -14,8 +14,9 @@ from urllib.parse import quote, urlsplit
 
 from django.conf import settings
 from django.http import HttpRequest
+from django.urls import reverse
 
-from powerbi_report.models import PBIRSServer, ReportRef, UserReportPermission
+from powerbi_report.models import LOGO_OPTION_TYPES, PBIRSServer, ReportRef, UserReportPermission
 from users.models import CustomUser, MobileFavorite
 
 GENERAL_TAB = 'Général'
@@ -55,6 +56,27 @@ def user_can_open(user: CustomUser, report: ReportRef) -> bool:
     if is_mobile_admin(user):
         return True
     return UserReportPermission.objects.filter(user=user, report=report).exists()
+
+
+class ReportAccess:
+    """Which reports a user may open, loaded once (admins may open everything)."""
+
+    def __init__(self, user: CustomUser) -> None:
+        self._all = is_mobile_admin(user)
+        self._ids = set() if self._all else set(
+            UserReportPermission.objects.filter(user=user).values_list('report_id', flat=True)
+        )
+
+    def can_open(self, report_id: int | None) -> bool:
+        return report_id is not None and (self._all or report_id in self._ids)
+
+
+def metadata_logo_url(option) -> str | None:
+    """Versioned URL (the file name changes on every upload) so the app can cache logos."""
+    if not option.logo:
+        return None
+    version = option.logo.name.rsplit('/', 1)[-1].rsplit('.', 1)[0]
+    return f"{reverse('mobile:metadata_logo', args=[option.pk])}?v={version}"
 
 
 def make_code(name: str) -> str:
@@ -138,8 +160,17 @@ def embed_url(report: ReportRef, server: dict | None) -> str:
     return f"{server['base_url']}/Reports/powerbi/{path}?rs:embed=true"
 
 
-def serialize_report(report: ReportRef, servers: ServerRegistry, favorite_ids: set[int]) -> dict:
+def serialize_report(report: ReportRef, servers: ServerRegistry, favorite_ids: set[int],
+                     access: ReportAccess) -> dict:
     server = servers.for_report(report)
+    phone = None
+    if report.mobile_report_id and access.can_open(report.mobile_report_id):
+        phone_server = servers.for_report(report.mobile_report)
+        phone = {
+            'id': report.mobile_report_id,
+            'server_id': phone_server['id'] if phone_server else None,
+            'embed_url': embed_url(report.mobile_report, phone_server),
+        }
     return {
         'id': report.pk,
         'name': report.name,
@@ -147,6 +178,8 @@ def serialize_report(report: ReportRef, servers: ServerRegistry, favorite_ids: s
         'location': describe_location(report),
         'server_id': server['id'] if server else None,
         'embed_url': embed_url(report, server),
+        # Portrait edition linked in the web admin; the app prefers it in portrait.
+        'phone': phone,
         'modified_at': report.modified_at.isoformat() if report.modified_at else None,
         'favorite': report.pk in favorite_ids,
     }
@@ -157,7 +190,16 @@ def favorite_ids_for(user: CustomUser) -> set[int]:
 
 
 def with_metadata(queryset):
-    return queryset.prefetch_related('poles', 'directions', 'societes__parent', 'modules')
+    return queryset.select_related('mobile_report').prefetch_related(
+        'poles', 'directions', 'societes__parent', 'modules',
+    )
+
+
+def phone_edition_ids() -> set[int]:
+    """Reports that are the phone edition of another one: reachable through it, not listed."""
+    return set(
+        ReportRef.objects.filter(mobile_report__isnull=False).values_list('mobile_report_id', flat=True)
+    )
 
 
 # --- catalogue -------------------------------------------------------------
@@ -167,6 +209,7 @@ class _Group:
     key: str
     name: str
     parent: str | None = None
+    logo_url: str | None = None
     tabs: dict[str, dict] = field(default_factory=dict)
 
     def add(self, tab_key: str, tab_name: str, report_id: int) -> None:
@@ -181,6 +224,8 @@ class _Group:
         data = {'key': self.key, 'name': self.name, 'code': make_code(self.name), 'tabs': tabs}
         if self.parent:
             data['parent'] = self.parent
+        if self.logo_url:
+            data['logo_url'] = self.logo_url
         return data
 
 
@@ -203,8 +248,11 @@ def _group_by_option(reports: Iterable[ReportRef], attribute: str, prefix: str, 
     groups: dict[int, _Group] = {}
     for report in reports:
         for option in getattr(report, attribute).all():
-            parent = option.parent.name if prefix == 'societe' and option.parent_id else None
-            group = groups.setdefault(option.pk, _Group(f'{prefix}:{option.pk}', option.name, parent))
+            if option.pk not in groups:
+                parent = option.parent.name if prefix == 'societe' and option.parent_id else None
+                logo = metadata_logo_url(option) if prefix in LOGO_OPTION_TYPES else None
+                groups[option.pk] = _Group(f'{prefix}:{option.pk}', option.name, parent, logo)
+            group = groups[option.pk]
             if split_directions:
                 _group_by_direction(group, [report])
             else:
@@ -242,7 +290,9 @@ def build_catalog(request: HttpRequest) -> dict:
     all_ids = set().union(*visible.values())
     reports_by_pbirs_id = {
         report.pbirs_id: report
-        for report in with_metadata(ReportRef.objects.filter(pbirs_id__in=all_ids))
+        for report in with_metadata(
+            ReportRef.objects.filter(pbirs_id__in=all_ids).exclude(pk__in=phone_edition_ids())
+        )
     }
     reports_by_pk = {report.pk: report for report in reports_by_pbirs_id.values()}
     names = {pk: report.name for pk, report in reports_by_pk.items()}
@@ -265,10 +315,10 @@ def build_catalog(request: HttpRequest) -> dict:
             report_id for group in groups for tab in group['tabs'] for report_id in tab['report_ids']
         )
 
-    servers = ServerRegistry()
+    servers, access = ServerRegistry(), ReportAccess(user)
     favorite_ids = favorite_ids_for(user)
     serialized = {
-        str(pk): serialize_report(reports_by_pk[pk], servers, favorite_ids)
+        str(pk): serialize_report(reports_by_pk[pk], servers, favorite_ids, access)
         for pk in sorted(referenced_ids)
     }
     return {

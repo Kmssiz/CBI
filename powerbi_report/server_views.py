@@ -1,16 +1,60 @@
 import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.core.exceptions import ValidationError
+from django import forms
+from django.http import FileResponse, Http404, JsonResponse
 from django.contrib import messages
 from django.views.decorators.http import require_http_methods
-from .models import PBIRSServer, MetadataOption, ReportRef
+from .models import LOGO_OPTION_TYPES, PBIRSServer, MetadataOption, ReportRef
 from notifications.models import Notification
 from users.utils import get_user_permissions, admin_required
 from django.conf import settings
 import json
 
 logger = logging.getLogger('powerbi_report')
+
+LOGO_MAX_BYTES = 2 * 1024 * 1024
+LOGO_FORMATS = {'PNG', 'JPEG', 'WEBP'}
+
+
+def _validated_logo_upload(request, option_type: str):
+    """The uploaded mobile card logo, or None. Raises ValidationError (user-facing) when rejected."""
+    upload = request.FILES.get('logo')
+    if upload is None or option_type not in LOGO_OPTION_TYPES:
+        return None
+    if upload.size > LOGO_MAX_BYTES:
+        raise ValidationError("Le logo dépasse 2 Mo.")
+    image = forms.ImageField().clean(upload)  # rejects files that are not images
+    if getattr(image.image, 'format', None) not in LOGO_FORMATS:
+        raise ValidationError("Formats acceptés : PNG, JPEG ou WEBP.")
+    upload.seek(0)
+    return upload
+
+
+def _apply_logo_change(request, option: MetadataOption, upload) -> None:
+    """Replace the logo with a validated upload, or remove it when asked."""
+    if option.option_type not in LOGO_OPTION_TYPES:
+        return
+    if upload is not None:
+        if option.logo:
+            option.logo.delete(save=False)
+        option.logo = upload
+    elif request.POST.get('remove_logo') == 'on' and option.logo:
+        option.logo.delete(save=False)
+        option.logo = None
+
+
+@login_required
+def metadata_option_logo(request, option_id):
+    """Serve a metadata logo to the web portal (media files are not served in production)."""
+    option = get_object_or_404(MetadataOption, id=option_id)
+    if not option.logo:
+        raise Http404
+    try:
+        return FileResponse(option.logo.open('rb'))
+    except (FileNotFoundError, OSError):
+        raise Http404
 
 
 @login_required
@@ -133,6 +177,7 @@ def metadata_option_create(request):
             messages.error(request, "Le type et le nom de l'option sont requis.")
             return redirect('powerbi_report:server_management_list')
 
+        logo = _validated_logo_upload(request, option_type)
         parent = None
         if option_type == 'societe' and parent_id:
             parent = get_object_or_404(MetadataOption, id=parent_id, option_type='pole')
@@ -144,7 +189,8 @@ def metadata_option_create(request):
         )
         if not created and parent:
             option.parent = parent
-            option.save()
+        _apply_logo_change(request, option, logo)
+        option.save()
 
         # Link child Sociétés to Pôle on creation
         if option_type == 'pole':
@@ -153,6 +199,8 @@ def metadata_option_create(request):
                 MetadataOption.objects.filter(id__in=societe_ids, option_type='societe').update(parent=option)
 
         messages.success(request, f"L'option '{name}' a été ajoutée avec succès.")
+    except ValidationError as e:
+        messages.error(request, " ".join(e.messages))
     except Exception as e:
         logger.error(f"Error creating metadata option: {e}")
         messages.error(request, f"Erreur lors de l'ajout: {e}")
@@ -173,6 +221,7 @@ def metadata_option_edit(request, option_id):
             messages.error(request, "Le nom de l'option est requis.")
             return redirect('powerbi_report:server_management_list')
 
+        logo = _validated_logo_upload(request, option.option_type)
         old_name = option.name
         option.name = name
         
@@ -182,7 +231,8 @@ def metadata_option_edit(request, option_id):
                 option.parent = parent
             else:
                 option.parent = None
-        
+
+        _apply_logo_change(request, option, logo)
         option.save()
 
         # Update child Sociétés when Pôle is edited
@@ -207,6 +257,8 @@ def metadata_option_edit(request, option_id):
                     r.societe = ", ".join([s.name for s in r.societes.all()])
                     r.save()
         messages.success(request, f"L'option '{name}' a été modifiée avec succès.")
+    except ValidationError as e:
+        messages.error(request, " ".join(e.messages))
     except Exception as e:
         logger.error(f"Error editing metadata option {option_id}: {e}")
         messages.error(request, f"Erreur lors de la modification: {e}")
@@ -220,6 +272,8 @@ def metadata_option_delete(request, option_id):
     try:
         option = get_object_or_404(MetadataOption, id=option_id)
         name = option.name
+        if option.logo:
+            option.logo.delete(save=False)
         
         # Propagate delete to legacy CharFields on affected ReportRef instances
         if option.option_type == 'pole':

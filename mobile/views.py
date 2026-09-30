@@ -10,14 +10,14 @@ from django.http import FileResponse, HttpRequest, HttpResponse, JsonResponse
 from django.utils import timezone
 
 from notifications.models import Notification
-from powerbi_report.models import ReportRef
+from powerbi_report.models import LOGO_OPTION_TYPES, MetadataOption, ReportRef
 from tickets.models import Ticket, TicketMessage
 from tickets.views import _can_access_ticket, _is_admin as _is_ticket_admin
 from users.models import CustomUser, MobileFavorite, UserHistory
 
 from .catalog import (
-    ServerRegistry, build_catalog, favorite_ids_for, is_mobile_admin, serialize_report,
-    user_can_open, with_metadata,
+    ReportAccess, ServerRegistry, build_catalog, favorite_ids_for, is_mobile_admin,
+    serialize_report, user_can_open, with_metadata,
 )
 from .http import api_error, dispatch, int_param, mobile_endpoint, read_json
 from .serializers import (
@@ -64,6 +64,22 @@ def user_photo_view(request: HttpRequest, user_id: int) -> HttpResponse:
     return _photo_response(user) if user else _not_found()
 
 
+@mobile_endpoint('GET')
+def metadata_logo_view(request: HttpRequest, option_id: int) -> HttpResponse:
+    option = MetadataOption.objects.filter(pk=option_id, option_type__in=LOGO_OPTION_TYPES).first()
+    if option is None or not option.logo:
+        return _not_found()
+    try:
+        handle = option.logo.open('rb')
+    except (FileNotFoundError, OSError):
+        return _not_found()
+    content_type = mimetypes.guess_type(option.logo.name)[0] or 'application/octet-stream'
+    response = FileResponse(handle, content_type=content_type)
+    # The catalogue URL carries ?v=<file name>, so a cached copy is never stale.
+    response['Cache-Control'] = 'private, max-age=31536000, immutable'
+    return response
+
+
 # --- catalogue & reports ---------------------------------------------------
 
 def _unread_count(user: CustomUser) -> int:
@@ -94,7 +110,8 @@ def _openable_report(request: HttpRequest, report_id: int) -> ReportRef | None:
 
 
 def _report_payload(request: HttpRequest, report: ReportRef, servers: ServerRegistry | None = None) -> dict:
-    return serialize_report(report, servers or ServerRegistry(), favorite_ids_for(request.user))
+    return serialize_report(report, servers or ServerRegistry(), favorite_ids_for(request.user),
+                            ReportAccess(request.user))
 
 
 @mobile_endpoint('GET')
@@ -141,10 +158,11 @@ def report_close_view(request: HttpRequest, report_id: int) -> JsonResponse:
 @mobile_endpoint('GET')
 def favorites_view(request: HttpRequest) -> JsonResponse:
     servers, favorite_ids = ServerRegistry(), favorite_ids_for(request.user)
+    access = ReportAccess(request.user)
     reports = with_metadata(ReportRef.objects.filter(pk__in=favorite_ids))
     items = [
-        serialize_report(report, servers, favorite_ids)
-        for report in reports if user_can_open(request.user, report)
+        serialize_report(report, servers, favorite_ids, access)
+        for report in reports if access.can_open(report.pk)
     ]
     items.sort(key=lambda item: (item['location'].casefold(), item['name'].casefold()))
     return JsonResponse({'favorites': items})

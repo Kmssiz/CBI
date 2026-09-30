@@ -1119,6 +1119,13 @@ def update_report_metadata_local(request, report_id: str):
     selected_modules = request.POST.getlist('modules')
     report_ref.modules.set(selected_modules)
 
+    # Phone edition opened by the mobile app in portrait (empty = none).
+    mobile_report_id = request.POST.get('mobile_report_id', '').strip()
+    report_ref.mobile_report = (
+        ReportRef.objects.exclude(pk=report_ref.pk).filter(pk=mobile_report_id).first()
+        if mobile_report_id.isdigit() else None
+    )
+
     # Sync legacy CharFields for backward compatibility
     report_ref.societe = ", ".join([s.name for s in report_ref.societes.all()]) or None
     report_ref.pole = ", ".join([p.name for p in report_ref.poles.all()]) or None
@@ -1307,6 +1314,7 @@ def report_detail(request, report_id):
     report_direction_ids = list(report_ref.directions.values_list('id', flat=True))
     report_societe_ids = list(report_ref.societes.values_list('id', flat=True))
     report_module_ids = list(report_ref.modules.values_list('id', flat=True))
+    mobile_report_candidates = ReportRef.objects.exclude(pk=report_ref.pk).only('id', 'name', 'path').order_by('name')
 
     return render(request, 'powerbi_report/report_detail.html', {
         'notifications': notifications,
@@ -1327,6 +1335,7 @@ def report_detail(request, report_id):
         'report_direction_ids': report_direction_ids,
         'report_societe_ids': report_societe_ids,
         'report_module_ids': report_module_ids,
+        'mobile_report_candidates': mobile_report_candidates,
         'societe_pole_map_json': _json.dumps(societe_pole_map),
     })
 
