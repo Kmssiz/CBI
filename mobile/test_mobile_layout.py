@@ -119,6 +119,8 @@ class MobileLayoutEndpointTests(MobileTestCase):
                 'http://10.20.10.63/Reports/api/v2.0/PowerBIReports(id-Chiffre Puma)/Content'))
             self.layout()  # within 15 min: served from the database, PBIRS not called
         self.assertEqual(calls, {'metadata': 1, 'download': 1})
+        catalog = self.client.get(url('catalog'), **self.auth).json()
+        self.assertTrue(catalog['reports'][str(self.report_ref.pk)]['has_mobile_layout'])
 
     def test_reextracts_only_when_the_report_changed(self):
         get, calls = self.fake_pbirs()

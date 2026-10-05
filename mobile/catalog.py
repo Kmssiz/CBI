@@ -13,6 +13,7 @@ from typing import Iterable
 from urllib.parse import quote, urlsplit
 
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpRequest
 from django.urls import reverse
 
@@ -180,6 +181,8 @@ def serialize_report(report: ReportRef, servers: ServerRegistry, favorite_ids: s
         'embed_url': embed_url(report, server),
         # Portrait edition linked in the web admin; the app prefers it in portrait.
         'phone': phone,
+        # Power BI phone layout already extracted for this report (see mobile/mobile_layout.py).
+        'has_mobile_layout': _has_mobile_layout(report),
         'modified_at': report.modified_at.isoformat() if report.modified_at else None,
         'favorite': report.pk in favorite_ids,
     }
@@ -189,8 +192,15 @@ def favorite_ids_for(user: CustomUser) -> set[int]:
     return set(MobileFavorite.objects.filter(user=user).values_list('report_id', flat=True))
 
 
+def _has_mobile_layout(report: ReportRef) -> bool:
+    try:
+        return bool(report.mobile_layout.data.get('pages'))
+    except ObjectDoesNotExist:
+        return False
+
+
 def with_metadata(queryset):
-    return queryset.select_related('mobile_report').prefetch_related(
+    return queryset.select_related('mobile_report', 'mobile_layout').prefetch_related(
         'poles', 'directions', 'societes__parent', 'modules',
     )
 
