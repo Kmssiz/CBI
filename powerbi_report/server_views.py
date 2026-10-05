@@ -32,16 +32,24 @@ def _validated_logo_upload(request, option_type: str):
     return upload
 
 
+def _discard_logo_file(option: MetadataOption) -> None:
+    """Best effort: an old file that cannot be deleted must not block the change."""
+    try:
+        option.logo.delete(save=False)
+    except OSError as exc:
+        logger.warning("Could not delete old logo %s: %s", option.logo.name, exc)
+
+
 def _apply_logo_change(request, option: MetadataOption, upload) -> None:
     """Replace the logo with a validated upload, or remove it when asked."""
     if option.option_type not in LOGO_OPTION_TYPES:
         return
     if upload is not None:
         if option.logo:
-            option.logo.delete(save=False)
+            _discard_logo_file(option)
         option.logo = upload
     elif request.POST.get('remove_logo') == 'on' and option.logo:
-        option.logo.delete(save=False)
+        _discard_logo_file(option)
         option.logo = None
 
 
@@ -273,7 +281,7 @@ def metadata_option_delete(request, option_id):
         option = get_object_or_404(MetadataOption, id=option_id)
         name = option.name
         if option.logo:
-            option.logo.delete(save=False)
+            _discard_logo_file(option)
         
         # Propagate delete to legacy CharFields on affected ReportRef instances
         if option.option_type == 'pole':

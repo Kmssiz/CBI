@@ -181,6 +181,22 @@ Call right before showing the WebView. Records the consultation (history).
 {"view_id": 991, "embed_url": "http://10.20.10.63/Reports/powerbi/…?rs:embed=true", "server": { …servers item… }, "report": { …report… }}
 ```
 
+### `GET reports/<id>/mobile-layout/`
+The report's Power BI **phone layout** (designed in Power BI Desktop → Mobile
+layout), extracted by the backend from the .pbix (downloaded from PBIRS with the
+service account; cached, re-read when the report changes on PBIRS). No data,
+only placement: per page (section name), the portrait canvas and each visual's
+phone position plus its phone-only formatting (`Report/MobileState`).
+```json
+{"available": true, "version": 1, "pages": {"ReportSection": {"display_name": "CA GLOBAL", "width": 324, "height": 1514,
+  "visuals": {"b7b6a95e2ea9445b6096": {"x": 10, "y": 55, "z": 3000, "width": 144, "height": 100, "objects": {"labels": [ … ]}}}}}}
+```
+`{"available": false, "pages": {}}` when the report has no phone layout or PBIRS
+is unreachable (the app then shows the desktop layout). Pages missing from
+`pages` have no phone layout. The app injects this into the report page, where
+`new_app/assets/js/pbi_mobile_layout.js` rewrites the layout PBIRS sends to its
+renderer.
+
 ### `POST reports/<id>/close/`
 Body `{"view_id": 991, "duration_seconds": 184}`. Records how long the report was
 viewed. `200 {"ok": true}`. Unknown/foreign `view_id` → `404`.

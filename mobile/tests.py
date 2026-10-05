@@ -518,7 +518,9 @@ class LogoAndPhoneEditionTests(MobileTestCase):
         self.mdm.refresh_from_db()
         first = self.mdm.logo.name
         self.assertTrue(first.startswith('metadata_logos/societe-'))
-        self.assertEqual(client.get(reverse('powerbi_report:metadata_option_logo', args=[self.mdm.pk])).status_code, 200)
+        preview = client.get(reverse('powerbi_report:metadata_option_logo', args=[self.mdm.pk]))
+        self.assertEqual(preview.status_code, 200)
+        preview.close()  # release the file (Windows locks open files)
 
         client.post(edit, {'name': 'MDM', 'parent_id': self.production.pk, 'logo': png_upload('new.webp', fmt='WEBP')})
         self.mdm.refresh_from_db()

@@ -18,6 +18,7 @@ urlpatterns = [
     path('reports/<int:report_id>/', views.report_detail_view, name='report'),
     path('reports/<int:report_id>/open/', views.report_open_view, name='report_open'),
     path('reports/<int:report_id>/close/', views.report_close_view, name='report_close'),
+    path('reports/<int:report_id>/mobile-layout/', views.report_mobile_layout_view, name='report_mobile_layout'),
 
     path('favorites/', views.favorites_view, name='favorites'),
     path('favorites/<int:report_id>/', views.favorite_view, name='favorite'),

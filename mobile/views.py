@@ -1,6 +1,7 @@
 """Authenticated mobile endpoints (see docs/MOBILE_API.md)."""
 import hashlib
 import json
+import logging
 import mimetypes
 from datetime import timedelta
 
@@ -24,6 +25,8 @@ from .serializers import (
     REPORT_VIEW_PREFIX, serialize_history, serialize_me, serialize_notification,
     serialize_ticket, serialize_ticket_message, serialize_user_summary,
 )
+
+logger = logging.getLogger('users')
 
 
 def _not_found() -> JsonResponse:
@@ -135,6 +138,22 @@ def report_open_view(request: HttpRequest, report_id: int) -> JsonResponse:
     )
     payload = _report_payload(request, report, servers)
     return JsonResponse({'view_id': entry.pk, 'embed_url': payload['embed_url'], 'server': server, 'report': payload})
+
+
+@mobile_endpoint('GET')
+def report_mobile_layout_view(request: HttpRequest, report_id: int) -> JsonResponse:
+    """Phone layout of the report's pages; the app keeps the desktop view when unavailable."""
+    from .mobile_layout import MobileLayoutUnavailable, mobile_layout_for
+
+    report = _openable_report(request, report_id)
+    if report is None:
+        return _not_found()
+    try:
+        data = mobile_layout_for(report)
+    except MobileLayoutUnavailable as exc:
+        logger.warning('Mobile layout unavailable for report %s: %s', report.pk, exc)
+        return JsonResponse({'available': False, 'pages': {}})
+    return JsonResponse({'available': bool(data.get('pages')), **data})
 
 
 @mobile_endpoint('POST')
