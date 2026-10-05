@@ -6,7 +6,6 @@ from django.urls import reverse
 from django.utils import timezone
 
 from notifications.models import Notification
-from tickets.models import Ticket, TicketMessage
 from users.models import CustomUser, UserHistory
 
 from .catalog import describe_location, is_mobile_admin, view_access
@@ -94,31 +93,4 @@ def serialize_history(entry: UserHistory) -> dict:
         'opened_at': _iso(entry.timestamp),
         'duration_seconds': entry.duration_seconds,
         'source': entry.source,
-    }
-
-
-def serialize_ticket(ticket: Ticket, messages_count: int | None = None) -> dict:
-    return {
-        'id': ticket.pk,
-        'title': ticket.title,
-        'description': ticket.description,
-        'ticket_type': ticket.ticket_type,
-        'ticket_type_label': ticket.get_ticket_type_display(),
-        'priority': ticket.priority,
-        'priority_label': ticket.get_priority_display(),
-        'status': ticket.status,
-        'status_label': ticket.get_status_display(),
-        'created_at': _iso(ticket.created_at),
-        'updated_at': _iso(ticket.updated_at),
-        'messages_count': messages_count if messages_count is not None else ticket.messages.count(),
-    }
-
-
-def serialize_ticket_message(message: TicketMessage, viewer: CustomUser) -> dict:
-    return {
-        'id': message.pk,
-        'sender': message.sender.get_full_name() or message.sender.username,
-        'is_mine': message.sender_id == viewer.pk,
-        'content': message.content,
-        'created_at': _iso(message.created_at),
     }

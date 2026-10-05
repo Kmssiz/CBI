@@ -6,14 +6,12 @@ import mimetypes
 from datetime import timedelta
 
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db.models import Count, Max, OuterRef, Q, Subquery
+from django.db.models import Max, OuterRef, Q, Subquery
 from django.http import FileResponse, HttpRequest, HttpResponse, JsonResponse
 from django.utils import timezone
 
 from notifications.models import Notification
 from powerbi_report.models import LOGO_OPTION_TYPES, MetadataOption, ReportRef
-from tickets.models import Ticket, TicketMessage
-from tickets.views import _can_access_ticket, _is_admin as _is_ticket_admin
 from users.models import CustomUser, MobileFavorite, UserHistory
 
 from .catalog import (
@@ -23,7 +21,7 @@ from .catalog import (
 from .http import api_error, dispatch, int_param, mobile_endpoint, read_json
 from .serializers import (
     REPORT_VIEW_PREFIX, serialize_history, serialize_me, serialize_notification,
-    serialize_ticket, serialize_ticket_message, serialize_user_summary,
+    serialize_user_summary,
 )
 
 logger = logging.getLogger('users')
@@ -318,66 +316,3 @@ def history_user_detail_view(request: HttpRequest, user_id: int) -> JsonResponse
         'user': serialize_user_summary(user),
         'history': [serialize_history(e) for e in _consultations(user, days)[:500]],
     })
-
-
-# --- tickets ---------------------------------------------------------------
-
-def _tickets_list(request: HttpRequest) -> JsonResponse:
-    tickets = Ticket.objects.all() if _is_ticket_admin(request.user) else Ticket.objects.filter(created_by=request.user)
-    tickets = tickets.annotate(messages_total=Count('messages'))[:200]
-    return JsonResponse({'tickets': [serialize_ticket(t, t.messages_total) for t in tickets]})
-
-
-def _tickets_create(request: HttpRequest) -> JsonResponse:
-    data = read_json(request)
-    if data is None:
-        return api_error(400, 'bad_request', 'Requête invalide.')
-    title = str(data.get('title') or '').strip()
-    description = str(data.get('description') or '').strip()
-    ticket_type = data.get('ticket_type') or 'other'
-    priority = data.get('priority') or 'medium'
-    if not title or not description:
-        return api_error(400, 'bad_request', 'Le titre et la description sont obligatoires.')
-    if ticket_type not in dict(Ticket.TICKET_TYPE_CHOICES) or priority not in dict(Ticket.PRIORITY_CHOICES):
-        return api_error(400, 'bad_request', 'Type ou priorité invalide.')
-    ticket = Ticket.objects.create(
-        title=title[:200], description=description, ticket_type=ticket_type,
-        priority=priority, created_by=request.user,
-    )
-    UserHistory.objects.create(user=request.user, action=f'Ticket créé : {ticket.title}'[:255],
-                               source=UserHistory.SOURCE_MOBILE)
-    return JsonResponse(serialize_ticket(ticket, 0), status=201)
-
-
-tickets_view = dispatch(GET=_tickets_list, POST=_tickets_create)
-
-
-def _accessible_ticket(request: HttpRequest, ticket_id: int) -> Ticket | None:
-    ticket = Ticket.objects.filter(pk=ticket_id).first()
-    return ticket if ticket and _can_access_ticket(request.user, ticket) else None
-
-
-@mobile_endpoint('GET')
-def ticket_detail_view(request: HttpRequest, ticket_id: int) -> JsonResponse:
-    ticket = _accessible_ticket(request, ticket_id)
-    if ticket is None:
-        return _not_found()
-    messages = list(ticket.messages.select_related('sender'))
-    return JsonResponse({
-        **serialize_ticket(ticket, len(messages)),
-        'messages': [serialize_ticket_message(message, request.user) for message in messages],
-    })
-
-
-@mobile_endpoint('POST')
-def ticket_message_view(request: HttpRequest, ticket_id: int) -> JsonResponse:
-    ticket = _accessible_ticket(request, ticket_id)
-    if ticket is None:
-        return _not_found()
-    data = read_json(request)
-    content = str((data or {}).get('content') or '').strip()
-    if not content:
-        return api_error(400, 'bad_request', 'Le message est vide.')
-    message = TicketMessage.objects.create(ticket=ticket, sender=request.user, content=content)
-    ticket.save(update_fields=['updated_at'])
-    return JsonResponse(serialize_ticket_message(message, request.user), status=201)

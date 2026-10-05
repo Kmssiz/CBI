@@ -245,18 +245,25 @@ Non-admins get `403`.
 Detailed history for one user (admins, or the user themselves).
 `{"user": { … }, "history": [ …history items… ]}`
 
-### `GET tickets/` · `POST tickets/`
-Support requests (same tickets as the web portal). Non-admins see their own.
-POST body: `{"title": "…", "description": "…", "ticket_type": "access|bug|dashboard|refresh|other", "priority": "low|medium|high"}`
+### Tickets — the platform's ticket system (`tickets` app), same rules
+Validation is the web's `TicketForm` / `TicketMessageForm` (images ≤ 5 MB).
+Admins see every ticket and manage status / assignee; others see their own.
+
+- `GET tickets/choices/` → `{ticket_types, categories, priorities, statuses: [{value, label}], is_admin, max_attachment_bytes}`
+- `GET tickets/?status=open|in_progress|closed|rejected[&assigned=me]` → `{is_admin, tickets: [ticket]}`
+- `POST tickets/` — multipart (`title`, `description`, `ticket_type`, `category`, `priority`, optional `attachment` image) or JSON without attachment → `201` ticket; `400 {detail, code, errors: {field: [..]}}`
+- `GET tickets/<id>/` → ticket + `messages` + `can_manage`
+- `POST tickets/<id>/messages/` — multipart (`content`, optional `attachment`) or JSON → `201` message
+- `POST tickets/<id>/update/` (admins) — JSON `{status?, assigned_to?: admin id | null}` → ticket
+- `GET tickets/admins/` (admins) → `{admins: [person]}` (assignable users)
+- `GET tickets/<id>/attachment/` · `GET tickets/<id>/messages/<mid>/attachment/` → image bytes (Bearer, access-checked)
+
+ticket:
 ```json
-{"tickets": [{"id": 5, "title": "…", "description": "…", "ticket_type": "access", "ticket_type_label": "Demande d'accès",
-              "priority": "medium", "status": "open", "status_label": "Ouvert", "created_at": "…", "updated_at": "…",
-              "messages_count": 2}]}
+{"id": 5, "title": "…", "description": "…", "ticket_type": "access", "ticket_type_label": "Demande d'accès",
+ "category": "cbi", "category_label": "CBI", "priority": "medium", "priority_label": "Moyenne",
+ "status": "open", "status_label": "Ouvert", "created_by": {"id": 42, "name": "…", "initials": "MB", "avatar_color": "#358BA4"},
+ "assigned_to": null, "attachment_url": "/mobile/v1/tickets/5/attachment/" | null,
+ "created_at": "…", "updated_at": "…", "messages_count": 2}
 ```
-POST returns `201` with the ticket.
-
-### `GET tickets/<id>/`
-Ticket plus `"messages": [{"id": 1, "sender": "…", "is_mine": true, "content": "…", "created_at": "…"}]`.
-
-### `POST tickets/<id>/messages/`
-Body `{"content": "…"}` → `201` with the message.
+message: `{"id", "sender", "author": person, "is_mine", "from_admin", "content", "attachment_url", "created_at"}`

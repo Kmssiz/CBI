@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import auth, views
+from . import auth, tickets, views
 
 app_name = 'mobile'
 
@@ -33,7 +33,13 @@ urlpatterns = [
     path('history/users/', views.history_users_view, name='history_users'),
     path('history/users/<int:user_id>/', views.history_user_detail_view, name='history_user'),
 
-    path('tickets/', views.tickets_view, name='tickets'),
-    path('tickets/<int:ticket_id>/', views.ticket_detail_view, name='ticket'),
-    path('tickets/<int:ticket_id>/messages/', views.ticket_message_view, name='ticket_messages'),
+    path('tickets/', tickets.tickets_view, name='tickets'),
+    path('tickets/choices/', tickets.choices_view, name='ticket_choices'),
+    path('tickets/admins/', tickets.ticket_admins_view, name='ticket_admins'),
+    path('tickets/<int:ticket_id>/', tickets.ticket_detail_view, name='ticket'),
+    path('tickets/<int:ticket_id>/update/', tickets.ticket_update_view, name='ticket_update'),
+    path('tickets/<int:ticket_id>/attachment/', tickets.ticket_attachment_view, name='ticket_attachment'),
+    path('tickets/<int:ticket_id>/messages/', tickets.ticket_message_view, name='ticket_messages'),
+    path('tickets/<int:ticket_id>/messages/<int:message_id>/attachment/', tickets.ticket_message_attachment_view,
+         name='ticket_message_attachment'),
 ]
