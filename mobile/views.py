@@ -111,8 +111,7 @@ def _openable_report(request: HttpRequest, report_id: int) -> ReportRef | None:
 
 
 def _report_payload(request: HttpRequest, report: ReportRef, servers: ServerRegistry | None = None) -> dict:
-    return serialize_report(report, servers or ServerRegistry(), favorite_ids_for(request.user),
-                            ReportAccess(request.user))
+    return serialize_report(report, servers or ServerRegistry(), favorite_ids_for(request.user))
 
 
 @mobile_endpoint('GET')
@@ -178,7 +177,7 @@ def favorites_view(request: HttpRequest) -> JsonResponse:
     access = ReportAccess(request.user)
     reports = with_metadata(ReportRef.objects.filter(pk__in=favorite_ids))
     items = [
-        serialize_report(report, servers, favorite_ids, access)
+        serialize_report(report, servers, favorite_ids)
         for report in reports if access.can_open(report.pk)
     ]
     items.sort(key=lambda item: (item['location'].casefold(), item['name'].casefold()))

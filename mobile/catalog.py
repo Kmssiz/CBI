@@ -161,17 +161,8 @@ def embed_url(report: ReportRef, server: dict | None) -> str:
     return f"{server['base_url']}/Reports/powerbi/{path}?rs:embed=true"
 
 
-def serialize_report(report: ReportRef, servers: ServerRegistry, favorite_ids: set[int],
-                     access: ReportAccess) -> dict:
+def serialize_report(report: ReportRef, servers: ServerRegistry, favorite_ids: set[int]) -> dict:
     server = servers.for_report(report)
-    phone = None
-    if report.mobile_report_id and access.can_open(report.mobile_report_id):
-        phone_server = servers.for_report(report.mobile_report)
-        phone = {
-            'id': report.mobile_report_id,
-            'server_id': phone_server['id'] if phone_server else None,
-            'embed_url': embed_url(report.mobile_report, phone_server),
-        }
     return {
         'id': report.pk,
         'name': report.name,
@@ -179,8 +170,6 @@ def serialize_report(report: ReportRef, servers: ServerRegistry, favorite_ids: s
         'location': describe_location(report),
         'server_id': server['id'] if server else None,
         'embed_url': embed_url(report, server),
-        # Portrait edition linked in the web admin; the app prefers it in portrait.
-        'phone': phone,
         # Power BI phone layout already extracted for this report (see mobile/mobile_layout.py).
         'has_mobile_layout': _has_mobile_layout(report),
         'modified_at': report.modified_at.isoformat() if report.modified_at else None,
@@ -200,15 +189,8 @@ def _has_mobile_layout(report: ReportRef) -> bool:
 
 
 def with_metadata(queryset):
-    return queryset.select_related('mobile_report', 'mobile_layout').prefetch_related(
+    return queryset.select_related('mobile_layout').prefetch_related(
         'poles', 'directions', 'societes__parent', 'modules',
-    )
-
-
-def phone_edition_ids() -> set[int]:
-    """Reports that are the phone edition of another one: reachable through it, not listed."""
-    return set(
-        ReportRef.objects.filter(mobile_report__isnull=False).values_list('mobile_report_id', flat=True)
     )
 
 
@@ -301,7 +283,7 @@ def build_catalog(request: HttpRequest) -> dict:
     reports_by_pbirs_id = {
         report.pbirs_id: report
         for report in with_metadata(
-            ReportRef.objects.filter(pbirs_id__in=all_ids).exclude(pk__in=phone_edition_ids())
+            ReportRef.objects.filter(pbirs_id__in=all_ids)
         )
     }
     reports_by_pk = {report.pk: report for report in reports_by_pbirs_id.values()}
@@ -325,10 +307,10 @@ def build_catalog(request: HttpRequest) -> dict:
             report_id for group in groups for tab in group['tabs'] for report_id in tab['report_ids']
         )
 
-    servers, access = ServerRegistry(), ReportAccess(user)
+    servers = ServerRegistry()
     favorite_ids = favorite_ids_for(user)
     serialized = {
-        str(pk): serialize_report(reports_by_pk[pk], servers, favorite_ids, access)
+        str(pk): serialize_report(reports_by_pk[pk], servers, favorite_ids)
         for pk in sorted(referenced_ids)
     }
     return {

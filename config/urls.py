@@ -35,7 +35,7 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
-from config.views import custom_404_view, custom_403_view
+from config.views import custom_404_view, custom_403_view, custom_500_view
 
 urlpatterns = [
     path('mobile/v1/', include('mobile.urls')),
@@ -55,3 +55,4 @@ if settings.DEBUG:
 
 handler404 = custom_404_view
 handler403 = custom_403_view
+handler500 = custom_500_view

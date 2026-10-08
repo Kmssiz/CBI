@@ -39,7 +39,7 @@ REPORT_TYPE_DASHBOARD = 'dashboard'
 
 REPORT_TYPE_CHOICES = [
     (REPORT_TYPE_ANOMALIE, 'Anomalie'),
-    (REPORT_TYPE_BIBLIOTHEQUE, 'BibliothÃ¨que'),
+    (REPORT_TYPE_BIBLIOTHEQUE, 'Bibliothèque'),
     (REPORT_TYPE_DASHBOARD, 'Dashboard'),
 ]
 
@@ -75,28 +75,29 @@ class ReportRef(models.Model):
     )
 
     # Local metadata fields (not synced from PBIRS)
-    pole = models.CharField(
-        max_length=128, blank=True, null=True,
-        help_text="PÃ´le organisationnel du rapport"
+    # TextField: holds a comma-joined list of every selected option (can be long).
+    pole = models.TextField(
+        blank=True, null=True,
+        help_text="Pôle organisationnel du rapport"
     )
-    direction = models.CharField(
-        max_length=128, blank=True, null=True,
-        help_text="Direction concernÃ©e par le rapport"
+    direction = models.TextField(
+        blank=True, null=True,
+        help_text="Direction concernée par le rapport"
     )
-    societe = models.CharField(
-        max_length=128, blank=True, null=True,
-        help_text="SociÃ©tÃ© concernÃ©e par le rapport"
+    societe = models.TextField(
+        blank=True, null=True,
+        help_text="Société concernée par le rapport"
     )
     report_type = models.CharField(
         max_length=20,
         choices=REPORT_TYPE_CHOICES,
         blank=True,
         null=True,
-        help_text="Type de rapport : Anomalie, BibliothÃ¨que ou Dashboard"
+        help_text="Type de rapport : Anomalie, Bibliothèque ou Dashboard"
     )
     is_consolide = models.BooleanField(
         default=False,
-        help_text="Rapport consolidÃ© (multi-sociÃ©tÃ©s/pÃ´les â€” champs pÃ´le/sociÃ©tÃ©/direction non applicables)"
+        help_text="Rapport consolidé (multi-sociétés/pôles — champs pôle/société/direction non applicables)"
     )
     poles = models.ManyToManyField(
         'MetadataOption',
@@ -125,17 +126,6 @@ class ReportRef(models.Model):
         blank=True,
         limit_choices_to={'option_type': 'module'},
         help_text="Modules concernés par le rapport"
-    )
-    # Portrait "phone" edition of this report (a separate PBIRS report). PBIRS cannot
-    # render a report's mobile layout in a browser, so the mobile app opens this one
-    # in portrait and the regular report in landscape / full screen.
-    mobile_report = models.ForeignKey(
-        'self',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='desktop_versions',
-        help_text="Version téléphone (rapport au format portrait) affichée par l'application mobile"
     )
 
     class Meta:
@@ -169,10 +159,10 @@ class CustomFolder(models.Model):
     """
     VIEW_TYPE_CHOICES = [
         ('direction', 'Direction Folders'),
-        ('pole', 'PÃ´le Folders'),
-        ('biblio', 'BibliothÃ¨que'),
+        ('pole', 'Pôle Folders'),
+        ('biblio', 'Bibliothèque'),
         ('anomalie', 'Anomalie'),
-        ('consolide', 'ConsolidÃ©'),
+        ('consolide', 'Consolidé'),
         ('module', 'Module'),
     ]
     

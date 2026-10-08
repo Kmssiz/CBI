@@ -494,7 +494,7 @@ def png_upload(name='logo.png', size=(40, 40), fmt='PNG'):
     return SimpleUploadedFile(name, buffer.getvalue(), content_type=f'image/{fmt.lower()}')
 
 
-class LogoAndPhoneEditionTests(MobileTestCase):
+class MetadataLogoTests(MobileTestCase):
     def setUp(self):
         super().setUp()
         import tempfile
@@ -566,35 +566,3 @@ class LogoAndPhoneEditionTests(MobileTestCase):
         self.assertIn('immutable', logo['Cache-Control'])
         self.assertEqual(self.client.get(group['logo_url']).status_code, 401)  # bearer required
         self.assertEqual(self.client.get(url('metadata_logo', self.dco.pk), **self.auth).status_code, 404)
-
-    def test_phone_edition_is_attached_to_its_report_and_hidden_from_lists(self):
-        phone = self.report('CA MDM (téléphone)', poles=[self.production], societes=[self.mdm], directions=[self.dco])
-        full = self.report('CA MDM', poles=[self.production], societes=[self.mdm], directions=[self.dco],
-                           mobile_report=phone)
-        body = self.client.get(url('catalog'), **self.auth).json()
-        self.assertNotIn(str(phone.pk), body['reports'])
-        entry = body['reports'][str(full.pk)]
-        self.assertEqual(entry['phone']['id'], phone.pk)
-        self.assertIn('CA%20MDM%20%28t%C3%A9l%C3%A9phone%29', entry['phone']['embed_url'])
-        self.assertEqual(entry['phone']['server_id'], self.server.pk)
-
-        opened = self.post_json('report_open', full.pk).json()
-        self.assertEqual(opened['report']['phone']['id'], phone.pk)
-
-        # Without permission on the phone edition, the app only gets the full report.
-        UserReportPermission.objects.filter(report=phone).delete()
-        body = self.client.get(url('catalog'), **self.auth).json()
-        self.assertIsNone(body['reports'][str(full.pk)]['phone'])
-
-    def test_admin_links_a_phone_edition_from_the_report_page(self):
-        full = self.report('Plein')
-        phone = self.report('Portrait')
-        client = self.web_admin()
-        metadata = reverse('powerbi_report:update_report_metadata', args=[full.pbirs_id])
-        with patch('powerbi_report.views.get_user_permissions', return_value={'change_powerbireport': True}):
-            client.post(metadata, {'mobile_report_id': str(phone.pk)})
-            full.refresh_from_db()
-            self.assertEqual(full.mobile_report, phone)
-            client.post(metadata, {'mobile_report_id': str(full.pk)})  # itself: ignored → cleared
-            full.refresh_from_db()
-            self.assertIsNone(full.mobile_report)

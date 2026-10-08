@@ -344,6 +344,23 @@ def _user_can_access_report(user, report_ref):
     return UserReportPermission.objects.filter(user=user, report=report_ref).exists()
 
 
+def _get_report_label(request, report_id: str) -> dict:
+    """
+    Return {'name', 'path'} for a report, never None.
+
+    Used for notifications and history after a PBIRS policy change: the change
+    has already been applied, so a failed info lookup must not abort the view.
+    """
+    info = get_powerbi_report_info(request, report_id) or {}
+    if info.get('name') and info.get('path'):
+        return info
+    report_ref = ReportRef.objects.filter(pbirs_id__iexact=report_id).first()
+    return {
+        'name': info.get('name') or (report_ref.name if report_ref else None) or report_id,
+        'path': info.get('path') or (report_ref.path if report_ref else None) or '',
+    }
+
+
 def _sync_local_permissions_for_report(report_id, user):
     """Refresh one report's local permissions after an admin PBIRS policy change."""
     try:
@@ -424,7 +441,7 @@ def _filter_reportref_to_leaf_items(report_refs):
 def _format_granted_reports_message(report_names: list[str]) -> str:
     """
     Build a concise user-facing granted-access message in French.
-    Example: "Vous avez obtenu l'accÃ¨s Ã  1 rapport(s) : Sales Report"
+    Example: "Vous avez obtenu l'accès à 1 rapport(s) : Sales Report"
     """
     cleaned_names = [
         (name or "").strip()
@@ -432,7 +449,7 @@ def _format_granted_reports_message(report_names: list[str]) -> str:
         if (name or "").strip()
     ]
     details = ", ".join(cleaned_names) if cleaned_names else "N/A"
-    return f"Vous avez obtenu l'accÃ¨s Ã  {len(cleaned_names)} rapport(s) : {details}"
+    return f"Vous avez obtenu l'accès à {len(cleaned_names)} rapport(s) : {details}"
 
 
 def _get_assignable_reports_from_pbirs(request):
@@ -780,7 +797,7 @@ def report_list_hierarchy(request, folder_path=""):
     unread = notifications.filter(is_read=False).count()
      # Log only when folder_path is root (empty or "/")
     # if not folder_path or folder_path == "/":
-        # log_history(request.user, "Liste des rapports Power BI consultÃ©e (hiÃ©rarchie)")
+        # log_history(request.user, "Liste des rapports Power BI consultée (hiérarchie)")
 
     permissions = get_user_permissions(request.user)
 
@@ -842,7 +859,7 @@ def upload_powerbi_report(request):
             response = session.post(api_url, headers=headers, files=files)
             response.raise_for_status()
             messages.success(request, f"Report '{report_name}' uploaded successfully.")
-            log_history(request.user, f"Rapport Power BI tÃ©lÃ©versÃ© : {report_path}")
+            log_history(request.user, f"Rapport Power BI téléversé : {report_path}")
             # Clear the cache for the current user
             user_id = request.user.id
             cache_key = f"powerbi_reports_cache_{user_id}"
@@ -854,7 +871,7 @@ def upload_powerbi_report(request):
             for admin in admin_users:
                 Notification.objects.create(
                     user=admin,
-                    message=f"Un nouveau rapport '{report_name}' a Ã©tÃ© tÃ©lÃ©versÃ© dans {report_path} par {request.user.username}."
+                    message=f"Un nouveau rapport '{report_name}' a été téléversé dans {report_path} par {request.user.username}."
                 )
             logger.info(
                 "Sent upload notification for report '%s' to %s admins.",
@@ -1119,13 +1136,6 @@ def update_report_metadata_local(request, report_id: str):
     selected_modules = request.POST.getlist('modules')
     report_ref.modules.set(selected_modules)
 
-    # Phone edition opened by the mobile app in portrait (empty = none).
-    mobile_report_id = request.POST.get('mobile_report_id', '').strip()
-    report_ref.mobile_report = (
-        ReportRef.objects.exclude(pk=report_ref.pk).filter(pk=mobile_report_id).first()
-        if mobile_report_id.isdigit() else None
-    )
-
     # Sync legacy CharFields for backward compatibility
     report_ref.societe = ", ".join([s.name for s in report_ref.societes.all()]) or None
     report_ref.pole = ", ".join([p.name for p in report_ref.poles.all()]) or None
@@ -1201,11 +1211,11 @@ def report_detail(request, report_id):
     report_ref = ReportRef.objects.filter(pbirs_id=report_id).first()
     
     if not report_ref:
-        log_history(request.user, f"Tentative d'accÃ¨s Ã  un rapport inexistant ID : {report_id}")
+        log_history(request.user, f"Tentative d'accès à un rapport inexistant ID : {report_id}")
         raise Http404("Report not found")
 
     if not _user_can_access_report(request.user, report_ref):
-        log_history(request.user, f"Tentative d'accÃƒÂ¨s non autorisÃƒÂ©e au rapport ID : {report_id}")
+        log_history(request.user, f"Tentative d'accès non autorisée au rapport ID : {report_id}")
         return HttpResponse("You do not have permission to view this report.", status=403)
 
     # Build report dict to match expected format
@@ -1215,7 +1225,7 @@ def report_detail(request, report_id):
         'Path': report_ref.path,
         'Description': getattr(report_ref, 'description', ""),
     }
-    # log_history(request.user, f"DÃ©tails du rapport Power BI consultÃ©s : {report.get('Name', 'Inconnu')} (ID : {report_id})")
+    # log_history(request.user, f"Détails du rapport Power BI consultés : {report.get('Name', 'Inconnu')} (ID : {report_id})")
     refresh_plans = get_refresh_plans(report_id, request)
     shared_schedules = get_shared_schedules(request)
 
@@ -1233,7 +1243,7 @@ def report_detail(request, report_id):
 
         if not auth:
             messages.error(request, "Authentication failed.")
-            log_history(request.user, f"Ã‰chec d'authentification pour l'action {action} sur le plan d'actualisation ID : {refresh_plan_id} pour le rapport ID : {report_id}")
+            log_history(request.user, f"Échec d'authentification pour l'action {action} sur le plan d'actualisation ID : {refresh_plan_id} pour le rapport ID : {report_id}")
         else:
             if action == "refresh":
                 refresh_url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/CacheRefreshPlans({refresh_plan_id})/Model.Execute"
@@ -1314,7 +1324,6 @@ def report_detail(request, report_id):
     report_direction_ids = list(report_ref.directions.values_list('id', flat=True))
     report_societe_ids = list(report_ref.societes.values_list('id', flat=True))
     report_module_ids = list(report_ref.modules.values_list('id', flat=True))
-    mobile_report_candidates = ReportRef.objects.exclude(pk=report_ref.pk).only('id', 'name', 'path').order_by('name')
 
     return render(request, 'powerbi_report/report_detail.html', {
         'notifications': notifications,
@@ -1335,7 +1344,6 @@ def report_detail(request, report_id):
         'report_direction_ids': report_direction_ids,
         'report_societe_ids': report_societe_ids,
         'report_module_ids': report_module_ids,
-        'mobile_report_candidates': mobile_report_candidates,
         'societe_pole_map_json': _json.dumps(societe_pole_map),
     })
 
@@ -1537,12 +1545,12 @@ def report_permissions(request, report_id):
                 "Type": "PowerBIReport",
             }
         else:
-            log_history(request.user, f"Tentative d'accÃ¨s aux permissions d'un rapport inexistant ID : {report_id}")
+            log_history(request.user, f"Tentative d'accès aux permissions d'un rapport inexistant ID : {report_id}")
             raise Http404("Report not found")
 
     canonical_report_id = report.get("Id", report_id)
     report_name = report.get('Name', 'Unknown Report')
-    # log_history(request.user, f"Permissions du rapport Power BI consultÃ©es : {report_name} (ID : {report_id})")
+    # log_history(request.user, f"Permissions du rapport Power BI consultées : {report_name} (ID : {report_id})")
 
     policies = get_report_permissions(request, canonical_report_id)
     if not policies:
@@ -1680,14 +1688,11 @@ def add_users_to_report(request, report_id, username):
         logger.debug("Updating report policies via PUT %s", url)
         
         try:
-            response = requests.put(url, json=payload, auth=auth, headers=headers)
+            response = requests.put(url, json=payload, auth=auth, headers=headers, timeout=30)
             response.raise_for_status()
             messages.success(request, f"Successfully added permissions for user {username} to report.")
-            report_name = (info or {}).get("name") or report_id
+            report_name = _get_report_label(request, report_id)['name']
             log_history(request.user, f"Permission ajoutée pour l'utilisateur {username} au rapport '{report_name}' avec les rôles {', '.join(role['Name'] for role in roles)}")
-
-            info = get_powerbi_report_info(request, report_id)
-            report_name = (info or {}).get("name") or report_id
 
             # Notify the affected user
             Notification.objects.create(
@@ -1751,23 +1756,19 @@ def add_selected_users_to_report(request, report_id):
                 new_users_added.append(username)
 
         if not new_users_added:
-            log_history(request.user, f"Aucun nouvel utilisateur ajoutÃ© au rapport (ID : {report_id}) car tous les utilisateurs sÃ©lectionnÃ©s y ont dÃ©jÃ  accÃ¨s")
+            log_history(request.user, f"Aucun nouvel utilisateur ajouté au rapport (ID : {report_id}) car tous les utilisateurs sélectionnés y ont déjà accès")
             messages.warning(request, "All selected users already have access to the report.")
             return redirect('powerbi_report:missing_users', report_id=report_id)
         
         payload = {"Id": report_id, "Policies": current_policies}
         headers = {"Content-Type": "application/json"}
-        info = get_powerbi_report_info(request, report_id)  # Pass request here
-
-        if not info:
-            messages.error(request, "Failed to retrieve report information.")
-            return redirect('powerbi_report:missing_users', report_id=report_id)
 
         try:
-            response = requests.put(url, json=payload, auth=auth, headers=headers)
+            response = requests.put(url, json=payload, auth=auth, headers=headers, timeout=30)
             response.raise_for_status()
+            info = _get_report_label(request, report_id)
             messages.success(request, f"Successfully added {len(new_users_added)} user(s) to report permissions.")
-            log_history(request.user, f"Utilisateurs ajoutÃ©s : {', '.join(new_users_added)} au rapport (ID : {report_id})")
+            log_history(request.user, f"Utilisateurs ajoutés : {', '.join(new_users_added)} au rapport (ID : {report_id})")
 
             selected_users_lower = {u.lower() for u in new_users_added}
             admin_users = CustomUser.objects.filter(is_superuser=True)
@@ -1777,7 +1778,7 @@ def add_selected_users_to_report(request, report_id):
                     continue
                 Notification.objects.create(
                     user=admin,
-                    message=f"Les utilisateurs {', '.join(new_users_added)} ont obtenu l'accÃ¨s au rapport {info['name']} (ID : {report_id}) dans {info['path']} par {request.user.username}."
+                    message=f"Les utilisateurs {', '.join(new_users_added)} ont obtenu l'accès au rapport {info['name']} (ID : {report_id}) dans {info['path']} par {request.user.username}."
                 )
             for added_username in new_users_added:
                 user_obj = CustomUser.objects.filter(ad2000__iexact=added_username).first()
@@ -1801,7 +1802,7 @@ def add_selected_users_to_report(request, report_id):
             messages.error(request, f"Failed to add permissions due to request error: {str(err)}")
             return redirect('powerbi_report:missing_users', report_id=report_id)
     
-    log_history(request.user, f"MÃ©thode de requÃªte invalide (non POST) pour l'ajout d'utilisateurs au rapport ID : {report_id}")
+    log_history(request.user, f"Méthode de requête invalide (non POST) pour l'ajout d'utilisateurs au rapport ID : {report_id}")
     messages.error(request, "Invalid request method. Please use POST to add user permissions.")
     return redirect('powerbi_report:missing_users', report_id=report_id)
 #################################################################################################################
@@ -1862,15 +1863,15 @@ def add_all_users_to_report(request, report_id):
         logger.debug("Updating all-user report policies via PUT %s", url)
         
         try:
-            response = requests.put(url, json=payload, auth=auth, headers=headers)
+            response = requests.put(url, json=payload, auth=auth, headers=headers, timeout=60)
             response.raise_for_status()
-            return redirect('powerbi_report:missing_users', report_id=report_id)
-        except requests.exceptions.HTTPError as errh:
-            logger.error("HTTP Error while adding all permissions: %s", errh)
-            return HttpResponse("Failed to add all permissions to server", status=500)
+            messages.success(request, "Tous les utilisateurs ont reçu l'accès au rapport.")
+            _update_report_metadata(report_id, request.user)
+            _sync_local_permissions_for_report(report_id, request.user)
         except requests.exceptions.RequestException as err:
-            logger.error("Request Error while adding all permissions: %s", err)
-            return HttpResponse("Failed to add all permissions to server", status=500)
+            logger.error("Error while adding all permissions to report %s: %s", report_id, err)
+            messages.error(request, f"Échec de l'ajout des permissions sur le serveur PBIRS : {err}")
+        return redirect('powerbi_report:missing_users', report_id=report_id)
     return HttpResponse("Method not allowed", status=405)
 
 
@@ -1901,11 +1902,11 @@ def remove_users_from_report(request, report_id, username):
             "Policies": updated_policies
         }
         headers = {"Content-Type": "application/json"}
-        info = get_powerbi_report_info(request, report_id)  # Pass request here
 
         try:
-            response = requests.put(url, json=payload, auth=auth, headers=headers)
+            response = requests.put(url, json=payload, auth=auth, headers=headers, timeout=30)
             response.raise_for_status()
+            info = _get_report_label(request, report_id)
             messages.success(request, f"Successfully removed permissions for user {username} from report.")
             log_history(request.user, f"Utilisateur {username} retiré du rapport '{info['name']}'")
             admin_users = CustomUser.objects.filter(is_superuser=True)
@@ -1969,13 +1970,9 @@ def remove_selected_users_from_report(request, report_id):
         
         try:
             url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
-            response = requests.put(url, json=payload, auth=auth, headers=headers)
+            response = requests.put(url, json=payload, auth=auth, headers=headers, timeout=30)
             response.raise_for_status()
-            info = get_powerbi_report_info(request, report_id)  # Pass request here
-
-            if not info:
-                messages.error(request, "Failed to retrieve report information.")
-                return redirect('powerbi_report:report_permissions', report_id=report_id)
+            info = _get_report_label(request, report_id)
 
             messages.success(request, f"Successfully removed {len(users_removed)} user(s) from report permissions.")
             log_history(request.user, f"Utilisateurs {', '.join(users_removed)} retirés du rapport '{info['name']}'")
@@ -2040,7 +2037,7 @@ def missing_users(request, report_id):
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     unread = Notification.objects.filter(user=request.user, is_read=False).count()
     permissions = get_user_permissions(request.user)
-    log_history(request.user, f"Permissions manquantes consultÃ©es pour le rapport (ID : {report_id})")
+    log_history(request.user, f"Permissions manquantes consultées pour le rapport (ID : {report_id})")
     context = {
         'report_id': report_id,
         'missing_users': missing_users,
@@ -2093,7 +2090,7 @@ def user_permission(request, username):
         selected_user = CustomUser.objects.get(ad2000__iexact=username)
         full_name = f"{selected_user.first_name} {selected_user.last_name}".strip()
     except CustomUser.DoesNotExist:
-        messages.error(request, f"Utilisateur '{username}' introuvable dans la base de donnÃ©es locale.")
+        messages.error(request, f"Utilisateur '{username}' introuvable dans la base de données locale.")
         return redirect('users_view')
     
     # Check for force sync
@@ -2231,11 +2228,11 @@ def user_permission(request, username):
                         ))
                 
                 UserReportPermission.objects.bulk_create(new_permissions)
-                messages.success(request, f"Permissions synchronisÃ©es avec succÃ¨s : {len(new_permissions)} rapports trouvÃ©s.")
+                messages.success(request, f"Permissions synchronisées avec succès : {len(new_permissions)} rapports trouvés.")
             else:
                 # No permissions found via per-report ACL API (may be inherited from folder).
                 # Do NOT delete existing local permissions to avoid false resets.
-                messages.warning(request, "La vÃ©rification PBIRS n'a pas retournÃ© de rÃ©sultats directs. Les permissions locales restent inchangÃ©es (les accÃ¨s hÃ©ritÃ©s via dossier ne sont pas dÃ©tectÃ©s par cette mÃ©thode).")
+                messages.warning(request, "La vérification PBIRS n'a pas retourné de résultats directs. Les permissions locales restent inchangées (les accès hérités via dossier ne sont pas détectés par cette méthode).")
 
         except Exception as e:
             logger.error(f"Error force syncing permissions: {e}")
@@ -2487,16 +2484,12 @@ def add_permission_to_server(request, report_id, username):
         headers = {"Content-Type": "application/json"}
         
         try:
-            response = requests.put(url, json=payload, auth=auth, headers=headers)
+            response = requests.put(url, json=payload, auth=auth, headers=headers, timeout=30)
             response.raise_for_status()
-            
+
             cache.set(f"report_permissions_{report_id}", current_policies, timeout=300)
             # Notify the affected user
-            info = get_powerbi_report_info(request, report_id)  # Pass request here
-
-            if not info:
-                messages.error(request, "Failed to retrieve report information.")
-                return redirect('powerbi_report:missing_permissions', username=username)
+            info = _get_report_label(request, report_id)
 
             Notification.objects.create(
                 user=user,
@@ -2572,7 +2565,7 @@ def add_all_permissions(request, username):
                 }
                 url = f"{ReportRef.get_server_url(report['Id'])}/Reports/api/v2.0/PowerBIReports({report['Id']})/Policies"
                 try:
-                    response = requests.put(url, json=payload, auth=auth, headers=headers)
+                    response = requests.put(url, json=payload, auth=auth, headers=headers, timeout=30)
                     response.raise_for_status()
                     granted_report_names.append(report.get('Name') or report.get('Id', 'Unknown Report'))
                     granted_report_ids.append(report['Id'])
@@ -2651,15 +2644,12 @@ def add_selected_permissions(request, username):
                 headers = {"Content-Type": "application/json"}
                 
                 try:
-                    response = requests.put(url, json=payload, auth=auth, headers=headers)
+                    response = requests.put(url, json=payload, auth=auth, headers=headers, timeout=30)
                     response.raise_for_status()
-                    info = get_powerbi_report_info(request, report_id)  # Pass request here
-                    if info:
-                        granted_reports.append((report_id, info['name'], info['path']))
-                        cache.set(cache_key, policies, timeout=300)
-                        _sync_local_permissions_for_report(report_id, request.user)
-                    else:
-                        messages.error(request, f"Failed to retrieve report information for report ID '{report_id}'.")
+                    info = _get_report_label(request, report_id)
+                    granted_reports.append((report_id, info['name'], info['path']))
+                    cache.set(cache_key, policies, timeout=300)
+                    _sync_local_permissions_for_report(report_id, request.user)
                 except requests.exceptions.RequestException as e:
                     messages.error(request, f"Failed to add permission for report ID '{report_id}': {str(e)}")
         
@@ -2751,14 +2741,10 @@ def remove_permission_from_server(request, report_id, username):
                 "Id": report_id,
                 "Policies": updated_policies
             }
-            response = requests.put(url, json=payload, auth=auth, headers={"Content-Type": "application/json"})
+            response = requests.put(url, json=payload, auth=auth, headers={"Content-Type": "application/json"}, timeout=30)
             response.raise_for_status()
             cache.set(f"report_permissions_{report_id}", updated_policies, timeout=300)
-            info = get_powerbi_report_info(request, report_id)  # Pass request here
-
-            if not info:
-                messages.error(request, "Failed to retrieve report information.")
-                return redirect('powerbi_report:user_permission', username=username)
+            info = _get_report_label(request, report_id)
 
             messages.success(request, f"Successfully removed permissions for user {username} to report.")
             log_history(request.user, f"Removed permission for user {username} to report '{info['name']}' in '{info['path']}'")
@@ -2831,7 +2817,7 @@ def remove_all_permissions(request, username):
             headers = {"Content-Type": "application/json"}
             
             try:
-                response = requests.put(url, json=payload, auth=auth, headers=headers)
+                response = requests.put(url, json=payload, auth=auth, headers=headers, timeout=30)
                 response.raise_for_status()
                 
                 cache.set(cache_key, updated_policies, timeout=300)
@@ -2844,9 +2830,9 @@ def remove_all_permissions(request, username):
             except requests.exceptions.RequestException as err:
                 logger.error("Request Error updating report %s permissions: %s", report_id, err)
         
-        user_obj = CustomUser.objects.get(ad2000__iexact=username)
-        message = "Votre accÃ¨s Ã  tous les rapports a Ã©tÃ© retirÃ©."
-        Notification.objects.create(user=user_obj, message=message)
+        user_obj = CustomUser.objects.filter(ad2000__iexact=username).first()
+        if user_obj:
+            Notification.objects.create(user=user_obj, message="Votre accès à tous les rapports a été retiré.")
         
         return redirect('powerbi_report:user_permission', username=username )
     
@@ -2894,17 +2880,13 @@ def remove_selected_permissions(request, username):
         headers = {"Content-Type": "application/json"}
         
         try:
-            response = requests.put(url, json=payload, auth=auth, headers=headers)
+            response = requests.put(url, json=payload, auth=auth, headers=headers, timeout=30)
             response.raise_for_status()
             cache.set(f"report_permissions_{report_id}", updated_policies, timeout=300)
-            info = get_powerbi_report_info(request, report_id)  # Pass request here
-            if info:
-                _update_report_metadata(report_id, request.user)
-                _sync_local_permissions_for_report(report_id, request.user)
-                removed_reports.append((report_id, info['name'], info['path']))
-            else:
-                logger.error("Failed to retrieve report info for ID '%s'", report_id)
-                error_messages.append(f"Report {report_id}: Failed to retrieve report information")
+            info = _get_report_label(request, report_id)
+            _update_report_metadata(report_id, request.user)
+            _sync_local_permissions_for_report(report_id, request.user)
+            removed_reports.append((report_id, info['name'], info['path']))
         except requests.exceptions.RequestException as e:
             logger.error("Failed to remove permission for report ID '%s': %s", report_id, e)
             error_messages.append(f"Report {report_id}: Failed to remove permission due to request error: {str(e)}")
@@ -3818,21 +3800,22 @@ def embed_custom_report(request, view_type, folder_id, report_id):
     folder = get_object_or_404(MetadataOption, id=folder_id)
     report_ref = get_object_or_404(ReportRef, id=report_id)
     
-    # Access control for the view type context
-    is_admin = request.user.is_admin
-    if view_type == 'anomalie' and not (is_admin or request.user.can_view_anomalie):
-        raise PermissionDenied
-    if view_type == 'consolide' and not (is_admin or request.user.can_view_consolide):
-        raise PermissionDenied
-    if view_type == 'direction' and not (is_admin or request.user.can_view_direction):
-        raise PermissionDenied
-    if view_type == 'pole' and not (is_admin or request.user.can_view_pole):
-        raise PermissionDenied
-    # module and biblio are always allowed
-
     # Check report-specific permissions
     if not _user_can_access_report(request.user, report_ref):
-         return HttpResponse("You do not have permission to view this report.", status=403)
+        raise PermissionDenied
+
+    # Access control for the view type context. A shared link can land a user
+    # who has the report but not this folder view: open the plain report page.
+    is_admin = request.user.is_admin
+    view_flags = {
+        'anomalie': 'can_view_anomalie',
+        'consolide': 'can_view_consolide',
+        'direction': 'can_view_direction',
+        'pole': 'can_view_pole',
+    }  # module and biblio are always allowed
+    flag = view_flags.get(view_type)
+    if flag and not (is_admin or getattr(request.user, flag, False)):
+        return redirect('powerbi_report:embed_report', report_path=(report_ref.path or '').strip('/'))
 
     context = {
         'report_id': report_ref.pbirs_id,

@@ -141,7 +141,8 @@ INSTALLED_APPS = [
 ]
 
 
-LOGIN_URL = '/login/'
+# The login page is mounted at the site root (users/urls.py), not /login/.
+LOGIN_URL = 'login'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

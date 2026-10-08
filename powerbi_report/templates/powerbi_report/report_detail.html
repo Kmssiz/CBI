@@ -565,6 +565,34 @@
             </button>
         </div>
         <div class="p-6 space-y-5">
+            <!-- Type (first: it decides which fields below apply) -->
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Type de rapport</label>
+                <div class="grid grid-cols-3 gap-3">
+                    <label class="cursor-pointer" for="meta_type_dashboard">
+                        <input type="radio" id="meta_type_dashboard" name="report_type" value="dashboard" class="sr-only peer" {% if report_ref.report_type == 'dashboard' %}checked{% endif %}>
+                        <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 peer-checked:border-emerald-500 peer-checked:bg-emerald-500/10 hover:border-emerald-400 hover:bg-emerald-500/5 transition-all cursor-pointer">
+                            <span class="material-symbols-outlined text-[22px] text-slate-500">dashboard</span>
+                            <span class="text-xs font-bold text-slate-600 dark:text-slate-300">Dashboard</span>
+                        </div>
+                    </label>
+                    <label class="cursor-pointer" for="meta_type_biblio">
+                        <input type="radio" id="meta_type_biblio" name="report_type" value="bibliotheque" class="sr-only peer" {% if report_ref.report_type == 'bibliotheque' %}checked{% endif %}>
+                        <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 peer-checked:border-blue-500 peer-checked:bg-blue-500/10 hover:border-blue-400 hover:bg-blue-500/5 transition-all cursor-pointer">
+                            <span class="material-symbols-outlined text-[22px] text-slate-500">menu_book</span>
+                            <span class="text-xs font-bold text-slate-600 dark:text-slate-300">Bibliothèque</span>
+                        </div>
+                    </label>
+                    <label class="cursor-pointer" for="meta_type_anomalie">
+                        <input type="radio" id="meta_type_anomalie" name="report_type" value="anomalie" class="sr-only peer" {% if report_ref.report_type == 'anomalie' %}checked{% endif %}>
+                        <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 peer-checked:border-red-500 peer-checked:bg-red-500/10 hover:border-red-400 hover:bg-red-500/5 transition-all cursor-pointer">
+                            <span class="material-symbols-outlined text-[22px] text-slate-500">warning</span>
+                            <span class="text-xs font-bold text-slate-600 dark:text-slate-300">Anomalie</span>
+                        </div>
+                    </label>
+                </div>
+                <p class="text-[10px] text-slate-500">Laissez vide pour ne pas définir de type.</p>
+            </div>
             <!-- Org fields -->
             <div id="metaOrgFields" class="space-y-5">
                 <div class="grid grid-cols-2 gap-4">
@@ -628,45 +656,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            <!-- Phone edition for the mobile app -->
-            <div class="space-y-1.5">
-                <label for="meta_mobile_report" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Version téléphone (application mobile)</label>
-                <select name="mobile_report_id" id="meta_mobile_report" class="input-theme w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm transition-all text-slate-700 dark:text-slate-300">
-                    <option value="">Aucune (le rapport s'ouvre tel quel)</option>
-                    {% for candidate in mobile_report_candidates %}
-                    <option value="{{ candidate.id }}" {% if candidate.id == report_ref.mobile_report_id %}selected{% endif %}>{{ candidate.name }} — {{ candidate.path }}</option>
-                    {% endfor %}
-                </select>
-                <p class="text-[10px] text-slate-500">Rapport PBIRS conçu au format portrait. En mode portrait, l'application mobile ouvre cette version ; le rapport complet reste accessible en plein écran / paysage. La version téléphone n'apparaît plus séparément dans l'application.</p>
-            </div>
-            <!-- Type -->
-            <div class="space-y-2">
-                <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Type de rapport</label>
-                <div class="grid grid-cols-3 gap-3">
-                    <label class="cursor-pointer" for="meta_type_anomalie">
-                        <input type="radio" id="meta_type_anomalie" name="report_type" value="anomalie" class="sr-only peer" {% if report_ref.report_type == 'anomalie' %}checked{% endif %}>
-                        <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 peer-checked:border-red-500 peer-checked:bg-red-500/10 hover:border-red-400 hover:bg-red-500/5 transition-all cursor-pointer">
-                            <span class="material-symbols-outlined text-[22px] text-slate-500">warning</span>
-                            <span class="text-xs font-bold text-slate-600 dark:text-slate-300">Anomalie</span>
-                        </div>
-                    </label>
-                    <label class="cursor-pointer" for="meta_type_biblio">
-                        <input type="radio" id="meta_type_biblio" name="report_type" value="bibliotheque" class="sr-only peer" {% if report_ref.report_type == 'bibliotheque' %}checked{% endif %}>
-                        <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 peer-checked:border-blue-500 peer-checked:bg-blue-500/10 hover:border-blue-400 hover:bg-blue-500/5 transition-all cursor-pointer">
-                            <span class="material-symbols-outlined text-[22px] text-slate-500">menu_book</span>
-                            <span class="text-xs font-bold text-slate-600 dark:text-slate-300">Bibliothèque</span>
-                        </div>
-                    </label>
-                    <label class="cursor-pointer" for="meta_type_dashboard">
-                        <input type="radio" id="meta_type_dashboard" name="report_type" value="dashboard" class="sr-only peer" {% if report_ref.report_type == 'dashboard' %}checked{% endif %}>
-                        <div class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 peer-checked:border-emerald-500 peer-checked:bg-emerald-500/10 hover:border-emerald-400 hover:bg-emerald-500/5 transition-all cursor-pointer">
-                            <span class="material-symbols-outlined text-[22px] text-slate-500">dashboard</span>
-                            <span class="text-xs font-bold text-slate-600 dark:text-slate-300">Dashboard</span>
-                        </div>
-                    </label>
-                </div>
-                <p class="text-[10px] text-slate-500">Laissez vide pour ne pas définir de type.</p>
             </div>
         </div>
         <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800/50 flex justify-end gap-3 bg-slate-50 dark:bg-white/5">
@@ -826,6 +815,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+});
+
+// Bibliothèque reports are not organised by module: hide that field.
+function syncMetaTypeFields() {
+    const biblio = document.getElementById('meta_type_biblio');
+    const modules = document.getElementById('metaModuleContainer');
+    if (!biblio || !modules) return;
+    modules.classList.toggle('ar-collapsed', biblio.checked);
+    modules.querySelectorAll('input[name="modules"]').forEach(cb => { cb.disabled = biblio.checked; });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('#editMetadataModal input[name="report_type"]').forEach(radio => {
+        radio.addEventListener('change', syncMetaTypeFields);
+    });
+    syncMetaTypeFields();
 });
 
 function toggleEditConsolide(checked) {

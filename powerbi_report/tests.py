@@ -159,3 +159,71 @@ class GetPowerBIReportsTests(TestCase):
 
         self.assertEqual(reports, [])
         mock_session_cls.assert_not_called()
+
+
+class SharedLinkLoginTests(TestCase):
+    """A shared report link must send anonymous users to login, then back."""
+
+    def test_anonymous_shared_link_redirects_to_login_with_next(self):
+        url = reverse('powerbi_report:embed_report', kwargs={'report_path': 'CBI/Ventes'})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, f"{reverse('login')}?next={url}")
+
+    def test_login_returns_to_next_and_rejects_external_targets(self):
+        User.objects.create_user(username='share_user', password='password')
+        with patch('users.views.connexion_ad2000', return_value=None):
+            response = self.client.post(
+                reverse('login'),
+                {'username': 'share_user', 'password': 'password', 'next': '/powerbi/embed/CBI/Ventes/'},
+            )
+        self.assertEqual(response.url, '/powerbi/embed/CBI/Ventes/')
+
+        self.client.logout()
+        with patch('users.views.connexion_ad2000', return_value=None):
+            response = self.client.post(
+                reverse('login'),
+                {'username': 'share_user', 'password': 'password', 'next': 'https://evil.example/'},
+            )
+        self.assertEqual(response.url, reverse('home'))
+
+
+class PermissionChangeTests(TestCase):
+    def setUp(self):
+        from powerbi_report.models import ReportRef
+        self.admin = User.objects.create_superuser(username='perm_admin', password='password')
+        self.target = User.objects.create_user(username='perm_target', password='password', ad2000='target')
+        self.report = ReportRef.objects.create(pbirs_id='rep-1', name='Ventes', path='/CBI/Ventes')
+        self.client.force_login(self.admin)
+
+    @patch('powerbi_report.views._sync_local_permissions_for_report')
+    @patch('powerbi_report.views.get_powerbi_report_info', return_value=None)
+    @patch('powerbi_report.views.get_report_permissions', return_value=[])
+    @patch('powerbi_report.views.get_current_user_auth', return_value=('u', 'p'))
+    @patch('powerbi_report.views.requests.put')
+    def test_grant_succeeds_when_report_info_lookup_fails(self, mock_put, *_mocks):
+        mock_put.return_value = Mock(raise_for_status=Mock())
+        response = self.client.post(reverse('powerbi_report:add_users_to_report', args=['rep-1', 'target']))
+        self.assertEqual(response.status_code, 302)
+        from notifications.models import Notification
+        self.assertTrue(Notification.objects.filter(user=self.target, message__contains='Ventes').exists())
+
+
+class MetadataSelectAllTests(TestCase):
+    def test_selecting_every_societe_saves(self):
+        from powerbi_report.models import ReportRef, MetadataOption
+        admin = User.objects.create_superuser(username='meta_admin', password='password')
+        report = ReportRef.objects.create(pbirs_id='rep-meta', name='R', path='/CBI/R')
+        societes = [
+            MetadataOption.objects.create(option_type='societe', name=f'Société avec un nom assez long {i}')
+            for i in range(12)
+        ]
+        self.client.force_login(admin)
+        response = self.client.post(
+            reverse('powerbi_report:update_report_metadata', args=['rep-meta']),
+            {'societes': [s.id for s in societes], 'report_type': 'dashboard'},
+        )
+        self.assertEqual(response.status_code, 302)
+        report.refresh_from_db()
+        self.assertEqual(report.societes.count(), 12)
+        self.assertGreater(len(report.societe), 128)

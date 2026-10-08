@@ -130,7 +130,7 @@ Supports `If-None-Match` (returns `304` when nothing changed).
   "reports": {
     "12": {"id": 12, "name": "Encaissement Clients", "description": "", "location": "Consolidé / DFC",
            "server_id": 1, "embed_url": "http://10.20.10.63/Reports/powerbi/Consolid%C3%A9/…?rs:embed=true",
-           "phone": {"id": 31, "server_id": 1, "embed_url": "http://10.20.10.63/Reports/powerbi/…%20(t%C3%A9l%C3%A9phone)?rs:embed=true"} | null,
+           "has_mobile_layout": true,
            "modified_at": "…", "favorite": true}
   },
   "favorite_ids": [12],
@@ -162,10 +162,8 @@ Rules:
 - `logo_url` (pôle and société groups, only when an admin uploaded one on
   `/powerbi/servers/`): the card shows the logo with the name underneath. The URL
   changes whenever the logo changes, so it can be cached forever.
-- `phone`: the portrait "phone" edition an admin linked on the report page
-  (PBIRS cannot render a report's mobile layout in a browser). The app opens it in
-  portrait and the full report in landscape / full screen. `null` when there is
-  none or the user may not open it. Phone editions are never listed on their own.
+- `has_mobile_layout`: the report's Power BI phone layout has already been
+  extracted (see `mobile-layout/` below); the app shows "Vue mobile" in its lists.
 
 ### `GET metadata/<option_id>/logo/`
 Logo bytes for a pôle/société (`image/png|jpeg|webp`), Bearer header required,

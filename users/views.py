@@ -12,6 +12,7 @@ from django.http import JsonResponse
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from .ldap_utils import connexion_ad2000, get_ad_users
 from .utils import log_history, get_user_permissions, admin_required
@@ -32,13 +33,24 @@ def _normalize_ad_groups(raw_groups):
         raw_groups = [raw_groups]
     return [str(group).strip() for group in raw_groups if str(group).strip()]
 
+def _post_login_redirect(request):
+    """Redirect to the safe ?next= target (e.g. a shared report link), else home."""
+    next_url = request.POST.get('next') or request.GET.get('next')
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect('home')
+
 #################################################################################################################
 #                    Handles user login with LDAP authentication                                                #
 #################################################################################################################
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect('home')
-        
+        return _post_login_redirect(request)
+
     if request.method == 'POST':
         login_identifier = request.POST.get('username')  # Could be email, ad2000, or username
         password = request.POST.get('password')
@@ -160,7 +172,7 @@ def login_view(request):
             cache.delete(f"dashboard_data_{user.id}")
             logger.debug("Cleared login cache for user id=%s", user.id)
 
-            return redirect('home')
+            return _post_login_redirect(request)
         else:
             # Fallback: Try local Django authentication (for admin/test users not in LDAP)
             from django.contrib.auth import authenticate
@@ -177,8 +189,8 @@ def login_view(request):
                     "mail": user.email,
                     "ad2000": user.ad2000
                 }
-                
-                return redirect('home')
+
+                return _post_login_redirect(request)
             
             messages.error(request, "Identifiants invalides ou authentification échouée.")
     

@@ -857,7 +857,9 @@
     html.dark body.legacy-shell .modal-content { background: var(--legacy-surface) !important; border-color: var(--legacy-border) !important; color: var(--legacy-ink) !important; }
     html.dark body.legacy-shell .dashboard-card-header,
     html.dark body.legacy-shell .pagination-footer { background: var(--legacy-surface-raised) !important; border-color: var(--legacy-border) !important; }
-    html.dark body.legacy-shell input,
+    /* Checkboxes/radios are excluded: this background shorthand would erase
+       the checkmark image the forms plugin draws on :checked in dark mode. */
+    html.dark body.legacy-shell input:not([type="checkbox"]):not([type="radio"]),
     html.dark body.legacy-shell select,
     html.dark body.legacy-shell textarea,
     html.dark body.legacy-shell .input-theme { background: var(--legacy-surface-raised) !important; border-color: var(--legacy-border) !important; color: var(--legacy-ink) !important; }

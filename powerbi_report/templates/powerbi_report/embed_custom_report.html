@@ -221,19 +221,36 @@
       }
   });
 
+  // navigator.clipboard only exists on HTTPS/localhost; the app is served over
+  // plain HTTP, so fall back to the legacy selection + execCommand copy.
+  function legacyCopy(text) {
+    shareUrlInput.focus();
+    shareUrlInput.select();
+    shareUrlInput.setSelectionRange(0, text.length);
+    try {
+      return document.execCommand('copy');
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function onCopied() {
+    shareSuccessMsg.classList.remove('hidden');
+    showToast();
+    shareUrlInput.select();
+  }
+
   function copyToClipboard() {
-    navigator.clipboard.writeText(shareUrlInput.value).then(function () {
-      // Show success message in modal
-      shareSuccessMsg.classList.remove('hidden');
-      
-      // Show toast
-      showToast();
-      
-      // Select the text visually
-      shareUrlInput.select();
-    }).catch(function (error) {
-      console.error("Failed to copy:", error);
-    });
+    const text = shareUrlInput.value;
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(onCopied).catch(function () {
+        if (legacyCopy(text)) onCopied();
+      });
+    } else if (legacyCopy(text)) {
+      onCopied();
+    } else {
+      console.error("Failed to copy share link.");
+    }
   }
 
   function showToast() {
