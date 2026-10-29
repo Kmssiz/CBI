@@ -674,7 +674,6 @@ def embed_report(request, report_path):
     return embed_report_view(
         request=request,
         report_path=report_path,
-        auth_getter=get_current_user_auth,
         permissions_getter=get_user_permissions,
     )
 
