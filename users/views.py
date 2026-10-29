@@ -728,6 +728,7 @@ def user_edit(request, user_id):
             user.can_view_anomalie = True
             user.can_view_consolide = True
             user.can_view_module = True
+            user.can_use_slider = True
         else:
             # Update specific permissions independently from the checkboxes
             user.can_view_direction = request.POST.get('can_view_direction') == 'on'
@@ -735,6 +736,7 @@ def user_edit(request, user_id):
             user.can_view_anomalie = request.POST.get('can_view_anomalie') == 'on'
             user.can_view_consolide = request.POST.get('can_view_consolide') == 'on'
             user.can_view_module = request.POST.get('can_view_module') == 'on'
+            user.can_use_slider = request.POST.get('can_use_slider') == 'on'
         
         user.save()
 

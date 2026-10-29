@@ -227,3 +227,56 @@ class MetadataSelectAllTests(TestCase):
         report.refresh_from_db()
         self.assertEqual(report.societes.count(), 12)
         self.assertGreater(len(report.societe), 128)
+
+
+class SliderTests(TestCase):
+    def setUp(self):
+        from powerbi_report.models import ReportRef, UserReportPermission
+        self.user = User.objects.create_user(username='slider_user', password='password', can_use_slider=True)
+        self.other = User.objects.create_user(username='slider_other', password='password', can_use_slider=True)
+        self.r1 = ReportRef.objects.create(pbirs_id='s-1', name='Ventes', path='/CBI/Ventes', embed_url='http://pbirs/Reports/powerbi/CBI/Ventes?rs:embed=true')
+        self.r2 = ReportRef.objects.create(pbirs_id='s-2', name='Achats', path='/CBI/Achats')
+        self.secret = ReportRef.objects.create(pbirs_id='s-3', name='Secret', path='/CBI/Secret')
+        for report in (self.r1, self.r2):
+            UserReportPermission.objects.create(user=self.user, report=report)
+        self.client.force_login(self.user)
+
+    def _create(self, report_ids, name='Mur'):
+        return self.client.post(reverse('powerbi_report:slider_create'), {
+            'name': name, 'interval_seconds': '2', 'reports': [str(i) for i in report_ids],
+        })
+
+    def test_requires_slider_permission(self):
+        self.user.can_use_slider = False
+        self.user.save()
+        self.assertEqual(self.client.get(reverse('powerbi_report:slider_list')).status_code, 403)
+
+    def test_create_keeps_order_clamps_interval_and_drops_inaccessible(self):
+        from powerbi_report.models import Slider
+        self._create([self.r2.id, self.secret.id, self.r1.id, self.r2.id])
+        slider = Slider.objects.get(owner=self.user)
+        self.assertEqual([i.report_id for i in slider.items.all()], [self.r2.id, self.r1.id])
+        self.assertEqual(slider.interval_seconds, 5)
+
+    def test_other_users_cannot_play_edit_or_delete(self):
+        from powerbi_report.models import Slider
+        self._create([self.r1.id])
+        slider = Slider.objects.get(owner=self.user)
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.get(reverse('powerbi_report:slider_play', args=[slider.id])).status_code, 404)
+        self.assertEqual(self.client.get(reverse('powerbi_report:slider_edit', args=[slider.id])).status_code, 404)
+        self.client.post(reverse('powerbi_report:slider_delete', args=[slider.id]))
+        self.assertTrue(Slider.objects.filter(id=slider.id).exists())
+
+    def test_play_skips_reports_whose_access_was_lost_and_logs_history(self):
+        from powerbi_report.models import Slider, UserReportPermission
+        from users.models import UserHistory
+        self._create([self.r1.id, self.r2.id])
+        slider = Slider.objects.get(owner=self.user)
+        UserReportPermission.objects.filter(user=self.user, report=self.r2).delete()
+        response = self.client.get(reverse('powerbi_report:slider_play', args=[slider.id]) + '?mode=kiosk')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([s['name'] for s in response.context['slides']], ['Ventes'])
+        self.assertEqual(response.context['skipped'], 1)
+        self.assertEqual(response.context['mode'], 'kiosk')
+        self.assertTrue(UserHistory.objects.filter(user=self.user, action__startswith='Rapport consulté (slider)').exists())

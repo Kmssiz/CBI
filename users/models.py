@@ -24,6 +24,7 @@ class CustomUser(AbstractUser):
     can_view_direction = models.BooleanField(default=False, help_text="Accès à la vue Direction")
     can_view_pole = models.BooleanField(default=False, help_text="Accès à la vue Pôle")
     can_view_module = models.BooleanField(default=True, help_text="Accès à la vue Module")
+    can_use_slider = models.BooleanField(default=False, help_text="Peut créer et lancer des sliders de rapports")
     ad_groups = models.JSONField(default=list, blank=True, help_text="Cached list of AD groups") 
     has_seen_onboarding = models.BooleanField(default=False, help_text="Indicates if the user has completed the onboarding guide")
 

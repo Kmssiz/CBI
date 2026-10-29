@@ -924,6 +924,9 @@
             </div>
           </details>
         {% endif %}
+        {% if user.is_admin or user.can_use_slider %}
+          <a href="{% url 'powerbi_report:slider_list' %}" class="{% if '/powerbi/slider/' in request.path %}is-current{% endif %}">Slider</a>
+        {% endif %}
         {% if user.is_admin %}
           <details {% if request.resolver_match.url_name in 'users_view report_list report_list_hierarchy report_list_hierarchy_folder report_list_flat embed_report report_permissions missing_users user_permission missing_permissions server_management_list user_history' or request.path|slice:':7' == '/admin/' %}open{% endif %}>
             <summary class="{% if request.resolver_match.url_name in 'users_view report_list report_list_hierarchy report_list_hierarchy_folder report_list_flat embed_report report_permissions missing_users user_permission missing_permissions server_management_list user_history' or request.path|slice:':7' == '/admin/' %}is-current{% endif %}">Admin</summary>

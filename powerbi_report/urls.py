@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import server_views
+from .views_modules import slider
 
 app_name = 'powerbi_report'
 
@@ -99,4 +100,12 @@ urlpatterns = [
     path('servers/metadata/edit/<int:option_id>/', server_views.metadata_option_edit, name='metadata_option_edit'),
     path('servers/metadata/delete/<int:option_id>/', server_views.metadata_option_delete, name='metadata_option_delete'),
     path('servers/metadata/<int:option_id>/logo/', server_views.metadata_option_logo, name='metadata_option_logo'),
+
+    # Report slider
+    path('slider/', slider.slider_list, name='slider_list'),
+    path('slider/new/', slider.slider_edit, name='slider_create'),
+    path('slider/<int:slider_id>/edit/', slider.slider_edit, name='slider_edit'),
+    path('slider/<int:slider_id>/delete/', slider.slider_delete, name='slider_delete'),
+    path('slider/<int:slider_id>/play/', slider.slider_play, name='slider_play'),
+    path('slider/keepalive/', slider.slider_keepalive, name='slider_keepalive'),
 ]

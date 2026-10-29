@@ -132,7 +132,7 @@
                                 {% endif %}
  
                                 {% if permissions.change_customuser %}
-                                <button class="px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" onclick="openEditModal({{ user.id }}, '{{ user.role.id }}', {{ user.can_view_anomalie|yesno:"true,false" }}, {{ user.can_view_consolide|yesno:"true,false" }}, {{ user.can_view_direction|yesno:"true,false" }}, {{ user.can_view_pole|yesno:"true,false" }}, {{ user.can_view_module|yesno:"true,false" }})">Modifier</button>
+                                <button class="px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" onclick="openEditModal({{ user.id }}, '{{ user.role.id }}', {{ user.can_view_anomalie|yesno:"true,false" }}, {{ user.can_view_consolide|yesno:"true,false" }}, {{ user.can_view_direction|yesno:"true,false" }}, {{ user.can_view_pole|yesno:"true,false" }}, {{ user.can_view_module|yesno:"true,false" }}, {{ user.can_use_slider|yesno:"true,false" }})">Modifier</button>
                                 {% endif %}
                             </div>
                         </td>
@@ -274,6 +274,20 @@
                                 <input type="checkbox" name="can_view_module" id="editCanViewModule" class="w-4 h-4 text-emerald-500 bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 rounded focus:ring-emerald-500/20 transition-all cursor-pointer">
                             </label>
 
+                            <!-- Slider -->
+                            <label class="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/40 hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-all group m-0">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-violet-500/10 text-violet-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                        <span class="material-symbols-outlined text-[20px]">slideshow</span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 group-hover:text-violet-500 transition-colors">Slider</span>
+                                        <span class="text-[10px] text-slate-500 dark:text-slate-400">Créer et lancer des sliders</span>
+                                    </div>
+                                </div>
+                                <input type="checkbox" name="can_use_slider" id="editCanUseSlider" class="w-4 h-4 text-violet-500 bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 rounded focus:ring-violet-500/20 transition-all cursor-pointer">
+                            </label>
+
                             <!-- Anomalie -->
                             <label class="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/40 hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-all group m-0">
                                 <div class="flex items-center gap-3">
@@ -353,7 +367,7 @@
     }, 100);
   }
 
-  function openEditModal(userId, currentRole, canAnomalie, canConsolide, canDirection, canPole, canModule) {
+  function openEditModal(userId, currentRole, canAnomalie, canConsolide, canDirection, canPole, canModule, canSlider) {
     document.getElementById('editUserId').value = userId;
     const roleSelect = document.getElementById('editUserRole');
     roleSelect.value = currentRole; 
@@ -362,6 +376,7 @@
     document.getElementById('editCanViewDirection').checked = canDirection;
     document.getElementById('editCanViewPole').checked = canPole;
     document.getElementById('editCanViewModule').checked = canModule;
+    document.getElementById('editCanUseSlider').checked = canSlider;
     document.getElementById('editCanViewAnomalie').checked = canAnomalie;
     document.getElementById('editCanViewConsolide').checked = canConsolide;
 

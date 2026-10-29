@@ -345,3 +345,38 @@ class MetadataOption(models.Model):
 
     def __str__(self):
         return f"{self.get_option_type_display()} - {self.name}"
+
+
+class Slider(models.Model):
+    """
+    A user's personal slideshow of reports, played full screen either as a
+    meeting presentation or as a looping wall-screen kiosk.
+    """
+    owner = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='sliders')
+    name = models.CharField(max_length=200)
+    interval_seconds = models.PositiveIntegerField(
+        default=30,
+        help_text="Durée d'affichage de chaque rapport (secondes)",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return self.name
+
+
+class SliderItem(models.Model):
+    """One report in a slider, at a given position (0-based)."""
+    slider = models.ForeignKey(Slider, on_delete=models.CASCADE, related_name='items')
+    report = models.ForeignKey(ReportRef, on_delete=models.CASCADE, related_name='slider_items')
+    position = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['position']
+        unique_together = [['slider', 'report']]
+
+    def __str__(self):
+        return f"{self.slider} #{self.position}: {self.report}"

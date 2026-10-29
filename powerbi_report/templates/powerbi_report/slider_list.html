@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Sliders{% endblock %}
+{% block header_title %}Sliders{% endblock %}
+{% block header_subtitle %}Faites défiler vos rapports en plein écran : présentation ou écran mural{% endblock %}
+
+{% block content %}
+<div class="p-4 lg:p-8 max-w-7xl mx-auto">
+  {% if messages %}
+  <div class="mb-6 space-y-3">
+    {% for message in messages %}
+    <div class="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border {% if message.tags == 'error' %}bg-red-500/10 border-red-500/30 text-red-500{% else %}bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400{% endif %}">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-[20px]">{% if message.tags == 'error' %}error{% else %}check_circle{% endif %}</span>
+        <span class="text-sm font-medium">{{ message }}</span>
+      </div>
+      <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+    <div>
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-1">Mes sliders</h2>
+      <p class="text-slate-500 dark:text-slate-400 text-sm">« Présenter » pour une réunion, « Kiosque » pour un écran qui tourne en boucle et se rafraîchit seul.</p>
+    </div>
+    <a href="{% url 'powerbi_report:slider_create' %}" class="px-4 py-2.5 bg-primary hover:opacity-90 text-white text-sm font-bold rounded-xl transition-all flex items-center gap-2 shadow-sm">
+      <span class="material-symbols-outlined text-[20px]">add</span>
+      Nouveau slider
+    </a>
+  </div>
+
+  {% if sliders %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+    {% for slider in sliders %}
+    {% with count=slider.items.all|length %}
+    <article class="group card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-3 shadow-sm hover:shadow-md hover:border-primary/40 transition-all">
+      <div class="flex items-start gap-3">
+        <div class="size-10 shrink-0 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+          <span class="material-symbols-outlined text-[22px]">slideshow</span>
+        </div>
+        <div class="min-w-0 flex-1">
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white truncate" title="{{ slider.name }}">{{ slider.name }}</h3>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+            {{ count }} rapport{{ count|pluralize }} ·
+            {% if slider.interval_seconds >= 60 %}{% widthratio slider.interval_seconds 60 1 %} min{% else %}{{ slider.interval_seconds }} s{% endif %} chacun
+          </p>
+        </div>
+        <div class="flex items-center gap-0.5 md:opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <a href="{% url 'powerbi_report:slider_edit' slider.id %}" class="p-1.5 rounded-md text-slate-400 hover:text-primary hover:bg-primary/10" title="Modifier">
+            <span class="material-symbols-outlined text-[17px]">edit</span>
+          </a>
+          <form method="post" action="{% url 'powerbi_report:slider_delete' slider.id %}" onsubmit="return confirm('Supprimer le slider « {{ slider.name|escapejs }} » ?');" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-500/10" title="Supprimer">
+              <span class="material-symbols-outlined text-[17px]">delete</span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-500 dark:text-slate-400 truncate" title="{% for item in slider.items.all %}{{ item.report.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+        {% for item in slider.items.all|slice:":2" %}{{ item.report.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if count > 2 %} <span class="text-slate-400">+{{ count|add:"-2" }}</span>{% endif %}
+      </p>
+
+      <div class="grid grid-cols-2 gap-2 mt-auto">
+        <a href="{% url 'powerbi_report:slider_play' slider.id %}" class="py-2 rounded-lg bg-primary text-white hover:opacity-90 text-xs font-bold flex items-center justify-center gap-1.5 transition-opacity" title="Défilement manuel, pour une réunion">
+          <span class="material-symbols-outlined text-[17px]">play_arrow</span> Présenter
+        </a>
+        <a href="{% url 'powerbi_report:slider_play' slider.id %}?mode=kiosk" class="py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-primary hover:text-primary text-xs font-bold flex items-center justify-center gap-1.5 transition-colors" title="Boucle automatique pour un écran mural, données rafraîchies">
+          <span class="material-symbols-outlined text-[17px]">tv</span> Kiosque
+        </a>
+      </div>
+    </article>
+    {% endwith %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card-theme bg-white border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-12 text-center">
+    <div class="size-14 mx-auto mb-4 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+      <span class="material-symbols-outlined text-[30px]">slideshow</span>
+    </div>
+    <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">Aucun slider pour l'instant</h3>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mb-5">Choisissez des rapports, mettez-les dans l'ordre, et lancez-les en plein écran.</p>
+    <a href="{% url 'powerbi_report:slider_create' %}" class="inline-flex px-4 py-2.5 bg-primary hover:opacity-90 text-white text-sm font-bold rounded-xl items-center gap-2">
+      <span class="material-symbols-outlined text-[20px]">add</span> Créer mon premier slider
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

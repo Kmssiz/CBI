@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  {% load static %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ slider.name }} · Slider</title>
+  <link rel="icon" href="{% static 'assets/images/W_logo-favicon.png' %}">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  <style>
+    :root { --green: #a5cf4b; --bar: rgba(17, 19, 24, .82); --ink: #f1f2f4; --muted: #a3a6ae; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #0d0e12; color: var(--ink); font-family: Inter, Roboto, Arial, sans-serif; overflow: hidden; }
+    .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-size: 22px; line-height: 1; font-weight: normal; font-style: normal; letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr; -webkit-font-smoothing: antialiased; }
+
+    .stage { position: fixed; inset: 0; }
+    .stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; opacity: 0; transition: opacity .6s ease; }
+    .stage iframe.is-visible { opacity: 1; z-index: 1; }
+
+    .loader { position: fixed; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; pointer-events: none; opacity: 0; transition: opacity .3s; }
+    .loader.is-on { opacity: 1; }
+    .loader span { width: 42px; height: 42px; border-radius: 50%; border: 3px solid rgba(165, 207, 75, .25); border-top-color: var(--green); animation: spin .9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .progress { position: fixed; left: 0; right: 0; top: 0; height: 3px; z-index: 5; background: rgba(255,255,255,.08); }
+    .progress div { height: 100%; width: 0; background: var(--green); }
+
+    .controls { position: fixed; left: 50%; bottom: 22px; z-index: 5; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 16px; background: var(--bar); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.08); box-shadow: 0 12px 40px rgba(0,0,0,.35); transition: opacity .35s, transform .35s; max-width: calc(100% - 32px); }
+    body.is-idle .controls { opacity: 0; transform: translate(-50%, 16px); pointer-events: none; }
+    body.is-idle { cursor: none; }
+    .controls button, .controls a { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 0; border-radius: 11px; background: transparent; color: var(--ink); cursor: pointer; text-decoration: none; }
+    .controls button:hover, .controls a:hover { background: rgba(255,255,255,.1); }
+    .controls .primary { background: var(--green); color: #1c1d22; }
+    .controls .primary:hover { background: #b6dc63; }
+    .meta { display: flex; flex-direction: column; min-width: 0; padding: 0 10px; max-width: 360px; }
+    .meta strong { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .meta small { font-size: 11px; color: var(--muted); }
+    .divider { width: 1px; height: 26px; background: rgba(255,255,255,.12); margin: 0 4px; }
+    .mode-pill { font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--green); padding: 3px 8px; border-radius: 999px; background: rgba(165,207,75,.12); }
+
+    .dots { position: fixed; right: 18px; top: 50%; z-index: 5; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; transition: opacity .35s; }
+    body.is-idle .dots { opacity: 0; }
+    .dots button { width: 9px; height: 9px; padding: 0; border-radius: 50%; border: 0; background: rgba(255,255,255,.3); cursor: pointer; }
+    .dots button.is-current { background: var(--green); transform: scale(1.35); }
+
+    .toast { position: fixed; top: 18px; left: 50%; z-index: 6; transform: translateX(-50%); padding: 8px 14px; border-radius: 10px; background: var(--bar); font-size: 12px; color: var(--ink); }
+    @media (max-width: 640px) { .meta { max-width: 140px; } .dots { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="progress" aria-hidden="true"><div id="progress"></div></div>
+  <main class="stage" id="stage">
+    <iframe id="frameA" title="Rapport" allowfullscreen></iframe>
+    <iframe id="frameB" title="Rapport suivant" allowfullscreen tabindex="-1"></iframe>
+  </main>
+  <div class="loader" id="loader"><span></span></div>
+  <nav class="dots" id="dots" aria-label="Rapports"></nav>
+
+  {% if skipped %}
+  <div class="toast" id="skippedToast">{{ skipped }} rapport{{ skipped|pluralize }} ignoré{{ skipped|pluralize }} : vous n'y avez plus accès.</div>
+  {% endif %}
+
+  <div class="controls" id="controls" role="toolbar" aria-label="Contrôles du slider">
+    <a href="{% url 'powerbi_report:slider_list' %}" title="Quitter (Échap)"><span class="material-symbols-outlined">close</span></a>
+    <span class="divider"></span>
+    <button type="button" id="prevBtn" title="Précédent (←)"><span class="material-symbols-outlined">skip_previous</span></button>
+    <button type="button" id="playBtn" class="primary" title="Lecture / pause (Espace)"><span class="material-symbols-outlined" id="playIcon">play_arrow</span></button>
+    <button type="button" id="nextBtn" title="Suivant (→)"><span class="material-symbols-outlined">skip_next</span></button>
+    <span class="divider"></span>
+    <div class="meta">
+      <strong id="slideName"></strong>
+      <small><span id="slideIndex"></span> · {{ slider.name }}</small>
+    </div>
+    <span class="mode-pill">{% if mode == 'kiosk' %}Kiosque{% else %}Présentation{% endif %}</span>
+    <button type="button" id="reloadBtn" title="Rafraîchir ce rapport (R)"><span class="material-symbols-outlined">refresh</span></button>
+    <button type="button" id="fullscreenBtn" title="Plein écran (F)"><span class="material-symbols-outlined" id="fullscreenIcon">fullscreen</span></button>
+  </div>
+
+  {{ slides|json_script:"slider-slides" }}
+  <script>
+  (function () {
+    const slides = JSON.parse(document.getElementById('slider-slides').textContent);
+    const KIOSK = '{{ mode }}' === 'kiosk';
+    const INTERVAL_MS = {{ slider.interval_seconds }} * 1000;
+    const KEEPALIVE_URL = "{% url 'powerbi_report:slider_keepalive' %}";
+    const CSRF = "{{ csrf_token }}";
+
+    const frames = [document.getElementById('frameA'), document.getElementById('frameB')];
+    const loader = document.getElementById('loader');
+    const progress = document.getElementById('progress');
+    const playIcon = document.getElementById('playIcon');
+    const dots = document.getElementById('dots');
+
+    let current = 0;          // index of the slide on screen
+    let visible = 0;          // which frame is on screen
+    let playing = KIOSK;      // presentation starts paused, kiosk auto-plays
+    let elapsed = 0;
+    let lastTick = null;
+
+    let pendingPreload = null;  // next slide, loaded only once the visible one is done
+    function preloadNext() {
+      if (pendingPreload === null) return;
+      load(frames[1 - visible], pendingPreload);
+      pendingPreload = null;
+    }
+
+    frames.forEach(frame => frame.addEventListener('load', () => {
+      if (!frame.getAttribute('src')) return;
+      frame.dataset.loaded = '1';
+      if (frame === frames[visible]) {
+        loader.classList.remove('is-on');
+        preloadNext();
+      }
+    }));
+
+    function load(frame, index) {
+      frame.dataset.index = String(index);
+      frame.dataset.loaded = '';
+      frame.src = slides[index].url;     // a fresh src also re-fetches the data
+    }
+
+    function show(index) {
+      current = (index + slides.length) % slides.length;
+      const hidden = frames[1 - visible];
+      // The next slide is usually already waiting in the hidden frame.
+      if (hidden.dataset.index !== String(current) || slides.length === 1) load(hidden, current);
+      frames[visible].classList.remove('is-visible');
+      frames[visible].tabIndex = -1;
+      visible = 1 - visible;
+      frames[visible].classList.add('is-visible');
+      frames[visible].tabIndex = 0;
+      loader.classList.toggle('is-on', frames[visible].dataset.loaded !== '1');
+
+      // Preload the following slide into the frame we just hid, but only
+      // after the visible report has loaded so both don't compete for PBIRS.
+      pendingPreload = slides.length > 1 ? (current + 1) % slides.length : null;
+      if (frames[visible].dataset.loaded === '1') preloadNext();
+
+      document.getElementById('slideName').textContent = slides[current].name;
+      document.getElementById('slideIndex').textContent = `${current + 1} / ${slides.length}`;
+      [...dots.children].forEach((dot, i) => dot.classList.toggle('is-current', i === current));
+      elapsed = 0;
+    }
+
+    function setPlaying(value) {
+      playing = value;
+      playIcon.textContent = playing ? 'pause' : 'play_arrow';
+      lastTick = null;
+    }
+
+    function tick(now) {
+      if (playing) {
+        if (lastTick !== null) elapsed += now - lastTick;
+        lastTick = now;
+        // Do not count time while the report is still loading.
+        if (frames[visible].dataset.loaded !== '1') elapsed = 0;
+        if (elapsed >= INTERVAL_MS) show(current + 1);
+      }
+      progress.style.width = `${Math.min(100, (elapsed / INTERVAL_MS) * 100)}%`;
+      requestAnimationFrame(tick);
+    }
+
+    slides.forEach((slide, i) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.title = slide.name;
+      dot.addEventListener('click', () => show(i));
+      dots.appendChild(dot);
+    });
+
+    function toggleFullscreen() {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen().catch(() => {});
+    }
+    document.addEventListener('fullscreenchange', () => {
+      document.getElementById('fullscreenIcon').textContent = document.fullscreenElement ? 'fullscreen_exit' : 'fullscreen';
+    });
+
+    document.getElementById('prevBtn').addEventListener('click', () => show(current - 1));
+    document.getElementById('nextBtn').addEventListener('click', () => show(current + 1));
+    document.getElementById('playBtn').addEventListener('click', () => setPlaying(!playing));
+    document.getElementById('reloadBtn').addEventListener('click', () => { load(frames[visible], current); loader.classList.add('is-on'); elapsed = 0; });
+    document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+
+    // Shortcuts work while focus is on the player (not inside a report iframe).
+    document.addEventListener('keydown', event => {
+      if (event.key === 'ArrowRight' || event.key === 'PageDown') show(current + 1);
+      else if (event.key === 'ArrowLeft' || event.key === 'PageUp') show(current - 1);
+      else if (event.key === ' ') { event.preventDefault(); setPlaying(!playing); }
+      else if (event.key === 'f' || event.key === 'F') toggleFullscreen();
+      else if (event.key === 'r' || event.key === 'R') document.getElementById('reloadBtn').click();
+      else if (event.key === 'Escape' && !document.fullscreenElement) window.location.href = "{% url 'powerbi_report:slider_list' %}";
+      else return;
+      wake();
+    });
+
+    // Controls fade out when the mouse is still (always on a wall screen).
+    let idleTimer;
+    function wake() {
+      document.body.classList.remove('is-idle');
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => document.body.classList.add('is-idle'), KIOSK ? 2500 : 4000);
+    }
+    ['mousemove', 'mousedown', 'touchstart'].forEach(type => document.addEventListener(type, wake, { passive: true }));
+
+    if (KIOSK) {
+      // Keep the CBI session alive for an all-day wall screen.
+      setInterval(() => {
+        fetch(KEEPALIVE_URL, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, credentials: 'same-origin', redirect: 'manual' })
+          .catch(() => {});
+      }, 10 * 60 * 1000);
+    }
+
+    const toast = document.getElementById('skippedToast');
+    if (toast) setTimeout(() => toast.remove(), 6000);
+
+    // Frame A starts hidden; show() flips to it after loading slide 0 into it.
+    visible = 1;
+    show(0);
+    setPlaying(playing);
+    wake();
+    requestAnimationFrame(tick);
+  })();
+  </script>
+</body>
+</html>
