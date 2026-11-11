@@ -176,12 +176,11 @@
                                 </div>
                             </td>
                             <td class="px-8 py-5 text-right">
-                                <form method="post" action="{% url 'powerbi_report:add_permission_to_server' report.Id selected_username %}" class="m-0">
-                                    {% csrf_token %}
-                                    <button type="submit" class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-bold hover:bg-emerald-500/20 transition-all opacity-0 group-hover:opacity-100">
+                                <div class="m-0">
+                                    <button type="submit" formaction="{% url 'powerbi_report:add_permission_to_server' report.Id selected_username %}" class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-bold hover:bg-emerald-500/20 transition-all">
                                         <span class="material-symbols-outlined text-[16px]">add</span> Accorder
                                     </button>
-                                </form>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}

@@ -3,14 +3,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django import forms
-from django.http import FileResponse, Http404, JsonResponse
+from django.http import FileResponse, Http404
 from django.contrib import messages
 from django.views.decorators.http import require_http_methods
 from .models import LOGO_OPTION_TYPES, PBIRSServer, MetadataOption, ReportRef
-from notifications.models import Notification
 from users.utils import get_user_permissions, admin_required
-from django.conf import settings
-import json
 
 logger = logging.getLogger('powerbi_report')
 
@@ -69,8 +66,6 @@ def metadata_option_logo(request, option_id):
 @admin_required
 def server_management_list(request):
     servers = PBIRSServer.objects.all().order_by('name')
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
 
     metadata_options = MetadataOption.objects.all().select_related('parent')
@@ -91,10 +86,8 @@ def server_management_list(request):
         'directions': directions,
         'societes': societes,
         'modules': modules,
-        'notifications': notifications,
-        'unread': unread,
         'permissions': permissions,
-        'pole_societe_ids_json': json.dumps(pole_societe_ids),
+        'pole_societe_ids': pole_societe_ids,
     }
     return render(request, 'powerbi_report/server_management.html', context)
 

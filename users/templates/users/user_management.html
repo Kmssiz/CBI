@@ -55,12 +55,16 @@
         </div>
 
         <div class="flex items-center gap-3">
+            <a href="{% url 'new_users' %}" class="relative flex items-center gap-2 px-5 py-2.5 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-slate-700/50 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl text-sm font-bold transition-all text-slate-700 dark:text-white">
+                <span class="material-symbols-outlined text-[18px]">person_add</span> Nouveaux utilisateurs
+                {% if new_users_count %}<span class="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center" title="Nouveaux utilisateurs à examiner">{{ new_users_count }}</span>{% endif %}
+            </a>
             <button type="button" id="syncUsersBtn" class="flex items-center gap-2 px-5 py-2.5 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-slate-700/50 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl text-sm font-bold transition-all text-slate-700 dark:text-white" onclick="startSyncUsers()">
                 <span class="material-symbols-outlined text-[18px]">sync</span> Synchroniser
             </button>
             
             {% if permissions.view_role %}
-            <a href="{% url 'manage_roles' %}" class="flex items-center gap-2 px-5 py-2.5 bg-primary text-white hover:bg-primary-dark rounded-xl text-sm font-bold shadow-lg shadow-primary/20 transition-all">
+            <a href="{% url 'manage_roles' %}" class="flex items-center gap-2 px-5 py-2.5 bg-primary text-white hover:brightness-95 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 transition-all">
                 <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span> Gérer les Rôles
             </a>
             {% endif %}
@@ -102,7 +106,7 @@
                                     {% endif %}
                                 </div>
                                 <div class="flex flex-col">
-                                    <span class="text-sm font-bold text-slate-900 dark:text-white">{{ user.AD2000|default:user.get_full_name }}</span>
+                                    <span class="text-sm font-bold text-slate-900 dark:text-white">{{ user.ad2000|default:user.get_full_name }}</span>
                                     <span class="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-tighter">{{ user.username }}</span>
                                 </div>
                             </div>
@@ -320,7 +324,7 @@
                 </div>
                 <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800/50 flex justify-end gap-3 bg-slate-50/50 dark:bg-white/5">
                     <button type="button" class="px-5 py-2.5 text-slate-500 hover:text-slate-700 dark:hover:text-white font-bold text-sm transition-all" onclick="closeEditModal()">Annuler</button>
-                    <button type="submit" class="px-6 py-2.5 bg-primary text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-primary/20 hover:bg-primary-dark">Enregistrer les modifications</button>
+                    <button type="submit" class="px-6 py-2.5 bg-primary text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-primary/20 hover:brightness-95">Enregistrer les modifications</button>
                 </div>
             </form>
         </div>
@@ -386,12 +390,11 @@
     // Toggle admin settings visibility based on selected role
     toggleAdminSettings();
 
-    // Use jQuery for Bootstrap 4
-    $('#editModal').modal('show');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal')).show();
   }
 
   function closeEditModal() {
-    $('#editModal').modal('hide');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal')).hide();
   }
 
   // Submit search only on Enter key

@@ -257,7 +257,8 @@
     const form = document.getElementById('deleteFolderForm');
     const input = document.getElementById('delete_folder_id');
     input.value = folderId;
-    form.action = form.action.replace('TEMPORARY_ID', folderId);
+    if (!form.dataset.actionTemplate) form.dataset.actionTemplate = form.action;
+    form.action = form.dataset.actionTemplate.replace('TEMPORARY_ID', folderId);
   }
 </script>
 

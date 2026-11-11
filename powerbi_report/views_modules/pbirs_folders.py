@@ -65,8 +65,6 @@ def report_folders_list_view(
         for idx, part in enumerate(parts):
             breadcrumbs.append({"name": part, "url": "/".join(parts[: idx + 1])})
 
-    notifications = Notification.objects.filter(user=request.user).order_by("-created_at")
-    unread = notifications.filter(is_read=False).count()
     permissions = permissions_getter(request.user)
 
     return render(
@@ -75,8 +73,6 @@ def report_folders_list_view(
         {
             "folder_structure": current_folder_structure,
             "breadcrumbs": breadcrumbs,
-            "notifications": notifications,
-            "unread": unread,
             "permissions": permissions,
             "current_folder": folder_path,
         },
@@ -108,7 +104,7 @@ def add_powerbi_folder_view(request, auth_getter: Callable, history_logger: Call
         }
 
         try:
-            response = session.post(url, json=payload)
+            response = session.post(url, json=payload, timeout=30)
             response.raise_for_status()
             history_logger(request.user, f"Dossier '{folder_name}' crÃ©Ã©")
 
@@ -161,7 +157,7 @@ def delete_powerbi_folder_view(
             except Exception:
                 pass
 
-            response = session.delete(url)
+            response = session.delete(url, timeout=30)
             response.raise_for_status()
             history_logger(request.user, f"Dossier '{folder_name}' supprimé")
 

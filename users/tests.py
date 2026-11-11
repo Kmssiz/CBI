@@ -178,3 +178,81 @@ class LDAPUtilsTests(SimpleTestCase):
 
         self.assertEqual(first_server_call.args[0], "ldap-primary.example.com")
         self.assertEqual(second_server_call.args[0], "ldap-secondary.example.com")
+
+
+class ProductTourTests(TestCase):
+    def setUp(self) -> None:
+        self.user = CustomUser.objects.create_user(username="tour_user", password="pw", ad2000="TOUR001", status="Active")
+        self.client.force_login(self.user)
+
+    def _post(self, name, payload):
+        return self.client.post(reverse(name), data=payload, content_type="application/json")
+
+    def test_tours_start_unseen(self) -> None:
+        self.assertEqual(self.user.tours_seen, {})
+
+    def test_seen_is_stored_per_user_and_never_goes_back_to_an_older_version(self) -> None:
+        self.assertEqual(self._post("tour_seen", {"tour": "main", "version": 2}).status_code, 200)
+        self._post("tour_seen", {"tour": "main", "version": 1})
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.tours_seen, {"main": 2})
+
+    def test_invalid_payloads_are_rejected(self) -> None:
+        for payload in ({}, {"tour": "Main!", "version": 1}, {"tour": "main", "version": 0},
+                        {"tour": "main", "version": "1"}, {"tour": "main", "version": True},
+                        {"tour": "a" * 41, "version": 1}):
+            self.assertEqual(self._post("tour_seen", payload).status_code, 400, payload)
+        response = self.client.post(reverse("tour_seen"), data="not json", content_type="application/json")
+        self.assertEqual(response.status_code, 400)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.tours_seen, {})
+
+    def test_number_of_remembered_tours_is_capped(self) -> None:
+        self.user.tours_seen = {f"t{i}": 1 for i in range(40)}
+        self.user.save()
+        self.assertEqual(self._post("tour_seen", {"tour": "one_more", "version": 1}).status_code, 400)
+        # A tour that is already known can still move to a newer version.
+        self.assertEqual(self._post("tour_seen", {"tour": "t0", "version": 2}).status_code, 200)
+
+    def test_reset_one_or_all(self) -> None:
+        self.user.tours_seen = {"main": 1, "users": 1}
+        self.user.save()
+        self._post("tour_reset", {"tour": "users"})
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.tours_seen, {"main": 1})
+        self._post("tour_reset", {"tour": "all"})
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.tours_seen, {})
+
+    def test_endpoints_need_login_and_post(self) -> None:
+        self.assertEqual(self.client.get(reverse("tour_seen")).status_code, 405)
+        self.client.logout()
+        response = self._post("tour_seen", {"tour": "main", "version": 1})
+        self.assertEqual(response.status_code, 302)
+
+    def test_page_ships_the_tour_only_to_signed_in_users(self) -> None:
+        response = self.client.get(reverse("landing"))
+        self.assertContains(response, 'id="cbi-tour-config"')
+        self.assertContains(response, 'data-page="landing"')
+        self.assertContains(response, 'id="tour-launcher"')
+        self.client.logout()
+        response = self.client.get(reverse("login"))
+        self.assertNotContains(response, "cbi-tour-config")
+
+    def test_admins_get_no_tour(self) -> None:
+        admin = CustomUser.objects.create_user(username="tour_admin", password="pw", ad2000="TOUR002", status="Active", is_superuser=True)
+        self.client.force_login(admin)
+        response = self.client.get(reverse("landing"))
+        self.assertNotContains(response, "cbi-tour-config")
+        self.assertNotContains(response, 'id="tour-launcher"')
+        self.assertNotContains(response, "cbi-tour.js")
+
+    def test_each_section_gets_its_own_anchor_for_the_tour(self) -> None:
+        self.user.can_view_direction = True
+        self.user.can_view_anomalie = True
+        self.user.save()
+        response = self.client.get(reverse("landing"))
+        self.assertContains(response, 'data-tour="space-direction"')
+        self.assertContains(response, 'data-tour="space-anomalie"')
+        self.assertNotContains(response, 'data-tour="space-pole"')
+        self.assertNotContains(response, 'data-tour="nav-slider"')

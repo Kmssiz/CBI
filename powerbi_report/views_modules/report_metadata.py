@@ -4,7 +4,6 @@ import logging
 from collections.abc import Callable
 
 import requests
-from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
 from django.shortcuts import redirect
@@ -28,7 +27,7 @@ def get_powerbi_report_info_data(
         return None
 
     try:
-        response = requests.get(url, auth=auth, headers={"Accept": "application/json"})
+        response = requests.get(url, auth=auth, headers={"Accept": "application/json"}, timeout=30)
         if response.status_code == 200:
             data = response.json()
             return {
@@ -83,18 +82,8 @@ def edit_powerbi_report_name_view(
             new_name,
         )
 
-        try:
-            policies = report_permissions_getter(request, report_id)
-            logger.info(
-                "[DEBUG_PERMS] Policies for report %s for user %s: %s",
-                report_id,
-                request.user.username,
-                policies,
-            )
-        except Exception as exc:  # defensive: this is optional diagnostic logging
-            logger.error("[DEBUG_PERMS] Failed to fetch policies: %s", exc)
 
-        response = requests.patch(update_url, json=data, auth=auth, headers=headers)
+        response = requests.patch(update_url, json=data, auth=auth, headers=headers, timeout=30)
         response.raise_for_status()
         messages.success(request, "Report name updated successfully!")
         history_logger(
@@ -165,7 +154,7 @@ def edit_powerbi_report_path_view(
     headers = {"Content-Type": "application/json"}
 
     try:
-        response = requests.patch(update_url, json=data, auth=auth, headers=headers)
+        response = requests.patch(update_url, json=data, auth=auth, headers=headers, timeout=30)
         response.raise_for_status()
         _clear_user_report_cache(request)
         messages.success(request, "Report path updated successfully!")
@@ -204,7 +193,7 @@ def edit_powerbi_report_description_view(
     info = report_info_getter(request, report_id)
 
     try:
-        response = requests.patch(update_url, json=data, auth=auth, headers=headers)
+        response = requests.patch(update_url, json=data, auth=auth, headers=headers, timeout=30)
         response.raise_for_status()
         _clear_user_report_cache(request)
         messages.success(request, "Report description updated successfully!")

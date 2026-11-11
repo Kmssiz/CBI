@@ -14,122 +14,118 @@
 {% endblock %}
 
 {% block content %}
-<div class="px-8 py-10">
-    <div class="max-w-5xl mx-auto">
-        <!-- [ Control Bar ] start -->
-        <div class="mb-8">
+<div class="px-4 sm:px-8 py-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="mb-6">
             <button onclick="window.history.back()" class="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all group">
                 <span class="material-symbols-outlined text-[20px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
                 <span class="text-sm font-bold">Retour à la liste</span>
             </button>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Left: Profile Overview -->
-            <div class="lg:col-span-1 space-y-6">
-                <div class="card-theme p-8 text-center">
-                    <div class="relative inline-block mb-6">
-                        <div class="size-32 rounded-full border-4 border-primary/20 p-1">
+        {# One card. Each fact appears once, whether it comes from the directory or from Odoo. #}
+        <section class="card-theme overflow-hidden">
+            <div class="h-24 sm:h-28 bg-gradient-to-r from-primary/30 via-blue-500/15 to-transparent"></div>
+
+            <div class="px-6 sm:px-10 pb-8">
+                <div class="-mt-12 sm:-mt-14 flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
+                    <div class="relative shrink-0">
+                        <div class="size-24 sm:size-28 rounded-full p-1 bg-white dark:bg-surface-dark shadow-lg">
                             {% if user_detail.profile_image %}
                                 <img src="{{ user_detail.profile_image.url }}" alt="{{ user_detail.username }}" class="size-full rounded-full object-cover">
                             {% else %}
-                                <div class="size-full rounded-full flex items-center justify-center text-white text-3xl font-black shadow-inner" style="background-color: {{ user_detail.get_avatar_color }};">
+                                <div class="size-full rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl font-black" style="background-color: {{ user_detail.get_avatar_color }};">
                                     {{ user_detail.get_initials }}
                                 </div>
                             {% endif %}
                         </div>
-                        <span class="absolute bottom-1 right-1 size-5 rounded-full border-4 border-white dark:border-surface-dark {% if user_detail.status == 'Active' %}bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]{% else %}bg-red-500{% endif %}"></span>
+                        <span class="absolute bottom-1 right-1 size-5 rounded-full border-4 border-white dark:border-surface-dark {% if user_detail.status == 'Active' %}bg-emerald-500{% else %}bg-red-500{% endif %}" title="{{ user_detail.status|default:'Statut inconnu' }}"></span>
                     </div>
-                    
-                    <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-1 tracking-tight">{{ user_detail.get_full_name|default:user_detail.username }}</h2>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">{{ user_detail.email }}</p>
-                    
-                    <div class="inline-flex px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-[10px] font-bold uppercase tracking-widest">
-                        {{ user_detail.role.name|default:"Sans Rôle" }}
+
+                    <div class="min-w-0 flex-1 sm:pb-1">
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{{ user_detail.get_full_name|default:user_detail.username }}</h2>
+                        {% if odoo_profile.title %}<p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ odoo_profile.title }}</p>{% endif %}
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 sm:pb-2">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-[11px] font-bold uppercase tracking-widest">
+                            <span class="material-symbols-outlined text-[14px]">shield_person</span>{{ user_detail.role.name|default:"Sans rôle" }}
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest border {% if user_detail.status == 'Active' %}bg-emerald-500/10 text-emerald-500 border-emerald-500/20{% else %}bg-red-500/10 text-red-400 border-red-500/20{% endif %}">
+                            <span class="size-1.5 rounded-full {% if user_detail.status == 'Active' %}bg-emerald-500{% else %}bg-red-500{% endif %}"></span>{{ user_detail.status|default:"Inconnu" }}
+                        </span>
                     </div>
                 </div>
 
-                <div class="card-theme p-6 space-y-4">
-                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest px-2">Statistiques rapides</h4>
-                    <div class="grid grid-cols-2 gap-3 mt-4">
-                        <div class="p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800/50 rounded-2xl text-center">
-                            <span class="block text-xs text-slate-500 mb-1">Rejoint</span>
-                            <span class="text-sm font-bold text-slate-900 dark:text-white">{{ user_detail.date_joined|date:"M Y" }}</span>
-                        </div>
-                        <div class="p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-slate-800/50 rounded-2xl text-center">
-                            <span class="block text-xs text-slate-500 mb-1">Statut</span>
-                            <span class="text-sm font-bold {% if user_detail.status == 'Active' %}text-emerald-400{% else %}text-red-400{% endif %}">
-                                {{ user_detail.status|default:"Inconnu" }}
-                            </span>
+                <!-- Contact -->
+                <div class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                    {% if user_detail.email %}
+                    <a href="mailto:{{ user_detail.email }}" class="inline-flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-primary break-all">
+                        <span class="material-symbols-outlined text-[18px] text-slate-400">mail</span>{{ user_detail.email }}
+                    </a>
+                    {% endif %}
+                    {% if odoo_profile.phone %}
+                    <a href="tel:{{ odoo_profile.phone }}" class="inline-flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-primary">
+                        <span class="material-symbols-outlined text-[18px] text-slate-400">call</span>{{ odoo_profile.phone }}
+                    </a>
+                    {% endif %}
+                </div>
+
+                <div class="h-px bg-slate-200 dark:bg-slate-800/60 my-8"></div>
+
+                <!-- Everything else, in one grid -->
+                <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% with company=odoo_profile.company|default:user_detail.societe %}
+                    <div class="flex items-start gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/70 dark:border-slate-800/60">
+                        <span class="material-symbols-outlined text-primary text-[22px] mt-0.5">apartment</span>
+                        <div class="min-w-0">
+                            <dt class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Société</dt>
+                            <dd class="mt-0.5 text-sm font-semibold text-slate-800 dark:text-slate-100 break-words">{{ company|default:"—" }}</dd>
                         </div>
                     </div>
-                </div>
+                    {% endwith %}
+                    <div class="flex items-start gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/70 dark:border-slate-800/60">
+                        <span class="material-symbols-outlined text-primary text-[22px] mt-0.5">account_tree</span>
+                        <div class="min-w-0">
+                            <dt class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Direction</dt>
+                            <dd class="mt-0.5 text-sm font-semibold text-slate-800 dark:text-slate-100 break-words">{{ user_detail.direction|default:"—" }}</dd>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/70 dark:border-slate-800/60">
+                        <span class="material-symbols-outlined text-primary text-[22px] mt-0.5">badge</span>
+                        <div class="min-w-0">
+                            <dt class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Matricule</dt>
+                            <dd class="mt-0.5 text-sm font-semibold font-mono text-slate-800 dark:text-slate-100">{{ odoo_profile.employee_id|default:user_detail.ad2000|default:"—" }}</dd>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/70 dark:border-slate-800/60">
+                        <span class="material-symbols-outlined text-primary text-[22px] mt-0.5">alternate_email</span>
+                        <div class="min-w-0">
+                            <dt class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nom d'utilisateur</dt>
+                            <dd class="mt-0.5 text-sm font-semibold text-slate-800 dark:text-slate-100 break-all">{{ user_detail.username }}</dd>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/70 dark:border-slate-800/60">
+                        <span class="material-symbols-outlined text-primary text-[22px] mt-0.5">login</span>
+                        <div class="min-w-0">
+                            <dt class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Dernière connexion</dt>
+                            <dd class="mt-0.5 text-sm font-semibold text-slate-800 dark:text-slate-100">{% if user_detail.last_login %}{{ user_detail.last_login|date:"d F Y, H:i" }}{% else %}Jamais connecté{% endif %}</dd>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/70 dark:border-slate-800/60">
+                        <span class="material-symbols-outlined text-primary text-[22px] mt-0.5">event</span>
+                        <div class="min-w-0">
+                            <dt class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Inscription</dt>
+                            <dd class="mt-0.5 text-sm font-semibold text-slate-800 dark:text-slate-100">{{ user_detail.date_joined|date:"d F Y" }}</dd>
+                        </div>
+                    </div>
+                </dl>
+
+                {% if odoo_profile %}
+                <p class="mt-6 text-xs text-slate-400 flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">sync</span> Poste, société, téléphone et matricule mis à jour depuis Odoo le {{ odoo_profile.synced_at|date:"d/m/Y à H:i" }}</p>
+                {% endif %}
             </div>
-
-            <!-- Right: Detailed Info -->
-            <div class="lg:col-span-2 space-y-6">
-                <div class="card-theme overflow-hidden">
-                    <div class="px-8 py-6 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02]">
-                        <h3 class="font-bold text-slate-900 dark:text-white tracking-tight">Informations de Compte</h3>
-                        <span class="material-symbols-outlined text-slate-500 text-[20px]">badge</span>
-                    </div>
-                    
-                    <div class="p-8 space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nom Complet</label>
-                                <p class="text-slate-700 dark:text-slate-200 font-medium">{{ user_detail.get_full_name|default:"Non renseigné" }}</p>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nom d'Utilisateur</label>
-                                <p class="text-slate-700 dark:text-slate-200 font-medium">{{ user_detail.username }}</p>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Adresse E-mail</label>
-                                <p class="text-slate-700 dark:text-slate-200 font-medium">{{ user_detail.email }}</p>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Rôle Système</label>
-                                <p class="text-slate-700 dark:text-slate-200 font-medium">{{ user_detail.role.name|default:"N/A" }}</p>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pôle</label>
-                                <p class="text-slate-700 dark:text-slate-200 font-medium">{{ user_detail.pole|default:"Non renseigné" }}</p>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Direction</label>
-                                <p class="text-slate-700 dark:text-slate-200 font-medium">{{ user_detail.direction|default:"Non renseigné" }}</p>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Société</label>
-                                <p class="text-slate-700 dark:text-slate-200 font-medium">{{ user_detail.societe|default:"Non renseigné" }}</p>
-                            </div>
-                        </div>
-
-                        <div class="h-px bg-slate-200 dark:bg-slate-800/50 my-8"></div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Dernière Connexion</label>
-                                <p class="text-slate-500 dark:text-slate-400 text-sm">
-                                    {% if user_detail.last_login %}
-                                        {{ user_detail.last_login|date:"d F Y, H:i" }}
-                                    {% else %}
-                                        Jamais connecté
-                                    {% endif %}
-                                </p>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Date d'Inscription</label>
-                                <p class="text-slate-500 dark:text-slate-400 text-sm">{{ user_detail.date_joined|date:"d F Y" }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-
-            </div>
-        </div>
+        </section>
     </div>
 </div>
 {% endblock %}

@@ -6,7 +6,9 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+    # Tests always use the isolated settings (in-memory database, no real LDAP/PBIRS/Odoo).
+    default_settings = 'config.test_settings' if 'test' in sys.argv[1:2] else 'config.settings'
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', default_settings)
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

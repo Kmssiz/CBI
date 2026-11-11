@@ -380,3 +380,49 @@ class SliderItem(models.Model):
 
     def __str__(self):
         return f"{self.slider} #{self.position}: {self.report}"
+
+
+class OdooSettings(models.Model):
+    """
+    Single row. Accounts created before `new_users_since` are never reported as new
+    users: only people who arrive after the feature went live are announced to the admins.
+    """
+    new_users_since = models.DateTimeField()
+
+    @classmethod
+    def get(cls) -> 'OdooSettings':
+        from django.utils import timezone
+        obj, _ = cls.objects.get_or_create(pk=1, defaults={'new_users_since': timezone.now()})
+        return obj
+
+
+class OdooProfile(models.Model):
+    """What Odoo says about a CBI user: their current job title, company and phone."""
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='odoo_profile')
+    employee_id = models.CharField(max_length=100)
+    title = models.CharField(max_length=200)
+    title_key = models.CharField(max_length=200, db_index=True)
+    company = models.CharField(max_length=200, blank=True, default='')
+    company_key = models.CharField(max_length=200, blank=True, default='', db_index=True)
+    phone = models.CharField(max_length=60, blank=True, default='')
+    synced_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user}: {self.title} ({self.company})"
+
+
+class NewUserAlert(models.Model):
+    """
+    A new person who exists in the directory (LDAP) AND in Odoo. Admins are told about
+    them once a day until someone marks them as seen. Nothing is granted automatically.
+    """
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='new_user_alert')
+    detected_at = models.DateTimeField(auto_now_add=True)
+    seen_at = models.DateTimeField(null=True, blank=True)
+    seen_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+
+    class Meta:
+        ordering = ['-detected_at']
+
+    def __str__(self):
+        return f"Nouvel utilisateur : {self.user}"

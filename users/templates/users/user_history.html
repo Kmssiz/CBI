@@ -177,8 +177,11 @@
 
 <script>
     const backToTop = document.getElementById('backToTop');
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 300) {
+    // The page scrolls inside the layout's content area, not the window.
+    const scroller = document.querySelector('.legacy-content') || window;
+    const scrollTop = () => (scroller === window ? window.scrollY : scroller.scrollTop);
+    scroller.addEventListener('scroll', () => {
+        if (scrollTop() > 300) {
             backToTop.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
         } else {
             backToTop.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
@@ -186,7 +189,7 @@
     });
 
     backToTop.addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        scroller.scrollTo({ top: 0, behavior: 'smooth' });
     });
 </script>
 {% endblock %}

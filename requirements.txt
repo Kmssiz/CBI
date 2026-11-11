@@ -11,6 +11,7 @@ requests-negotiate-sspi==0.5.2; sys_platform == 'win32'
 gunicorn==23.0.0; sys_platform != 'win32'
 whitenoise==6.7.0
 waitress==3.0.0; sys_platform == 'win32'
-pycryptodome
+pycryptodome==3.23.0
+cryptography==46.0.4
 psycopg2-binary==2.9.9
 pyodbc==5.1.0

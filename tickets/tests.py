@@ -153,3 +153,94 @@ class TicketTests(TestCase):
         self.ticket.refresh_from_db()
         self.assertEqual(self.ticket.status, "in_progress")
         self.assertEqual(self.ticket.assigned_to, self.admin)
+
+
+class TicketEmailTests(TestCase):
+    """Both sides of a ticket hear about it: the requester and the people handling it."""
+
+    def setUp(self):
+        from django.core import mail
+        self.mail = mail
+        self.client = Client()
+        self.user = User.objects.create_user(username="requester", password="password", email="requester@example.com")
+        self.admin = User.objects.create_superuser(username="admin1", password="password", email="admin1@example.com")
+        self.admin2 = User.objects.create_superuser(username="admin2", password="password", email="admin2@example.com")
+        self.ticket = Ticket.objects.create(
+            title="Dashboard ventes", description="Il manque une colonne.", ticket_type="bug",
+            category="cbi", priority="high", status="open", created_by=self.user,
+        )
+
+    def _to(self):
+        return sorted(addr for m in self.mail.outbox for addr in m.to)
+
+    def test_creating_a_ticket_confirms_to_the_requester_and_alerts_every_admin(self):
+        self.client.login(username="requester", password="password")
+        self.client.post(reverse("tickets:create_ticket"), {
+            "title": "Nouveau", "description": "Desc", "ticket_type": "refresh", "category": "cbi", "priority": "medium",
+        })
+        self.assertEqual(self._to(), ["admin1@example.com", "admin2@example.com", "requester@example.com"])
+        self.assertTrue(all("Nouveau" in m.subject for m in self.mail.outbox))
+        self.assertTrue(all(len(m.to) == 1 for m in self.mail.outbox))  # nobody sees anybody's address
+
+    def test_a_message_from_the_requester_goes_to_the_handlers_not_back_to_the_sender(self):
+        self.client.login(username="requester", password="password")
+        self.client.post(reverse("tickets:add_message", args=[self.ticket.id]), {"content": "Des nouvelles ?"})
+        self.assertEqual(self._to(), ["admin1@example.com", "admin2@example.com"])
+        self.assertIn("Des nouvelles ?", self.mail.outbox[0].body)
+
+    def test_once_assigned_only_the_assigned_admin_is_mailed(self):
+        self.ticket.assigned_to = self.admin
+        self.ticket.save()
+        self.client.login(username="requester", password="password")
+        self.client.post(reverse("tickets:add_message", args=[self.ticket.id]), {"content": "Bonjour"})
+        self.assertEqual(self._to(), ["admin1@example.com"])
+
+    def test_a_reply_from_an_admin_goes_to_the_requester_only(self):
+        self.client.login(username="admin1", password="password")
+        self.client.post(reverse("tickets:add_message", args=[self.ticket.id]), {"content": "C'est corrigé."})
+        self.assertEqual(self._to(), ["requester@example.com"])
+        self.assertIn("C'est corrigé.", self.mail.outbox[0].body)
+
+    def test_changing_the_status_tells_the_requester_and_a_no_op_tells_nobody(self):
+        self.client.login(username="admin1", password="password")
+        self.client.post(reverse("tickets:change_status", args=[self.ticket.id]), {"status": "in_progress"})
+        self.assertEqual(self._to(), ["requester@example.com"])
+        self.assertIn("En cours", self.mail.outbox[0].subject)
+        self.mail.outbox.clear()
+        self.client.post(reverse("tickets:change_status", args=[self.ticket.id]), {"status": "in_progress"})
+        self.assertEqual(self.mail.outbox, [])
+
+    def test_assigning_tells_the_new_assignee_but_not_the_admin_who_did_it(self):
+        self.client.login(username="admin1", password="password")
+        self.client.post(reverse("tickets:assign_ticket", args=[self.ticket.id]), {"assigned_to": self.admin2.id})
+        self.assertEqual(self._to(), ["admin2@example.com"])
+        self.mail.outbox.clear()
+        self.client.post(reverse("tickets:assign_ticket", args=[self.ticket.id]), {"assigned_to": self.admin.id})
+        self.assertEqual(self.mail.outbox, [])  # admin1 assigned it to themself
+
+    def test_update_info_sends_status_and_assignment_mails(self):
+        self.client.login(username="admin1", password="password")
+        self.client.post(reverse("tickets:update_ticket_info", args=[self.ticket.id]),
+                         {"status": "closed", "assigned_to": self.admin2.id})
+        self.assertEqual(self._to(), ["admin2@example.com", "requester@example.com"])
+
+    def test_people_without_an_address_are_skipped(self):
+        User.objects.filter(pk=self.admin2.pk).update(email="")
+        self.client.login(username="requester", password="password")
+        self.client.post(reverse("tickets:add_message", args=[self.ticket.id]), {"content": "Salut"})
+        self.assertEqual(self._to(), ["admin1@example.com"])
+
+    def test_a_mail_failure_never_breaks_the_ticket_action(self):
+        from unittest.mock import patch
+        self.client.login(username="requester", password="password")
+        with patch("django.core.mail.message.EmailMessage.send", side_effect=OSError("smtp down")):
+            response = self.client.post(reverse("tickets:add_message", args=[self.ticket.id]), {"content": "Toujours là"})
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(TicketMessage.objects.filter(ticket=self.ticket, content="Toujours là").exists())
+
+    def test_the_link_in_the_mail_points_to_the_ticket(self):
+        from django.test import override_settings
+        self.client.login(username="admin1", password="password")
+        with override_settings(SITE_URL="https://cbi.example.com"):
+            self.client.post(reverse("tickets:change_status", args=[self.ticket.id]), {"status": "closed"})
+        self.assertIn(f"https://cbi.example.com/tickets/{self.ticket.id}/", self.mail.outbox[0].body)

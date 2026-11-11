@@ -45,10 +45,10 @@
     {% if messages %}
     <div class="mb-6">
       {% for message in messages %}
-      <div class="flex items-center gap-3 p-4 rounded-xl {% if message.tags == 'error' %}bg-red-500/10 border border-red-500/20 text-red-400{% else %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% endif %} alert-dismissible fade show" role="alert">
+      <div class="flex items-center gap-3 p-4 rounded-xl {% if message.tags == 'error' %}bg-red-500/10 border border-red-500/20 text-red-400{% else %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% endif %} alert" role="alert">
         <span class="material-symbols-outlined text-[20px]">{% if message.tags == 'error' %}error{% else %}check_circle{% endif %}</span>
         <span class="text-sm font-medium">{{ message }}</span>
-        <button type="button" class="ml-auto text-current opacity-50 hover:opacity-100 transition-opacity" data-bs-dismiss="alert">
+        <button type="button" class="ml-auto text-current opacity-50 hover:opacity-100 transition-opacity" onclick="this.closest('.alert').remove()" aria-label="Fermer">
           <span class="material-symbols-outlined text-[20px]">close</span>
         </button>
       </div>
@@ -99,28 +99,25 @@
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-50 dark:bg-slate-900/50 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800/50">
-                            <th class="px-6 py-4 w-12 text-center">
+                            <th class="pl-6 pr-2 py-4 w-12 text-center">
                                 <div class="flex items-center justify-center relative">
                                     <input type="checkbox" id="selectAll" class="peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 checked:!bg-primary checked:!border-primary dark:checked:!bg-blue-600 dark:checked:!border-blue-600 cursor-pointer transition-all">
                                     <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
                                     <span class="material-symbols-outlined absolute pointer-events-none text-white text-[16px] opacity-0 peer-indeterminate:opacity-100 transition-opacity">remove</span>
                                 </div>
                             </th>
-                            <th class="px-6 py-4">Nom</th>
-                            <th class="px-6 py-4">Type</th>
-                            <th class="px-6 py-4">Identifiant</th>
-                            <th class="px-6 py-4 text-center">Source</th>
-                            <th class="px-6 py-4 text-right">Actions</th>
+                            <th class="px-4 py-4">Utilisateur / Groupe</th>
+                            <th class="px-4 py-4">Type</th>
+                            <th class="px-4 py-4">Rôles RLS</th>
+                            <th class="pl-4 pr-6 py-4 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
                         {% for policy in policies %}
-                        <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-all group">
-                             <td class="px-6 py-4 text-center">
+                        <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                            <td class="pl-6 pr-2 py-3.5 text-center">
                                 {% if policy.IsGroup %}
-                                <div class="flex items-center justify-center" title="Accès par groupe LDAP — suppression non autorisée">
-                                    <span class="material-symbols-outlined text-slate-300 dark:text-slate-600 text-[20px]">lock</span>
-                                </div>
+                                <span class="material-symbols-outlined text-slate-300 dark:text-slate-600 text-[20px]" title="Accès par groupe LDAP : suppression non autorisée">lock</span>
                                 {% else %}
                                 <div class="flex items-center justify-center relative">
                                     <input type="checkbox" class="user-checkbox peer appearance-none size-5 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 checked:!bg-primary checked:!border-primary dark:checked:!bg-blue-600 dark:checked:!border-blue-600 cursor-pointer transition-all" name="selected_users" value="{{ policy.GroupUserName|default:policy.UserName }}">
@@ -128,67 +125,87 @@
                                 </div>
                                 {% endif %}
                             </td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
+
+                            <td class="px-4 py-3.5">
+                                <div class="flex items-center gap-3 min-w-0">
                                     {% if policy.IsGroup %}
-                                    <div class="size-9 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-amber-500/20">
-                                        <span class="material-symbols-outlined text-[18px]">group</span>
+                                    <div class="size-10 shrink-0 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-md shadow-amber-500/20">
+                                        <span class="material-symbols-outlined text-[20px]">groups</span>
                                     </div>
-                                    </div>
-                                    <span class="text-sm font-bold text-slate-700 dark:text-white">{{ policy.DisplayName }}</span>
                                     {% else %}
-                                    <div class="size-9 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-primary/20">
-                                        <span class="material-symbols-outlined text-[20px]">person</span>
+                                    <div class="size-10 shrink-0 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-primary/20">
+                                        {{ policy.DisplayName|slice:":1"|upper }}
                                     </div>
-                                    <span class="text-sm font-bold text-slate-700 dark:text-white">{{ policy.DisplayName }}</span>
                                     {% endif %}
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ policy.DisplayName }}</p>
+                                        {% if policy.DisplayName != policy.Identifier %}
+                                        <p class="text-xs font-mono text-slate-500 dark:text-slate-400 truncate">{{ policy.Identifier }}</p>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </td>
-                            <td class="px-6 py-4">
-                                {% if policy.IsGroup %}
-                                <span class="px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                                    Groupe ({{ policy.MemberCount }} membres)
-                                </span>
-                                {% else %}
-                                <span class="px-2 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-blue-600 dark:text-blue-400">
-                                    Utilisateur
-                                </span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4">
-                                <code class="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-600 dark:text-slate-400">
-                                    {{ policy.GroupUserName|default:policy.UserName }}
-                                </code>
-                            </td>
-                            <td class="px-6 py-4 text-center">
+
+                            <td class="px-4 py-3.5">
                                 {% if policy.IsGroup %}
                                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                                    <span class="material-symbols-outlined text-[14px]">group</span> Groupe LDAP
+                                    <span class="material-symbols-outlined text-[15px]">groups</span> Groupe · {{ policy.MemberCount }}
                                 </span>
                                 {% else %}
                                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-blue-600 dark:text-blue-400">
-                                    <span class="material-symbols-outlined text-[14px]">person</span> Direct
+                                    <span class="material-symbols-outlined text-[15px]">person</span> Direct
                                 </span>
                                 {% endif %}
                             </td>
-                            <td class="px-6 py-4">
-                                <div class="flex justify-end gap-2">
-                                    {% if policy.IsGroup %}
-                                    <button type="button" 
-                                            class="px-3 py-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 show-members-btn"
-                                            data-group-name="{{ policy.GroupUserName }}"
-                                            data-member-count="{{ policy.MemberCount }}">
-                                        <span class="material-symbols-outlined text-[14px]">visibility</span> Voir
+
+                            <td class="px-4 py-3.5">
+                                {% if not rls_available %}
+                                <span class="text-slate-400" title="PBIRS n'a pas répondu pour les rôles RLS">—</span>
+                                {% elif not report_has_rls %}
+                                <span class="inline-flex items-center gap-1.5 text-xs text-slate-400"><span class="material-symbols-outlined text-[16px]">shield</span> Sans RLS</span>
+                                {% else %}
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    {% for role in policy.RlsRoles|slice:":3" %}
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                        <span class="material-symbols-outlined text-[14px]">shield_person</span>{{ role }}
+                                    </span>
+                                    {% empty %}
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-xs font-semibold text-amber-600 dark:text-amber-400" title="Accès au rapport sans rôle RLS : aucune donnée visible">
+                                        <span class="material-symbols-outlined text-[14px]">gpp_maybe</span>Aucun rôle
+                                    </span>
+                                    {% endfor %}
+                                    {% if policy.RlsRoles|length > 3 %}
+                                    <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-500" title="{{ policy.RlsRoles|join:', ' }}">+{{ policy.RlsRoles|length|add:"-3" }}</span>
+                                    {% endif %}
+                                    {% if not policy.IsGroup %}
+                                    <button type="button" class="rls-edit-btn size-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
+                                            data-identity="{{ policy.Identifier }}" data-name="{{ policy.DisplayName }}" data-role-ids="{{ policy.RlsRoleIds }}" title="Modifier les rôles RLS" aria-label="Modifier les rôles RLS">
+                                        <span class="material-symbols-outlined text-[18px]">edit</span>
                                     </button>
-                                    <script type="application/json" id="members-{{ policy.GroupUserName|slugify }}">{{ policy.Members|safe }}</script>
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-slate-400 dark:text-slate-500 text-xs" title="Géré par groupe LDAP — modification impossible ici">
-                                        <span class="material-symbols-outlined text-[14px]">shield</span> Protégé
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </td>
+
+                            <td class="pl-4 pr-6 py-3.5">
+                                <div class="flex justify-end items-center gap-1.5">
+                                    {% if policy.IsGroup %}
+                                    <button type="button"
+                                            class="show-members-btn size-9 rounded-lg flex items-center justify-center text-blue-500 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors"
+                                            data-group-name="{{ policy.GroupUserName }}"
+                                            data-members-id="members-{{ forloop.counter }}"
+                                            data-member-count="{{ policy.MemberCount }}" title="Voir les membres" aria-label="Voir les membres">
+                                        <span class="material-symbols-outlined text-[18px]">visibility</span>
+                                    </button>
+                                    {% with n=forloop.counter|stringformat:"d" %}{% with members_id="members-"|add:n %}{{ policy.Members|json_script:members_id }}{% endwith %}{% endwith %}
+                                    <span class="size-9 rounded-lg flex items-center justify-center text-slate-400 dark:text-slate-500" title="Géré par groupe LDAP : modification impossible ici">
+                                        <span class="material-symbols-outlined text-[18px]">shield_lock</span>
                                     </span>
                                     {% else %}
-                                    <button type="button" 
-                                            class="px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 remove-user-btn" 
-                                            data-username="{{ policy.GroupUserName|default:policy.UserName|slugify }}">
-                                        <span class="material-symbols-outlined text-[14px]">delete</span> Retirer
+                                    <button type="button"
+                                            class="remove-user-btn size-9 rounded-lg flex items-center justify-center text-red-500 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-colors"
+                                            data-username="{{ policy.GroupUserName|default:policy.UserName|slugify }}" title="Retirer l'accès" aria-label="Retirer l'accès">
+                                        <span class="material-symbols-outlined text-[18px]">person_remove</span>
                                     </button>
                                     {% endif %}
                                 </div>
@@ -241,6 +258,57 @@
   </div>
 </div>
 
+{% if rls_available and report_has_rls %}
+<!-- RLS roles dialog: the roles are the ones this report defines in PBIRS -->
+<div id="rlsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] hidden items-center justify-center">
+  <form method="post" action="{% url 'powerbi_report:report_rls_save' report_id %}" class="card-theme bg-white border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[85vh] flex flex-col">
+    {% csrf_token %}
+    <input type="hidden" name="identity" id="rlsIdentity">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="text-lg font-bold text-slate-900 dark:text-white">Rôles RLS</h3>
+      <button type="button" id="rlsClose" class="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <p class="text-sm text-slate-500 mb-3"><span id="rlsName" class="font-semibold text-slate-700 dark:text-slate-200"></span> sur « {{ report_name }} ». Cochez les rôles à donner ; décochez pour retirer.</p>
+    <input type="search" id="rlsFilter" placeholder="Filtrer les rôles…" class="w-full px-3 py-2 mb-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm">
+    <div id="rlsList" class="overflow-y-auto flex-1 space-y-1 mb-4">
+      {% for role in rls_roles %}
+      <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 text-sm text-slate-700 dark:text-slate-200" data-label="{{ role.name|lower }}">
+        <input type="checkbox" name="roles" value="{{ role.id }}"> {{ role.name }}
+      </label>
+      {% endfor %}
+    </div>
+    <div class="flex justify-end gap-2">
+      <button type="button" id="rlsCancel" class="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700">Annuler</button>
+      <button type="submit" class="px-5 py-2 bg-primary hover:opacity-90 text-white text-sm font-bold rounded-xl">Enregistrer</button>
+    </div>
+  </form>
+</div>
+<script>
+(function () {
+  var modal = document.getElementById('rlsModal');
+  var boxes = modal.querySelectorAll('input[name="roles"]');
+  function close() { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+  document.querySelectorAll('.rls-edit-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var have = (btn.dataset.roleIds || '').split(',');
+      document.getElementById('rlsIdentity').value = btn.dataset.identity;
+      document.getElementById('rlsName').textContent = btn.dataset.name;
+      boxes.forEach(function (b) { b.checked = have.indexOf(b.value) !== -1; });
+      document.getElementById('rlsFilter').value = '';
+      modal.querySelectorAll('#rlsList label').forEach(function (l) { l.style.display = ''; });
+      modal.classList.remove('hidden'); modal.classList.add('flex');
+    });
+  });
+  document.getElementById('rlsFilter').addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase();
+    modal.querySelectorAll('#rlsList label').forEach(function (l) { l.style.display = l.dataset.label.indexOf(q) === -1 ? 'none' : ''; });
+  });
+  document.getElementById('rlsClose').addEventListener('click', close);
+  document.getElementById('rlsCancel').addEventListener('click', close);
+  modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+})();
+</script>
+{% endif %}
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -276,14 +344,12 @@ document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll('.show-members-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const groupName = this.getAttribute('data-group-name');
-            const groupSlug = groupName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
             let members = [];
             try {
                 // Get the members from the JSON script tag
-                const scriptTag = document.getElementById('members-' + groupSlug);
+                const scriptTag = document.getElementById(this.getAttribute('data-members-id'));
                 if (scriptTag) {
-                    const jsonText = scriptTag.textContent.replace(/'/g, '"');
-                    members = JSON.parse(jsonText);
+                    members = JSON.parse(scriptTag.textContent);
                 }
             } catch (e) {
                 console.error('Error parsing members:', e);
@@ -378,6 +444,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function updateSelectAllState() {
+      if (!selectAllCheckbox) return;
       const visibleCheckboxes = getVisibleCheckboxes();
       
       if (visibleCheckboxes.length === 0) {

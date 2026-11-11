@@ -6,6 +6,7 @@ from django.db import models
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
+from . import emails
 from .forms import TicketForm, TicketMessageForm
 from .models import Ticket
 
@@ -40,6 +41,7 @@ def _save_ticket_message(request: HttpRequest, ticket: Ticket, form: TicketMessa
     ticket_message.ticket = ticket
     ticket_message.sender = request.user
     ticket_message.save()
+    emails.message_posted(ticket, ticket_message)
     messages.success(request, "Message envoye.")
     return True
 
@@ -63,6 +65,7 @@ def ticket_list(request):
         tickets = Ticket.objects.all()
     else:
         tickets = Ticket.objects.filter(created_by=request.user)
+    tickets = tickets.select_related("assigned_to", "created_by")
 
     return render(request, "tickets/ticket_list.html", {"tickets": tickets})
 
@@ -75,6 +78,7 @@ def create_ticket(request):
             ticket = form.save(commit=False)
             ticket.created_by = request.user
             ticket.save()
+            emails.ticket_created(ticket)
             messages.success(request, "Ticket cree avec succes.")
             
             from users.utils import log_history
@@ -119,8 +123,11 @@ def assign_ticket(request, ticket_id):
         if user_id:
             try:
                 user = _get_admin_users().get(id=user_id)
+                changed = ticket.assigned_to_id != user.id
                 ticket.assigned_to = user
                 ticket.save()
+                if changed:
+                    emails.ticket_assigned(ticket, request.user)
                 messages.success(
                     request, f"Ticket assigne a {user.get_full_name() or user.username}."
                 )
@@ -146,8 +153,11 @@ def change_status(request, ticket_id):
         new_status = request.POST.get("status")
         valid_statuses = [status[0] for status in Ticket.STATUS_CHOICES]
         if new_status in valid_statuses:
+            status_changed = ticket.status != new_status
             ticket.status = new_status
             ticket.save()
+            if status_changed:
+                emails.status_changed(ticket, request.user)
             messages.success(
                 request, f"Statut du ticket mis a jour : {ticket.get_status_display()}."
             )
@@ -174,6 +184,8 @@ def update_ticket_info(request, ticket_id):
             messages.error(request, "Statut invalide.")
             return redirect("tickets:ticket_detail", ticket_id=ticket.id)
 
+        status_changed = ticket.status != new_status
+        previous_assignee = ticket.assigned_to_id
         ticket.status = new_status
 
         if user_id:
@@ -186,6 +198,10 @@ def update_ticket_info(request, ticket_id):
             ticket.assigned_to = None
 
         ticket.save()
+        if status_changed:
+            emails.status_changed(ticket, request.user)
+        if ticket.assigned_to_id and ticket.assigned_to_id != previous_assignee:
+            emails.ticket_assigned(ticket, request.user)
         messages.success(request, "Informations du ticket mises a jour.")
 
     return redirect("tickets:ticket_detail", ticket_id=ticket.id)

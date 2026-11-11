@@ -1,9 +1,9 @@
 from functools import wraps
+
 from django.core.exceptions import PermissionDenied
-from django.conf import settings
-from .models import UserHistory, CustomUser, Role
 from django.utils.timezone import now
-from notifications.models import Notification
+
+from .models import UserHistory
 
 def admin_required(view_func):
     """
@@ -34,11 +34,25 @@ def log_history(user, action):
     if user.is_authenticated and action.startswith(allowed_prefixes):
         UserHistory.objects.create(user=user, action=action, timestamp=now())
 
-def get_user_permissions(user):
+def get_user_permissions(user) -> dict[str, bool]:
     """
     Retrieves all permissions for a given user and returns them in a dictionary.
     Considers: superuser status, role permissions, and direct user permissions.
+
+    The result is kept on the user object, so the context processor and the
+    views of one request share a single computation.
     """
+    cached = getattr(user, '_cbi_permissions', None)
+    if cached is None:
+        cached = _compute_user_permissions(user)
+        try:
+            user._cbi_permissions = cached
+        except AttributeError:  # lazy/anonymous user objects that refuse attributes
+            pass
+    return cached
+
+
+def _compute_user_permissions(user) -> dict[str, bool]:
     all_permissions = [
         'add_permission', 'change_permission', 'delete_permission', 'view_permission',
 

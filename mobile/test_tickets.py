@@ -93,6 +93,23 @@ class MobileTicketTests(MobileTestCase):
         self.assertEqual(self.client.post(update, data=json.dumps({'status': 'bogus'}),
                                           content_type='application/json', **self.admin_auth).status_code, 400)
 
+    def test_the_mobile_app_sends_the_same_emails_as_the_web(self):
+        from django.core import mail
+        CustomUser.objects.filter(pk=self.user.pk).update(email='requester@example.com')
+        CustomUser.objects.filter(pk=self.admin.pk).update(email='admin@example.com')
+        ticket_id = self.create().json()['id']
+        self.assertEqual(sorted(addr for m in mail.outbox for addr in m.to), ['admin@example.com', 'requester@example.com'])
+        mail.outbox.clear()
+        self.client.post(url('ticket_messages', ticket_id), data={'content': 'Bonjour'}, **self.auth)
+        self.assertEqual([m.to for m in mail.outbox], [['admin@example.com']])        # requester -> handlers
+        mail.outbox.clear()
+        self.client.post(url('ticket_messages', ticket_id), data={'content': 'Réponse'}, **self.admin_auth)
+        self.assertEqual([m.to for m in mail.outbox], [['requester@example.com']])    # admin -> requester
+        mail.outbox.clear()
+        self.client.post(url('ticket_update', ticket_id), data=json.dumps({'status': 'closed'}),
+                         content_type='application/json', **self.admin_auth)
+        self.assertEqual([m.to for m in mail.outbox], [['requester@example.com']])
+
     def test_lists_and_admins(self):
         mine = self.create().json()['id']
         other = Ticket.objects.create(title='Autre', description='x', ticket_type='bug', created_by=self.admin,

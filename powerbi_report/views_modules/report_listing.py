@@ -3,11 +3,9 @@
 from collections.abc import Callable
 from urllib.parse import quote
 
-from django.conf import settings
 from django.core.paginator import Paginator
 from django.shortcuts import render
 
-from notifications.models import Notification
 from powerbi_report.services.pbirs_servers import get_active_pbirs_server_urls
 
 
@@ -88,15 +86,10 @@ def report_list_flat_view(
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
-    notifications = Notification.objects.filter(user=request.user).order_by("-created_at")
-    unread = Notification.objects.filter(user=request.user, is_read=False).count()
     permissions = permissions_getter(request.user)
 
     # Calculate page range for pagination UI
-    try:
-        page_range = paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)
-    except:
-        page_range = []
+    page_range = paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)
 
     return render(
         request,
@@ -104,8 +97,6 @@ def report_list_flat_view(
         {
             "reports": page_obj,
             "page_range": page_range,
-            "notifications": notifications,
-            "unread": unread,
             "permissions": permissions,
             "query": query,
         },
@@ -180,8 +171,6 @@ def report_list_view(
         1 if f_consolide else 0,
     ])
 
-    notifications = Notification.objects.filter(user=request.user).order_by("-created_at")
-    unread = Notification.objects.filter(user=request.user, is_read=False).count()
     permissions = permissions_getter(request.user)
 
     reports.sort(key=lambda x: x.get("Name", "").lower())
@@ -191,10 +180,7 @@ def report_list_view(
     page_obj = paginator.get_page(page_number)
 
     # Calculate page range for pagination UI
-    try:
-        page_range = paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)
-    except:
-        page_range = []
+    page_range = paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)
 
     server_urls = get_active_pbirs_server_urls()
     
@@ -218,8 +204,6 @@ def report_list_view(
         {
             "reports": page_obj,
             "page_range": page_range,
-            "notifications": notifications,
-            "unread": unread,
             "permissions": permissions,
             "query": query,
             "server_urls": server_urls,

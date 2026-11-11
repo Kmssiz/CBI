@@ -15,6 +15,7 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from .ldap_utils import connexion_ad2000, get_ad_users
+from .session_secrets import store_ldap_password
 from .utils import log_history, get_user_permissions, admin_required
 from powerbi_report.services.pbirs_servers import get_active_pbirs_server_urls
 from powerbi_report.services import sync_user_permissions_on_login
@@ -145,7 +146,7 @@ def login_view(request):
 
             # Save info to session
             request.session['userinfo'] = user_info
-            request.session['ldap_password'] = password # Kept for NTLM
+            store_ldap_password(request, password)  # Kept (encrypted) for NTLM
             
             login(request, user)
             log_history(user, "Utilisateur connecté via compte de service PBIRS")
@@ -168,8 +169,11 @@ def login_view(request):
                     )
             
             # Clear cached data to ensure fresh fetch for this user
-            cache.delete(f"powerbi_reports_cache_{user.id}")
-            cache.delete(f"dashboard_data_{user.id}")
+            cache.delete_many([
+                f"powerbi_reports_cache_{user.id}_PowerBIReports",
+                f"powerbi_reports_cache_{user.id}_CatalogItems",
+                f"dashboard_data_{user.id}",
+            ])
             logger.debug("Cleared login cache for user id=%s", user.id)
 
             return _post_login_redirect(request)
@@ -240,21 +244,14 @@ def user_history(request, user_id=None):
     history_page = paginator.get_page(page_number)
     
     # Calculate page range for pagination UI
-    try:
-        page_range = paginator.get_elided_page_range(history_page.number, on_each_side=2, on_ends=1)
-    except:
-        page_range = []
+    page_range = paginator.get_elided_page_range(history_page.number, on_each_side=2, on_ends=1)
         
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread = Notification.objects.filter(user=request.user, is_read=False).count()
     permissions = get_user_permissions(request.user)
 
     return render(request, 'users/user_history.html',
      { 
      'history': history_page,
      'page_range': page_range,
-     'notifications': notifications, 
-     'unread': unread,
      'permissions': permissions,
      'search_query': search_query,
      'actions': actions,
@@ -278,13 +275,9 @@ def clear_history(request, user_id):
 @login_required
 def landing_page(request):
     """Landing page shown to all users immediately after login."""
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
     greeting = 'Bonsoir' if timezone.localtime().hour >= 18 else 'Bonjour'
     return render(request, 'landing.html', {
-        'notifications': notifications,
-        'unread': unread,
         'permissions': permissions,
         'greeting': greeting,
     })
@@ -308,11 +301,9 @@ def home_view(request):
 @admin_required
 def user_management(request):
     
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread_count = notifications.filter(is_read=False).count()
     
     # Start with all users
-    users_list = CustomUser.objects.all().order_by('id')
+    users_list = CustomUser.objects.select_related('role').order_by('id')
     
     # Server-side search filtering
     search_query = request.GET.get('search', '').strip()
@@ -352,19 +343,18 @@ def user_management(request):
     users = paginator.get_page(page_number)
     
     # Calculate page range for pagination UI
-    try:
-        page_range = paginator.get_elided_page_range(users.number, on_each_side=2, on_ends=1)
-    except:
-        page_range = []
+    page_range = paginator.get_elided_page_range(users.number, on_each_side=2, on_ends=1)
     
     roles = Role.objects.all()
     # log_history(request.user, "Page de gestion des utilisateurs consultée")
 
     permissions = get_user_permissions(request.user)
 
+    from powerbi_report.models import NewUserAlert
+    new_users_count = NewUserAlert.objects.filter(seen_at__isnull=True).count()
+
     return render(request, 'users/user_management.html', {
-        'notifications': notifications,
-        'unread': unread_count,
+        'new_users_count': new_users_count,
         'users': users,
         'page_range': page_range,
         'roles': roles,
@@ -386,8 +376,6 @@ def manage_roles(request):
     roles = Role.objects.all()
     all_permissions = Permission.objects.all()  
     users = CustomUser.objects.all()
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread = Notification.objects.filter(user=request.user, is_read=False).count()
     permissions = get_user_permissions(request.user)
 
     if request.method == "POST":
@@ -410,8 +398,6 @@ def manage_roles(request):
         "roles": roles,
         "all_permissions": all_permissions, 
         "users": users,
-        'notifications': notifications,
-        'unread': unread,
         'permissions': permissions,  
     })
 
@@ -495,9 +481,9 @@ def remove_role(request, role_id):
 def permissions_list(request, role_id):
     
     role = get_object_or_404(Role, id=role_id)
-    permissions_list=Permission.objects.all()
-    all_permissions = role.permissions.all()
-    
+    permissions_list = Permission.objects.select_related('content_type')
+    all_permissions = role.permissions.select_related('content_type')
+
     if request.method == "POST":
         action = request.POST.get("action")
         permission_id = request.POST.get("permission")
@@ -535,15 +521,13 @@ def permissions_list(request, role_id):
 
         return redirect("permissions_list", role_id=role_id)
 
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread_count = Notification.objects.filter(user=request.user, is_read=False).count()
     permissions = get_user_permissions(request.user)
+    granted_ids = set(role.permissions.values_list('id', flat=True))  # one query, not one per row
     return render(request, 'users/permissions_list.html', {
         'role': role,
+        'granted_ids': granted_ids,
         'all_permissions': all_permissions,
         'permissions_list':permissions_list,
-        'notifications': notifications,
-        'unread': unread_count,
         'permissions': permissions,  
     })
 
@@ -686,13 +670,14 @@ def user_details(request):
     else:
         detail_user = request.user
     
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread = Notification.objects.filter(user=request.user, is_read=False).count()
     
+    # What Odoo last told us about this employee (nothing when they are not an active Odoo employee).
+    from powerbi_report.models import OdooProfile
+    odoo_profile = OdooProfile.objects.filter(user=detail_user).first()
+
     return render(request, 'users/user_details.html', {
+        'odoo_profile': odoo_profile,
         'user_detail': detail_user,
-        'notifications': notifications,
-        'unread': unread,
         'permissions': permissions,  
     })
 
@@ -706,6 +691,7 @@ def user_edit(request, user_id):
     if request.method == 'POST':
         new_role_id = request.POST.get('role')  # Get the selected role ID
         new_role = get_object_or_404(Role, id=new_role_id) if new_role_id else None  # Fetch the role object
+        is_admin_role = bool(user.role and user.role.name.lower() == settings.ADMIN_ROLE_NAME)
 
         if new_role:
             # Remove all existing permissions
@@ -777,8 +763,11 @@ def logout_view(request):
     log_history(request.user, "Utilisateur déconnecté")
     request.session.flush()
     logout(request)
-    cache.delete(f"powerbi_reports_cache_{user_id}")
-    cache.delete(f"dashboard_data_{user_id}")
+    cache.delete_many([
+        f"powerbi_reports_cache_{user_id}_PowerBIReports",
+        f"powerbi_reports_cache_{user_id}_CatalogItems",
+        f"dashboard_data_{user_id}",
+    ])
 
     return redirect("login")
 
@@ -813,3 +802,55 @@ def server_status(request):
         logger.warning("Échec de la vérification du statut PBIRS: %s", e)
         return JsonResponse({"status": "down", "error": str(e)}, status=500)
 
+
+#################################################################################################################
+#          New users: people who exist in the directory AND in Odoo, waiting for an admin to look at them       #
+#################################################################################################################
+def _new_user_row(alert):
+    from django.core.exceptions import ObjectDoesNotExist
+    user = alert.user
+    try:
+        profile = user.odoo_profile
+    except ObjectDoesNotExist:
+        profile = None
+    return {
+        'alert': alert,
+        'user': user,
+        'title': profile.title if profile else '',
+        'company': (profile.company if profile and profile.company else user.societe) or '',
+        'phone': profile.phone if profile else '',
+        'direction': user.direction or '',
+    }
+
+
+@admin_required
+def new_users(request):
+    from datetime import timedelta
+    from powerbi_report.models import NewUserAlert
+
+    alerts = NewUserAlert.objects.select_related('user', 'user__odoo_profile')
+    waiting = [_new_user_row(a) for a in alerts.filter(seen_at__isnull=True)]
+    recent = [_new_user_row(a) for a in
+              alerts.filter(seen_at__gte=timezone.now() - timedelta(days=14)).order_by('-seen_at')[:50]]
+
+    return render(request, 'users/new_users.html', {
+        'waiting': waiting,
+        'recent': recent,
+        'permissions': get_user_permissions(request.user),
+    })
+
+
+@admin_required
+def new_user_seen(request):
+    """Mark some (or all) of the waiting new users as seen."""
+    from powerbi_report.models import NewUserAlert
+
+    if request.method != 'POST':
+        return redirect('new_users')
+    waiting = NewUserAlert.objects.filter(seen_at__isnull=True)
+    if request.POST.get('all') != '1':
+        ids = [int(i) for i in request.POST.getlist('alerts') if i.isdigit()]
+        waiting = waiting.filter(id__in=ids)
+    marked = waiting.update(seen_at=timezone.now(), seen_by=request.user)
+    messages.success(request, f"{marked} personne{'s' if marked > 1 else ''} marquée{'s' if marked > 1 else ''} comme vue{'s' if marked > 1 else ''}.")
+    return redirect('new_users')

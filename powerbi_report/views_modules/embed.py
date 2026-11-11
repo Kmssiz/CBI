@@ -5,7 +5,6 @@ from urllib.parse import quote
 
 from django.shortcuts import render
 
-from notifications.models import Notification
 from powerbi_report.models import ReportRef, UserReportPermission
 from powerbi_report.services.pbirs_servers import get_primary_pbirs_server_url
 
@@ -14,7 +13,7 @@ def _can_access_report(user, report_ref: ReportRef | None) -> bool:
     """Check report access from the local permission cache."""
     if not user.is_authenticated or report_ref is None:
         return False
-    if user.is_superuser:
+    if user.is_superuser or getattr(user, "is_admin", False):
         return True
     return UserReportPermission.objects.filter(user=user, report=report_ref).exists()
 
@@ -59,8 +58,6 @@ def embed_report_view(
 
     # The browser loads the report straight from PBIRS in the iframe. Do not
     # pre-fetch it server-side: that doubled every load and blocked a worker.
-    notifications = Notification.objects.filter(user=request.user).order_by("-created_at")
-    unread = notifications.filter(is_read=False).count()
     permissions = permissions_getter(request.user)
 
     from users.utils import log_history
@@ -74,8 +71,6 @@ def embed_report_view(
             "embed_url": embed_url,
             "report_id": report_id,
             "breadcrumbs": breadcrumbs,
-            "notifications": notifications,
-            "unread": unread,
             "permissions": permissions,
         },
     )

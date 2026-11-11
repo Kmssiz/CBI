@@ -572,6 +572,7 @@
 {% endblock %}
 
 {% block page_scripts %}
+{{ pole_societe_ids|json_script:"pole-societe-ids" }}
 <script>
     function openModal(id) {
         const modal = document.getElementById(id);
@@ -669,7 +670,7 @@
             societesContainer.classList.remove('hidden');
             
             // Auto-check societes linked to this pole ID
-            const poleSocieteIds = {{ pole_societe_ids_json|safe }};
+            const poleSocieteIds = JSON.parse(document.getElementById('pole-societe-ids').textContent);
             const linkedIds = poleSocieteIds[id] || [];
             linkedIds.forEach(socId => {
                 const cb = document.getElementById('edit_pole_soc_' + socId);

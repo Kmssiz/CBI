@@ -118,6 +118,17 @@ users/
    permissions = get_user_permissions(request.user)
    ```
 
+### Interactive Product Tour
+The guided tours are driven by `static/assets/js/cbi-tours.js` (texts and steps only) and
+`static/assets/js/cbi-tour.js` (engine, on top of the vendored driver.js). To tour a new page:
+Tours are for regular users only: `base.html` loads nothing for admins.
+1. Add an entry to `cbi-tours.js` with `pages: ['<url_name>']` and its steps (CSS selectors).
+2. Add a `data-tour="..."` attribute to an element only when no stable id/class exists.
+3. Steps whose element is missing or hidden are skipped, so permission-gated UI needs no extra logic.
+4. Bump a tour's `version` to show it again to everyone (e.g. after the page gained features).
+
+What each user has seen is stored in `CustomUser.tours_seen` (`{tour: version}`) via `users/tours.py`.
+
 ## Testing
 
 Run Django checks:

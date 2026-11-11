@@ -157,7 +157,7 @@ def connexion_ad2000(identifiant: str, password: str) -> dict | None:
                 }
         return None
 
-    except LDAPBindError as e:
+    except LDAPBindError:
         logger.warning(f"LDAP bind failed for {identifiant}: Invalid credentials")
         return None
     except LDAPSocketOpenError as e:

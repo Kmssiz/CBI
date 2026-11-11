@@ -12,7 +12,6 @@ import time
 import urllib.parse
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
 
 import requests
 from requests_ntlm import HttpNtlmAuth

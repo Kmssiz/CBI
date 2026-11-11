@@ -1,6 +1,6 @@
 import uuid
 
-from django.contrib.auth.models import AbstractUser, Group, Permission
+from django.contrib.auth.models import AbstractUser, Permission
 from django.db import models
 
 class Role(models.Model):
@@ -27,6 +27,7 @@ class CustomUser(AbstractUser):
     can_use_slider = models.BooleanField(default=False, help_text="Peut créer et lancer des sliders de rapports")
     ad_groups = models.JSONField(default=list, blank=True, help_text="Cached list of AD groups") 
     has_seen_onboarding = models.BooleanField(default=False, help_text="Indicates if the user has completed the onboarding guide")
+    tours_seen = models.JSONField(default=dict, blank=True, help_text="Interactive tours already seen: {tour key: version}")
 
     def get_initials(self) -> str:
         """Returns user initials ."""
@@ -90,6 +91,12 @@ class UserHistory(models.Model):
     )
     duration_seconds = models.PositiveIntegerField(null=True, blank=True)
     source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default=SOURCE_WEB)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', '-timestamp'], name='history_user_time_idx'),
+            models.Index(fields=['-timestamp'], name='history_time_idx'),
+        ]
 
     def __str__(self):
         return f"{self.user.username} - {self.action} at {self.timestamp}"

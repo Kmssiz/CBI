@@ -13,6 +13,7 @@ import requests
 from requests_ntlm import HttpNtlmAuth
 from django.conf import settings
 from django.core.cache import cache
+from users.session_secrets import get_ldap_password
 from .pbirs_servers import get_primary_pbirs_server_url
 
 logger = logging.getLogger('powerbi_report')
@@ -70,7 +71,7 @@ class PBIRSClient:
         This is required because PBIRS uses Windows Integrated Authentication.
         """
         if self._auth is None:
-            password = self.request.session.get('ldap_password')
+            password = get_ldap_password(self.request)
             if not password:
                 logger.warning(f"LDAP password not found in session for user {self.user.username}")
                 return None
@@ -97,9 +98,10 @@ class PBIRSClient:
         self,
         method: str,
         endpoint: str,
-        json_data: dict = None,
+        json_data: dict | list | None = None,
         timeout: int = None,
-        raise_on_error: bool = True
+        raise_on_error: bool = True,
+        base_url: str = None,
     ) -> Optional[requests.Response]:
         """
         Make an HTTP request to the PBIRS API.
@@ -124,7 +126,7 @@ class PBIRSClient:
                 raise PBIRSAuthenticationError("No authentication available. Session may have expired.")
             return None
         
-        url = f"{self.base_url}{endpoint}"
+        url = f"{base_url or self.base_url}{endpoint}"
         timeout = timeout or self.DEFAULT_TIMEOUT
         
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -192,7 +194,7 @@ class PBIRSClient:
         response = self._make_request("GET", "/Reports/api/v2.0/PowerBIReports", raise_on_error=False)
         
         if response is None or response.status_code != 200:
-            logger.warning(f"Failed to fetch reports, returning empty list")
+            logger.warning("Failed to fetch reports, returning empty list")
             return []
         
         reports = response.json().get('value', [])
@@ -338,6 +340,72 @@ class PBIRSClient:
             return response.json().get('Policies', [])
         return []
     
+    def get_report_policies_strict(self, report_id: str, base_url: str = None) -> list[dict]:
+        """
+        Read a report's effective policies, raising on ANY failure.
+
+        Unlike get_report_permissions, a failed read never looks like "nobody
+        has access": callers that write the list back must use this one, or a
+        failed read would make them erase everyone else's access.
+        """
+        response = self._make_request(
+            "GET",
+            f"/Reports/api/v2.0/PowerBIReports({report_id})/Policies",
+            base_url=base_url,
+        )
+        data = response.json()
+        if not isinstance(data, dict) or not isinstance(data.get('Policies'), list):
+            raise PBIRSClientError(f"Unexpected policies payload for report {report_id}")
+        return data['Policies']
+
+    def set_report_policies_strict(self, report_id: str, policies: list[dict], base_url: str = None) -> None:
+        """Replace a report's policies, raising if PBIRS does not accept them."""
+        self._make_request(
+            "PUT",
+            f"/Reports/api/v2.0/PowerBIReports({report_id})/Policies",
+            json_data={"Id": report_id, "Policies": policies},
+            timeout=30,
+            base_url=base_url,
+        )
+        logger.info("Updated permissions for report %s", report_id)
+
+    # --- Row-level security (RLS) -------------------------------------------
+
+    def get_data_model_roles_strict(self, report_id: str, base_url: str = None) -> list[dict]:
+        """RLS roles defined in the report's data model: [{ModelRoleId, ModelRoleName}]."""
+        response = self._make_request(
+            "GET", f"/Reports/api/v2.0/PowerBIReports({report_id})/DataModelRoles", base_url=base_url,
+        )
+        value = response.json().get('value')
+        if not isinstance(value, list):
+            raise PBIRSClientError(f"Unexpected roles payload for report {report_id}")
+        return value
+
+    def get_role_assignments_strict(self, report_id: str, base_url: str = None) -> list[dict]:
+        """Who is in which RLS role: [{GroupUserName, DataModelRoles: [role ids]}]."""
+        response = self._make_request(
+            "GET", f"/Reports/api/v2.0/PowerBIReports({report_id})/DataModelRoleAssignments", base_url=base_url,
+        )
+        value = response.json().get('value')
+        if not isinstance(value, list):
+            raise PBIRSClientError(f"Unexpected role assignments payload for report {report_id}")
+        return value
+
+    def set_role_assignments_strict(self, report_id: str, assignments: list[dict], base_url: str = None) -> None:
+        """
+        Replace ALL role assignments of a report (the API takes the full list).
+        Callers must pass what they read from get_role_assignments_strict plus
+        their changes, never a list built from scratch.
+        """
+        self._make_request(
+            "PUT",
+            f"/Reports/api/v2.0/PowerBIReports({report_id})/DataModelRoleAssignments",
+            json_data=assignments,
+            timeout=30,
+            base_url=base_url,
+        )
+        logger.info("Updated RLS role assignments for report %s", report_id)
+
     def update_report_permissions(self, report_id: str, policies: list[dict]) -> bool:
         """
         Update permission policies for a report.

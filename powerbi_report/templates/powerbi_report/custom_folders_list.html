@@ -50,7 +50,7 @@
                 <!-- View Toggle -->
                 <!-- View Toggle -->
                 {% if not current_folder %}
-                <a href="{% url 'powerbi_report:report_list_flat' %}?context={{ view_type }}" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 dark:!bg-slate-800 dark:!border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-bold rounded-lg transition-all shadow-sm">
+                <a href="{% url 'powerbi_report:report_list_flat' %}?context={{ view_type }}" data-tour="folder-all" class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 dark:!bg-slate-800 dark:!border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-bold rounded-lg transition-all shadow-sm">
                     <i class="feather icon-list"></i> Tous les rapports
                 </a>
                 {% endif %}
@@ -58,7 +58,7 @@
         </div>
 
         <!-- Subfolders and Reports Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" data-tour="folder-grid">
             {% for folder in subfolders %}
             <!-- Subfolder Card -->
             <div class="group relative card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-6 hover:border-primary/30 transition-all duration-300">
@@ -87,7 +87,7 @@
                 {% if user.is_superuser %}
                 <div class="absolute top-4 right-4">
                     <div class="dropdown">
-                        <button class="text-slate-600 hover:text-white transition-colors" data-bs-toggle="dropdown">
+                        <button class="text-slate-600 hover:text-slate-900 dark:hover:text-white transition-colors" data-bs-toggle="dropdown">
                             <span class="material-symbols-outlined text-[20px]">more_vert</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end p-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-800 shadow-2xl rounded-xl w-56">
@@ -98,7 +98,7 @@
                                     <span class="material-symbols-outlined text-[18px]">edit</span> Renommer
                                 </a>
                             </li>
-                            <li class="my-1 border-t border-slate-800"></li>
+                            <li class="my-1 border-t border-slate-200 dark:border-slate-800"></li>
                             <li>
                                 <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-all" href="#" data-bs-toggle="modal"
                                     data-bs-target="#deleteReportModal"
@@ -180,7 +180,7 @@
                 </div>
                 <div class="modal-footer border-t border-slate-200 dark:border-slate-800">
                     <button type="button" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors font-medium text-sm" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors font-bold text-sm shadow-md shadow-primary/20">Enregistrer les modifications</button>
+                    <button type="submit" class="px-4 py-2 bg-primary hover:brightness-95 text-white rounded-lg transition-colors font-bold text-sm shadow-md shadow-primary/20">Enregistrer les modifications</button>
                 </div>
             </form>
         </div>
@@ -255,7 +255,7 @@
                 </div>
                 <div class="modal-footer border-t border-slate-200 dark:border-slate-800">
                     <button type="button" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors font-medium text-sm" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors font-bold text-sm shadow-md shadow-primary/20" {% if not all_reports %}disabled{% endif %}>Ajouter les rapports sélectionnés</button>
+                    <button type="submit" class="px-4 py-2 bg-primary hover:brightness-95 text-white rounded-lg transition-colors font-bold text-sm shadow-md shadow-primary/20" {% if not all_reports %}disabled{% endif %}>Ajouter les rapports sélectionnés</button>
                 </div>
             </form>
         </div>
@@ -294,7 +294,7 @@
                 </div>
                 <div class="modal-footer border-t border-slate-200 dark:border-slate-800">
                     <button type="button" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors font-medium text-sm" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors font-bold text-sm shadow-md shadow-primary/20">Déplacer</button>
+                    <button type="submit" class="px-4 py-2 bg-primary hover:brightness-95 text-white rounded-lg transition-colors font-bold text-sm shadow-md shadow-primary/20">Déplacer</button>
                 </div>
             </form>
         </div>
@@ -320,7 +320,7 @@
                 </div>
                 <div class="modal-footer border-t border-slate-200 dark:border-slate-800">
                     <button type="button" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors font-medium text-sm" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors font-bold text-sm shadow-md shadow-primary/20">Enregistrer les modifications</button>
+                    <button type="submit" class="px-4 py-2 bg-primary hover:brightness-95 text-white rounded-lg transition-colors font-bold text-sm shadow-md shadow-primary/20">Enregistrer les modifications</button>
                 </div>
             </form>
         </div>

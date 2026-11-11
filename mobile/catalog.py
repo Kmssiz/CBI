@@ -7,7 +7,6 @@ Visibility reuses ``get_visible_report_ids`` so mobile and web always agree.
 """
 import re
 import unicodedata
-from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Iterable
 from urllib.parse import quote, urlsplit

@@ -6,59 +6,51 @@ including report listing, embedding, permissions, and folder management.
 """
 
 import logging
-import os
 import json
-import time
 import urllib.parse
 import re
 from collections import Counter
 from datetime import datetime, timedelta
 
-import pytz
 import requests
 from requests_ntlm import HttpNtlmAuth
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# Windows-only authentication module
-import sys
-if sys.platform == 'win32':
-    from requests_negotiate_sspi import HttpNegotiateAuth
-else:
-    HttpNegotiateAuth = None  # Not available on Linux
-
 from django.conf import settings
-from django.contrib import admin, messages
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import models
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth, TruncDay, TruncDate, TruncHour, TruncQuarter, TruncYear
 from django.http import Http404, HttpResponse, JsonResponse, HttpResponseRedirect
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.timezone import now
-from django.views.decorators.csrf import csrf_exempt
+from django.utils.http import url_has_allowed_host_and_scheme
 
-from easyaudit.models import LoginEvent, CRUDEvent, RequestEvent
+from easyaudit.models import LoginEvent
 from notifications.models import Notification
+from django.views.decorators.http import require_GET, require_POST
 from users.models import CustomUser, UserHistory, Role
+from users.session_secrets import get_ldap_password
 from users.utils import log_history, get_user_permissions, admin_required
 
-from .models import ReportRef, CustomFolder, FolderReportItem, UserReportPermission, PermissionSyncLog, PBIRSServer, MetadataOption
+from .models import ReportRef, CustomFolder, FolderReportItem, UserReportPermission, MetadataOption
+from .services import rls as rls_service
+from .services.pbirs_client import PBIRSClientError
 from .services import (
     PBIRSClient,
     get_active_pbirs_server_urls,
     get_group_members,
-    get_pbirs_server_name_map,
     get_primary_pbirs_server_url,
     sync_all_user_permissions,
     sync_report_permissions,
     sync_report_refs,
 )
-from .services.ldap_group_members import LDAP_API_TOKEN, LDAP_GROUP_MEMBERS_URL
+from .services.ldap_group_members import is_ldap_group
 from .views_modules.folder_api import get_folder_list_response, get_folders_response
 from .views_modules.embed import embed_report_view
 from .views_modules.pbirs_folders import (
@@ -91,7 +83,7 @@ logger = logging.getLogger('powerbi_report')
 
 def get_current_user_auth(request):
     current_username = request.user.username
-    current_password = request.session.get('ldap_password', None)
+    current_password = get_ldap_password(request)
     
     if not current_password:
         logger.warning(
@@ -141,68 +133,17 @@ def _normalize_pbirs_item_type(item: dict) -> str:
     return ""
 
 
-def _normalize_pbirs_path(path: str) -> str:
-    """Normalize PBIRS paths for reliable folder/report comparisons."""
-    if not path:
-        return ""
-    normalized = path.strip()
-    if not normalized:
-        return ""
-    if normalized != "/":
-        normalized = normalized.rstrip("/")
-    return normalized.casefold()
 
 
-def _get_pbirs_folder_paths(request) -> set[str]:
-    """
-    Fetch folder paths from all configured PBIRS servers for the current user.
-    Used as source-of-truth to prevent folders being treated as reports.
-    """
-    user_id = request.user.id if request.user.is_authenticated else "anonymous"
-    cache_key = f"pbirs_folder_paths_{user_id}"
-    cached_paths = cache.get(cache_key)
-    if cached_paths is not None:
-        return set(cached_paths)
 
-    server_urls = get_active_pbirs_server_urls()
-    if not server_urls:
-        return set()
 
-    auth_candidates = []
-    user_auth = get_current_user_auth(request)
-    if user_auth:
-        auth_candidates.append(user_auth)
-
-    # Fallback to service account to keep classification stable even when
-    # the current user session does not have ldap_password.
-    service_username = getattr(settings, "LDAP_SERVICE_USERNAME", "")
-    service_password = getattr(settings, "LDAP_SERVICE_PASSWORD", "")
-    service_domain = getattr(settings, "LDAP_DOMAIN", "")
-    if service_username and service_password and service_domain:
-        auth_candidates.append(
-            HttpNtlmAuth(f"{service_domain}\\{service_username}", service_password)
-        )
-
-    for auth in auth_candidates:
-        all_paths = set()
-        for server_url in server_urls:
-            try:
-                url = f"{server_url}/Reports/api/v2.0/Folders"
-                response = requests.get(url, auth=auth, timeout=10)
-                response.raise_for_status()
-                items = response.json().get("value", [])
-                paths = {
-                    _normalize_pbirs_path(item.get("Path", ""))
-                    for item in items if item.get("Path")
-                }
-                all_paths.update(paths)
-            except requests.exceptions.RequestException as err:
-                logger.warning(f"Failed to fetch PBIRS folder paths from {server_url}: {err}")
-        if all_paths:
-            cache.set(cache_key, list(all_paths), timeout=200)
-            return all_paths
-
-    return set()
+def _clear_user_report_cache(user_id) -> None:
+    """Drop every cached PBIRS report listing of a user (see get_powerbi_reports)."""
+    cache.delete_many([
+        f"powerbi_reports_cache_{user_id}_PowerBIReports",
+        f"powerbi_reports_cache_{user_id}_CatalogItems",
+        f"dashboard_data_{user_id}",
+    ])
 
 
 def get_powerbi_reports(request, endpoint="PowerBIReports"):
@@ -233,11 +174,13 @@ def get_powerbi_reports(request, endpoint="PowerBIReports"):
     session.auth = auth  
 
     all_filtered_items = []
+    servers_answered = 0
     for server_url in server_urls:
         try:
             url = f"{server_url}/Reports/api/v2.0/{endpoint}"
-            response = session.get(url=url, auth=auth, timeout=10)  
+            response = session.get(url=url, auth=auth, timeout=10)
             response.raise_for_status()
+            servers_answered += 1
 
             items = response.json().get('value', []) if response.status_code == 200 else []
             
@@ -267,7 +210,9 @@ def get_powerbi_reports(request, endpoint="PowerBIReports"):
         except requests.exceptions.RequestException as err:
             logger.error("PBIRS request error for user %s (endpoint=%s) on server %s: %s", user_id, endpoint, server_url, err)
 
-    cache.set(cache_key, all_filtered_items, timeout=200) 
+    # Never cache a total failure: it would show an empty catalogue for minutes.
+    if servers_answered:
+        cache.set(cache_key, all_filtered_items, timeout=200)
     return all_filtered_items
 
 #################################################################################################################
@@ -280,7 +225,6 @@ def get_local_reports_for_user(user, request=None):
     Uses UserReportPermission + ReportRef tables populated at login.
     Returns list of dicts matching the PBIRS API format for template compatibility.
     """
-    from powerbi_report.models import ReportRef, UserReportPermission
 
     if user.is_superuser:
         report_refs = ReportRef.objects.all().prefetch_related('poles', 'directions', 'societes', 'modules')
@@ -293,12 +237,13 @@ def get_local_reports_for_user(user, request=None):
     # Defensive fallback for historical cache pollution.
     report_refs = _filter_reportref_to_leaf_items(report_refs)
 
+    primary_server_url = get_primary_pbirs_server_url()  # one lookup, not one per report
     reports = []
     for ref in report_refs:
         path = ref.path or ""
         clean_path = path.lstrip("/")
         encoded_path = urllib.parse.quote(clean_path, safe="/")
-        server_url = ref.server_url or get_primary_pbirs_server_url()
+        server_url = ref.server_url or primary_server_url
         embed_url = ref.embed_url or f"{server_url}/Reports/powerbi/{encoded_path}?rs:embed=true"
 
         # Derive ParentFolderId-like info from path for hierarchy views
@@ -452,41 +397,6 @@ def _format_granted_reports_message(report_names: list[str]) -> str:
     return f"Vous avez obtenu l'accès à {len(cleaned_names)} rapport(s) : {details}"
 
 
-def _get_assignable_reports_from_pbirs(request):
-    """
-    Fetch assignable reports from PBIRS with strict type filtering.
-
-    Returns local ReportRef rows linked to the live PBIRS report IDs only.
-    """
-    pbirs_reports = get_powerbi_reports(request, endpoint="CatalogItems")
-    if not pbirs_reports:
-        return []
-
-    valid_pbirs_ids = []
-    for report in pbirs_reports:
-        pbirs_id = report.get('Id')
-        if not pbirs_id:
-            continue
-
-        valid_pbirs_ids.append(pbirs_id)
-        name = report.get('Name', 'Unnamed')
-        path = report.get('Path', '')
-        server_url = report.get('_server_url') or get_primary_pbirs_server_url()
-        clean_path = path.strip('/')
-        encoded_path = urllib.parse.quote(clean_path, safe='/')
-        embed_url = f"{server_url}/Reports/powerbi/{encoded_path}?rs:embed=true"
-
-        ReportRef.objects.update_or_create(
-            pbirs_id=pbirs_id,
-            defaults={
-                'name': name,
-                'path': path,
-                'server_url': server_url,
-                'embed_url': embed_url,
-            }
-        )
-
-    return list(ReportRef.objects.filter(pbirs_id__in=valid_pbirs_ids).order_by('name'))
 
 
 
@@ -521,6 +431,37 @@ def get_report_permissions(request, report_id, server_url=None, timeout=10):
     except requests.exceptions.RequestException as err:
         logger.error(f"Request Error (Permissions) for report {report_id} on {base_url}: {err}")
         return []
+POLICIES_UNREADABLE_MESSAGE = (
+    "Impossible de lire les permissions actuelles du rapport sur PBIRS. "
+    "Aucune modification n'a été appliquée ; veuillez réessayer."
+)
+
+
+def _policies_for_update(request, report_id: str) -> list[dict] | None:
+    """
+    Live policies of a report for a read-modify-write, or None when unreadable.
+
+    A failed read must never look like "nobody has access": the list is written
+    back to PBIRS, so an empty fallback would erase everyone else's access.
+    Callers must not write when this returns None.
+    """
+    try:
+        return PBIRSClient(request).get_report_policies_strict(
+            report_id, base_url=ReportRef.get_server_url(report_id) or None,
+        )
+    except PBIRSClientError as exc:
+        logger.error("Policies of report %s could not be read; nothing written: %s", report_id, exc)
+        return None
+
+
+def _redirect_back(request, fallback: str = 'powerbi_report:report_list'):
+    """Redirect to the page the request came from (same host only)."""
+    referer = request.META.get('HTTP_REFERER', '')
+    if referer and url_has_allowed_host_and_scheme(referer, allowed_hosts={request.get_host()}):
+        return redirect(referer)
+    return redirect(fallback)
+
+
 #################################################################################################################
 #                    Retrieves permissions for a specific folder on the report server                           #
 #################################################################################################################
@@ -558,7 +499,6 @@ def get_folder_permissions(request, folder_id, server_url=None, timeout=10):
 #################################################################################################################
 #                    Fetches folder structure from Power BI Report Server for jsTree                            #
 #################################################################################################################
-from django.views.decorators.http import require_GET
 
 @admin_required
 @require_GET
@@ -568,8 +508,6 @@ def get_folders(request):
 def _update_report_metadata(report_id, user, name=None, path=None, description=None):
     """Update modification metadata for a report in ReportRef."""
     try:
-        from powerbi_report.models import ReportRef
-        from django.utils import timezone
         
         defaults = {
             'modified_at': timezone.now(),
@@ -722,8 +660,6 @@ def report_list_flat(request):
 
 @admin_required
 def report_list_hierarchy(request, folder_path=""):
-    force_refresh = request.GET.get('force_refresh', 'false').lower() == 'true'
-
     # Use local DB instead of PBIRS API for listing
     items = get_local_reports_for_user(request.user, request=request)
 
@@ -792,8 +728,6 @@ def report_list_hierarchy(request, folder_path=""):
                 break
 
     folder_path = folder_path.rstrip('/')
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread = notifications.filter(is_read=False).count()
      # Log only when folder_path is root (empty or "/")
     # if not folder_path or folder_path == "/":
         # log_history(request.user, "Liste des rapports Power BI consultée (hiérarchie)")
@@ -804,8 +738,6 @@ def report_list_hierarchy(request, folder_path=""):
         'folder_structure': current_folder,
         'breadcrumbs': breadcrumbs,
         'current_path': folder_path,
-        'notifications': notifications,
-        'unread': unread,
         'permissions': permissions,
     })
 
@@ -855,15 +787,12 @@ def upload_powerbi_report(request):
 
         try:
             # Perform the POST request to upload the PBIX file
-            response = session.post(api_url, headers=headers, files=files)
+            response = session.post(api_url, headers=headers, files=files, timeout=300)
             response.raise_for_status()
             messages.success(request, f"Report '{report_name}' uploaded successfully.")
             log_history(request.user, f"Rapport Power BI téléversé : {report_path}")
             # Clear the cache for the current user
-            user_id = request.user.id
-            cache_key = f"powerbi_reports_cache_{user_id}"
-            cache.delete(cache_key)
-            logger.debug("Cleared cache for user %s after uploading report.", user_id)
+            _clear_user_report_cache(request.user.id)
 
             # Notify all admin users
             admin_users = CustomUser.objects.filter(is_superuser=True)
@@ -898,8 +827,6 @@ def add_report_local(request):
     """Upload a .pbix to PBIRS and save local metadata (pole, direction, type).
     Returns a JSON response so the frontend can display inline feedback.
     """
-    from powerbi_report.models import ReportRef, REPORT_TYPE_CHOICES, MetadataOption
-    from django.http import JsonResponse
 
     def _err(msg, code=400):
         return JsonResponse({'success': False, 'error': msg}, status=code)
@@ -1054,7 +981,7 @@ def add_report_local(request):
         report_ref.save()
 
 
-        cache.delete(f"powerbi_reports_cache_{request.user.id}")
+        _clear_user_report_cache(request.user.id)
         log_history(request.user, f"Rapport ajouté : {pbirs_path}")
         logger.info(
             "Report '%s' uploaded by %s to PBIRS path '%s'.",
@@ -1095,7 +1022,6 @@ def add_report_local(request):
 @admin_required
 def update_report_metadata_local(request, report_id: str):
     """Update pole, direction, report_type fields stored locally for a given report."""
-    from powerbi_report.models import ReportRef, MetadataOption
 
     permissions = get_user_permissions(request.user)
     if not permissions.get('change_powerbireport'):
@@ -1206,7 +1132,6 @@ def get_shared_schedules(request):
 @admin_required
 def report_detail(request, report_id):
     # Use local DB instead of PBIRS API for lookup
-    from powerbi_report.models import ReportRef
     report_ref = ReportRef.objects.filter(pbirs_id=report_id).first()
     
     if not report_ref:
@@ -1247,7 +1172,7 @@ def report_detail(request, report_id):
             if action == "refresh":
                 refresh_url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/CacheRefreshPlans({refresh_plan_id})/Model.Execute"
                 try:
-                    response = requests.post(refresh_url, auth=auth, headers={"Content-Type": "application/json"})
+                    response = requests.post(refresh_url, auth=auth, headers={"Content-Type": "application/json"}, timeout=30)
                     response.raise_for_status()
                     messages.success(request, "Refresh started successfully!")
                     log_history(request.user, f"Actualisation initiée pour le plan ID : {refresh_plan_id} sur le rapport '{report['Name']}'")
@@ -1270,7 +1195,7 @@ def report_detail(request, report_id):
             elif action == "delete":
                 delete_url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/CacheRefreshPlans({refresh_plan_id})"
                 try:
-                    response = requests.delete(delete_url, auth=auth)
+                    response = requests.delete(delete_url, auth=auth, timeout=30)
                     response.raise_for_status()
                     messages.success(request, "Refresh plan deleted successfully!")
                     log_history(request.user, f"Plan d'actualisation ID : {refresh_plan_id} supprimé pour le rapport '{report['Name']}'")
@@ -1289,8 +1214,6 @@ def report_detail(request, report_id):
                     log_history(request.user, f"Échec de la suppression du plan ID : {refresh_plan_id} pour le rapport '{report['Name']}'. Erreur : {str(err)}")
                     return redirect('powerbi_report:report_detail', report_id=report_id)
 
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
     
     # Context data for schedule creation
@@ -1303,7 +1226,7 @@ def report_detail(request, report_id):
         'July', 'August', 'September', 'October', 'November', 'December'
     ]
 
-    from powerbi_report.models import REPORT_TYPE_CHOICES, MetadataOption
+    from powerbi_report.models import REPORT_TYPE_CHOICES
     import json as _json
 
     metadata_options = MetadataOption.objects.all().select_related('parent')
@@ -1325,13 +1248,11 @@ def report_detail(request, report_id):
     report_module_ids = list(report_ref.modules.values_list('id', flat=True))
 
     return render(request, 'powerbi_report/report_detail.html', {
-        'notifications': notifications,
         'report': report,
         'report_ref': report_ref,
         'report_type_choices': REPORT_TYPE_CHOICES,
         'refresh_plans': refresh_plans,
         'shared_schedules': shared_schedules,
-        'unread': unread,
         'permissions': permissions,
         'week_days': week_days,
         'months': months,
@@ -1516,7 +1437,7 @@ def add_refresh_plan(request, report_id):
         # Redirect back to the report details page
         return HttpResponseRedirect(reverse('powerbi_report:report_detail', args=[report_id]))
 
-    return render(request, 'powerbi_report/report_details.html', {'report_id': report_id})   
+    return redirect('powerbi_report:report_detail', report_id=report_id)
 
 
 #################################################################################################################
@@ -1558,74 +1479,81 @@ def report_permissions(request, report_id):
             policies = get_folder_permissions(request, parent_folder_id)
 
     # Process policies to identify groups and individual users
+    domain_prefix = f"{settings.LDAP_DOMAIN}\\"
+    identifiers = [
+        (policy, (policy.get("GroupUserName") or policy.get("UserName") or "").replace(domain_prefix, "").split("\\")[-1])
+        for policy in policies
+    ]
+    group_members = {
+        identifier: sorted(get_group_members(identifier))
+        for _, identifier in identifiers if identifier and is_ldap_group(identifier)
+    }
+    usernames = {identifier for _, identifier in identifiers}
+    usernames.update(member for members in group_members.values() for member in members)
+    full_names = {
+        user.ad2000: user.get_full_name()
+        for user in CustomUser.objects.filter(ad2000__in=usernames)
+    }
+
     processed_policies = []
-    for policy in policies:
-        identifier = policy.get("GroupUserName", policy.get("UserName", ""))
-        clean_identifier = identifier.replace("GROUPE-HASNAOUI\\", "").split("\\")[-1]
-        
-        # Check if the identifier is a group by attempting to fetch its members
-        url = f"{LDAP_GROUP_MEMBERS_URL}/{clean_identifier}?token={LDAP_API_TOKEN}"
-        try:
-            response = requests.get(url)
-            if response.status_code == 200 and "members" in response.json():
-                # Identifier is a group; fetch its members for display
-                members = get_group_members(clean_identifier)
-                members_with_names = []
-                for member in members:
-                    user = CustomUser.objects.filter(ad2000=member).first()
-                    members_with_names.append({
-                        "UserName": member,
-                        "FullName": user.get_full_name() if user else member
-                    })
-                processed_policies.append({
-                    **policy,
-                    "GroupUserName": clean_identifier,
-                    "UserName": clean_identifier,  # For template compatibility
-                    "Identifier": clean_identifier,
-                    "DisplayName": clean_identifier,
-                    "IsGroup": True,
-                    "Members": members_with_names,
-                    "MemberCount": len(members_with_names)
-                })
-            else:
-                # Identifier is an individual user
-                user = CustomUser.objects.filter(ad2000=clean_identifier).first()
-                processed_policies.append({
-                    **policy,
-                    "UserName": clean_identifier,
-                    "GroupUserName": clean_identifier,  # For template compatibility
-                    "Identifier": clean_identifier,
-                    "DisplayName": user.get_full_name() if user else clean_identifier,
-                    "FullName": user.get_full_name() if user else clean_identifier,
-                    "IsGroup": False,
-                    "Members": [],
-                    "MemberCount": 0
-                })
-        except requests.RequestException:
-            # Assume identifier is an individual user
-            user = CustomUser.objects.filter(ad2000=clean_identifier).first()
+    for policy, identifier in identifiers:
+        if identifier in group_members:
+            members = [
+                {"UserName": member, "FullName": full_names.get(member) or member}
+                for member in group_members[identifier]
+            ]
             processed_policies.append({
                 **policy,
-                "UserName": clean_identifier,
-                "GroupUserName": clean_identifier,  # For template compatibility
-                "Identifier": clean_identifier,
-                "DisplayName": user.get_full_name() if user else clean_identifier,
-                "FullName": user.get_full_name() if user else clean_identifier,
+                "GroupUserName": identifier,
+                "UserName": identifier,  # For template compatibility
+                "Identifier": identifier,
+                "DisplayName": identifier,
+                "IsGroup": True,
+                "Members": members,
+                "MemberCount": len(members),
+            })
+        else:
+            display_name = full_names.get(identifier) or identifier
+            processed_policies.append({
+                **policy,
+                "UserName": identifier,
+                "GroupUserName": identifier,  # For template compatibility
+                "Identifier": identifier,
+                "DisplayName": display_name,
+                "FullName": display_name,
                 "IsGroup": False,
                 "Members": [],
-                "MemberCount": 0
+                "MemberCount": 0,
             })
 
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread = Notification.objects.filter(user=request.user, is_read=False).count()
+    # Row-level security roles of each entry, read from PBIRS (best effort: the page works without them).
+    rls_ref = ReportRef.objects.filter(pbirs_id__iexact=canonical_report_id).first()
+    rls_available, report_has_rls = True, False
+    role_ids_by_identity, rls_roles = {}, []
+    try:
+        state = rls_service.load_rls(PBIRSClient(request), rls_ref or ReportRef(pbirs_id=canonical_report_id))
+        report_has_rls = bool(state.roles)
+        rls_roles = [{'id': r['ModelRoleId'], 'name': r['ModelRoleName']} for r in state.roles]
+        for entry in state.assignments:
+            role_ids_by_identity[rls_service.short_name(entry.get('GroupUserName'))] = state.entry_role_ids(entry)
+    except PBIRSClientError as exc:
+        logger.warning("Permissions page: RLS roles of %s unavailable: %s", canonical_report_id, exc)
+        rls_available = False
+    role_name = {r['id']: r['name'] for r in rls_roles}
+    for policy in processed_policies:
+        ids = role_ids_by_identity.get(rls_service.short_name(policy.get('Identifier')), [])
+        policy['RlsRoles'] = sorted(role_name[i] for i in ids)
+        policy['RlsRoleIds'] = ",".join(ids)  # for the edit dialog
+
     permissions = get_user_permissions(request.user)
 
     return render(request, 'powerbi_report/report_permissions.html', {
         'report_id': canonical_report_id,
-        'report_name': report_name,  
+        'rls_roles': rls_roles,
+        'rls_available': rls_available,
+        'report_has_rls': report_has_rls,
+        'report_name': report_name,
         'policies': processed_policies,
-        'notifications': notifications,
-        'unread': unread,
         'permissions': permissions,
     })
 
@@ -1633,11 +1561,49 @@ def report_permissions(request, report_id):
 
 
 
+@admin_required
+@require_POST
+def report_rls_save(request, report_id):
+    """
+    Save the RLS roles of one user on one report, from the permissions page.
+    The posted roles are the complete set: ticked roles are given, unticked ones removed.
+    Only an employee who can open the report may hold a role.
+    """
+
+    report = ReportRef.objects.filter(pbirs_id__iexact=report_id).first() or ReportRef(pbirs_id=report_id)
+    back = redirect('powerbi_report:report_permissions', report_id=report_id)
+    identity = request.POST.get('identity', '').strip()
+    employee = CustomUser.objects.filter(ad2000__iexact=rls_service.short_name(identity), is_active=True).first() \
+        if identity else None
+    if employee is None:
+        messages.error(request, "Employé introuvable.")
+        return back
+
+    client = PBIRSClient(request)
+    try:
+        has_access = UserReportPermission.objects.filter(user=employee, report__pbirs_id__iexact=report_id).exists() or any(
+            rls_service.short_name(p.get('GroupUserName') or p.get('UserName')) == rls_service.short_name(identity)
+            for p in client.get_report_policies_strict(report_id, base_url=rls_service._server_url(report))
+        )
+        if not has_access:
+            messages.error(request, f"{employee.get_full_name() or employee.username} n'a pas accès à ce rapport.")
+            return back
+        changed = rls_service.set_user_roles(client, report, employee.ad2000, request.POST.getlist('roles'))
+    except PBIRSClientError as exc:
+        logger.error("RLS save on report %s failed: %s", report_id, exc)
+        messages.error(request, f"PBIRS a refusé l'opération, rien n'a été modifié ({exc}).")
+        return back
+
+    if changed:
+        log_history(request.user, f"RLS : rôles de {employee.username} modifiés sur « {report.name or report_id} »")
+    messages.success(request, "Rôles RLS enregistrés." if changed else "Aucun changement.")
+    return back
+
+
 #################################################################################################################
 #                    Adds a specific user to a Power BI report's permissions                                    #
 #################################################################################################################
 
-from django.core.exceptions import ObjectDoesNotExist
 
 @admin_required
 def add_users_to_report(request, report_id, username):
@@ -1653,9 +1619,10 @@ def add_users_to_report(request, report_id, username):
             messages.error(request, f"User with username '{username}' does not exist.")
             return redirect('powerbi_report:missing_users', report_id=report_id)
         
-        current_policies = get_report_permissions(request, report_id)
-        if not isinstance(current_policies, list):
-            current_policies = []
+        current_policies = _policies_for_update(request, report_id)
+        if current_policies is None:
+            messages.error(request, POLICIES_UNREADABLE_MESSAGE)
+            return _redirect_back(request)
         
         permission_exists = any(
             policy.get("GroupUserName", "").lower() == allowed_account.lower()
@@ -1663,7 +1630,7 @@ def add_users_to_report(request, report_id, username):
         )
 
         roles = [{"Name": "Explorateur"}]
-        if user.role and user.role.name.lower() == "admin":
+        if user.role and user.role.name.lower() == settings.ADMIN_ROLE_NAME:
             roles.extend([
                 {"Name": "Gestionnaire de contenu"},
                 {"Name": "Mes rapports"},
@@ -1739,10 +1706,10 @@ def add_selected_users_to_report(request, report_id):
         
         url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
         
-        current_policies = get_report_permissions(request, report_id) or []
-        
-        if not isinstance(current_policies, list):
-            current_policies = []
+        current_policies = _policies_for_update(request, report_id)
+        if current_policies is None:
+            messages.error(request, POLICIES_UNREADABLE_MESSAGE)
+            return _redirect_back(request)
         
         new_users_added = []
         for username in selected_users:
@@ -1819,22 +1786,11 @@ def add_all_users_to_report(request, report_id):
         if not report:
             return HttpResponse("Report not found", status=404)
         
-        policies_url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
-        try:
-            get_response = requests.get(policies_url, auth=auth)
-            get_response.raise_for_status()
-            full_policies = get_response.json()
-        except Exception as e:
-            logger.error("Error fetching full policies for report %s: %s", report_id, e)
-            full_policies = {
-                "Id": "00000000-0000-0000-0000-000000000000",
-                "InheritParentPolicy": False,
-                "Policies": []
-            }
-        
-        current_policies = full_policies.get("Policies", [])
-        if not isinstance(current_policies, list):
-            current_policies = []
+        current_policies = _policies_for_update(request, report_id)
+        if current_policies is None:
+            messages.error(request, POLICIES_UNREADABLE_MESSAGE)
+            return _redirect_back(request)
+        full_policies = {"Id": report_id, "InheritParentPolicy": False, "Policies": current_policies}
         
         local_users = CustomUser.objects.all()
         
@@ -1887,9 +1843,10 @@ def remove_users_from_report(request, report_id, username):
 
         url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
         
-        current_policies = get_report_permissions(request, report_id)
-        if not isinstance(current_policies, list):
-            current_policies = []
+        current_policies = _policies_for_update(request, report_id)
+        if current_policies is None:
+            messages.error(request, POLICIES_UNREADABLE_MESSAGE)
+            return _redirect_back(request)
 
         updated_policies = [
             policy for policy in current_policies
@@ -1948,10 +1905,10 @@ def remove_selected_users_from_report(request, report_id):
             messages.error(request, "No users selected for removal.")
             return redirect('powerbi_report:report_permissions', report_id=report_id)
         
-        current_policies = get_report_permissions(request, report_id) or []
-        
-        if not isinstance(current_policies, list):
-            current_policies = []
+        current_policies = _policies_for_update(request, report_id)
+        if current_policies is None:
+            messages.error(request, POLICIES_UNREADABLE_MESSAGE)
+            return _redirect_back(request)
         users_removed = []
         updated_policies = []
         selected_users_lower = [user.lower() for user in selected_users]
@@ -2027,57 +1984,31 @@ def missing_users(request, report_id):
             if account:
                 allowed_accounts.add(account.split("\\")[-1].lower())
     
-    all_users = CustomUser.objects.all()
-    missing_users = []
-    for user in all_users:
-        identifier = (user.ad2000 or user.username).lower()
-        if identifier not in allowed_accounts:
-            missing_users.append(user)
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread = Notification.objects.filter(user=request.user, is_read=False).count()
-    permissions = get_user_permissions(request.user)
+    query = (request.GET.get('q') or '').strip()
+    all_users = CustomUser.objects.order_by('first_name', 'last_name', 'username')
+    if query:
+        all_users = all_users.filter(
+            Q(first_name__icontains=query) | Q(last_name__icontains=query)
+            | Q(username__icontains=query) | Q(ad2000__icontains=query) | Q(email__icontains=query)
+        )
+    missing_users = [
+        user for user in all_users.only('id', 'first_name', 'last_name', 'username', 'ad2000', 'email')
+        if (user.ad2000 or user.username).lower() not in allowed_accounts
+    ]
+    # Thousands of accounts: render one page at a time.
+    page = Paginator(missing_users, 50).get_page(request.GET.get('page'))
     log_history(request.user, f"Permissions manquantes consultées pour le rapport (ID : {report_id})")
     context = {
         'report_id': report_id,
-        'missing_users': missing_users,
-        'notifications': notifications,
-        'unread': unread,
-        'permissions': permissions,
-
+        'missing_users': page,
+        'total_missing': page.paginator.count,
+        'query': query,
     }
     return render(request, 'powerbi_report/missing_users.html', context)
 
 
 
 
-#################################################################################################################
-#                    Preloads cache with Power BI reports and their permissions                                 #
-#################################################################################################################
-
-@admin_required
-def load_cache(request):
-    cache_key = "powerbi_reports_cache_all_users"
-    all_reports = get_powerbi_reports(request)
-    cache.set(cache_key, all_reports, timeout=300)
-    
-    for report in all_reports:
-        cache.get_or_set(
-            f"report_permissions_{report['Id']}",
-            lambda: get_report_permissions(request, report['Id']),
-            timeout=86400
-        )
-        parent_folder_id = report.get("ParentFolderId")
-        if parent_folder_id:
-            cache.get_or_set(
-                f"folder_permissions_{parent_folder_id}",
-                lambda: get_folder_permissions(request, parent_folder_id),
-                timeout=86400
-            )
-    
-    return JsonResponse({
-        "status": "Cache preloaded",
-        "num_reports": len(all_reports)
-    })
 
 #################################################################################################################
 #                    Displays Power BI reports a specific user has access to                                    #
@@ -2264,8 +2195,6 @@ def user_permission(request, username):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
     metadata_options = MetadataOption.objects.all().select_related('parent')
 
@@ -2273,8 +2202,6 @@ def user_permission(request, username):
         'selected_user': username,
         'full_name': full_name,
         'reports': page_obj, # Pass page object instead of full list
-        'notifications': notifications,
-        'unread': unread,
         'permissions': permissions,
         'metadata_directions': [o for o in metadata_options if o.option_type == 'direction'],
         'metadata_societes': [o for o in metadata_options if o.option_type == 'societe'],
@@ -2302,8 +2229,7 @@ def missing_permissions(request, username):
         selected_user = None
         full_name = username  
     
-    user_id = request.user.id if request.user.is_authenticated else "anonymous"
-    cache_key = "powerbi_reports_cache_all_users"  
+    cache_key = "powerbi_reports_cache_all_users"
     all_reports = cache.get(cache_key)
     
     if all_reports is None:
@@ -2348,7 +2274,10 @@ def missing_permissions(request, username):
             if group_username and group_username in user_ad_groups:
                 is_allowed = True
                 break
-        
+
+        if not is_allowed:
+            missing_reports.append(report)
+
     # Fetch local metadata for these reports to enable better filtering
     report_refs = {ref.pbirs_id: ref for ref in ReportRef.objects.filter(pbirs_id__in=[r['Id'] for r in missing_reports])}
     
@@ -2366,16 +2295,12 @@ def missing_permissions(request, username):
     missing_reports = enriched_missing_reports
 
     log_history(request.user, f"Permissions incomplètes consultées pour l'utilisateur : {username}")
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
     
     return render(request, 'powerbi_report/missing_permissions.html', {
         'selected_username': username,
         'full_name': full_name,
         'missing_reports': missing_reports,
-        'notifications': notifications,
-        'unread': unread,
         'permissions': permissions,
     })
 
@@ -2388,8 +2313,6 @@ def missing_permissions(request, username):
 
 @admin_required
 def users_no_reports_view(request):  
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread = Notification.objects.filter(user=request.user, is_read=False).count()
 
     users = CustomUser.objects.exclude(last_login__isnull=True)
 
@@ -2422,8 +2345,6 @@ def users_no_reports_view(request):
     roles = Role.objects.all()
 
     return render(request, 'users/user_management.html', {
-        'notifications': notifications,
-        'unread': unread,
         'users': users,
         'roles': roles,
         'permissions': permissions,
@@ -2446,14 +2367,10 @@ def add_permission_to_server(request, report_id, username):
             messages.error(request, f"User with username '{username}' does not exist.")
             return redirect('powerbi_report:missing_permissions', username=username)
 
-        current_policies = cache.get_or_set(
-            f"report_permissions_{report_id}",
-            lambda: get_report_permissions(request, report_id),
-            timeout=300
-        )
-        
-        if not isinstance(current_policies, list):
-            current_policies = []
+        current_policies = _policies_for_update(request, report_id)
+        if current_policies is None:
+            messages.error(request, POLICIES_UNREADABLE_MESSAGE)
+            return _redirect_back(request)
         
         permission_exists = any(
             policy.get("GroupUserName", "").lower() == allowed_account.lower()
@@ -2461,7 +2378,7 @@ def add_permission_to_server(request, report_id, username):
         )
 
         roles = [{"Name": "Explorateur"}]
-        if user.role and user.role.name.lower() == "admin":
+        if user.role and user.role.name.lower() == settings.ADMIN_ROLE_NAME:
             roles.extend([
                 {"Name": "Gestionnaire de contenu"},
                 {"Name": "Mes rapports"},
@@ -2535,7 +2452,9 @@ def add_all_permissions(request, username):
         granted_report_ids = []
 
         for report in all_reports:
-            policies = get_report_permissions(request, report['Id'])
+            policies = _policies_for_update(request, report['Id'])
+            if policies is None:
+                continue
             if not policies:
                 parent_folder_id = report.get("ParentFolderId")
                 if parent_folder_id:
@@ -2608,7 +2527,7 @@ def add_selected_permissions(request, username):
             return redirect('powerbi_report:missing_permissions', username=username)
         
         roles = [{"Name": "Explorateur"}]
-        if user_obj.role and user_obj.role.name.lower() == "admin":
+        if user_obj.role and user_obj.role.name.lower() == settings.ADMIN_ROLE_NAME:
             roles.extend([
                 {"Name": "Gestionnaire de contenu"},
                 {"Name": "Mes rapports"},
@@ -2618,14 +2537,10 @@ def add_selected_permissions(request, username):
         
         for report_id in report_ids:
             cache_key = f"report_permissions_{report_id}"
-            policies = cache.get_or_set(
-                cache_key,
-                lambda: get_report_permissions(request, report_id),
-                timeout=300
-            )
-            
-            if not isinstance(policies, list):
-                policies = []
+            policies = _policies_for_update(request, report_id)
+            if policies is None:
+                messages.error(request, f"Permissions illisibles pour le rapport '{report_id}' : aucune modification appliquée.")
+                continue
             
             permission_exists = any(
                 ((policy.get("GroupUserName") or policy.get("UserName")).split("\\")[-1]).lower() == username.lower()
@@ -2687,7 +2602,6 @@ def add_metadata_permissions(request, username):
     if request.method != 'POST':
         return redirect('powerbi_report:user_permission', username=username)
 
-    from django.db.models import Q
     directions = request.POST.getlist('directions')
     societes = request.POST.getlist('societes')
     modules = request.POST.getlist('modules')
@@ -2722,13 +2636,10 @@ def remove_permission_from_server(request, report_id, username):
         auth = get_current_user_auth(request)
         url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})/Policies"
         
-        current_policies = cache.get_or_set(
-            f"report_permissions_{report_id}",
-            lambda: get_report_permissions(request, report_id),
-            timeout=300
-        )
-        if not isinstance(current_policies, list):
-            current_policies = []
+        current_policies = _policies_for_update(request, report_id)
+        if current_policies is None:
+            messages.error(request, POLICIES_UNREADABLE_MESSAGE)
+            return _redirect_back(request)
         
         updated_policies = [
             policy for policy in current_policies 
@@ -2788,14 +2699,9 @@ def remove_all_permissions(request, username):
             report_id = report['Id']
             cache_key = f"report_permissions_{report_id}"
             
-            policies = cache.get_or_set(
-                cache_key,
-                lambda: get_report_permissions(request, report_id) or get_folder_permissions(request, report.get("ParentFolderId")),
-                timeout=300
-            )
-            
+            policies = _policies_for_update(request, report_id)
             if not policies:
-                continue  
+                continue
             
             updated_policies = [
                 policy for policy in policies
@@ -2860,13 +2766,10 @@ def remove_selected_permissions(request, username):
         return redirect('powerbi_report:user_permission', username=username)
 
     for report_id in report_ids:
-        policies = cache.get_or_set(
-            f"report_permissions_{report_id}",
-            lambda: get_report_permissions(request, report_id),
-            timeout=300
-        )
-        if not isinstance(policies, list):
-            policies = []
+        policies = _policies_for_update(request, report_id)
+        if policies is None:
+            error_messages.append(f"Permissions illisibles pour le rapport '{report_id}' : aucune modification appliquée.")
+            continue
 
         updated_policies = [
             policy for policy in policies 
@@ -2936,21 +2839,16 @@ def dashboard(request):
     active_users = CustomUser.objects.filter(last_login__isnull=False).count()
 
     now = timezone.now()
-    tz = pytz.timezone("Africa/Algiers")
-    current_time = now.astimezone(tz)
+    current_time = timezone.localtime(now)
     current_year = current_time.year
     current_month = current_time.month
-    current_day = current_time.day
     users_this_month = CustomUser.objects.filter(
         last_login__year=current_year,
         last_login__month=current_month
     ).count()
 
     # Use local DB count instead of PBIRS API call
-    from powerbi_report.models import ReportRef
     total_reports_count = ReportRef.objects.count()
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
 
     # Monthly login counts 
@@ -3029,8 +2927,6 @@ def dashboard(request):
 
     # ============ Dashboard KPIs ============
     
-    from .models import CustomFolder, ReportRef, FolderReportItem
-    from users.models import UserHistory
     
     # --- KPI: Counts per category ---
     # Dashboards = direction + pole view types
@@ -3052,7 +2948,6 @@ def dashboard(request):
     total_synced_reports = ReportRef.objects.count()
     
     # --- Most requested dashboards and extraction reports (from UserHistory) ---
-    from django.db.models import Q
 
     raw_most_requested = list(
         UserHistory.objects
@@ -3103,11 +2998,10 @@ def dashboard(request):
     )
 
     # --- New reports per folder (anomalie + direction) ---
-    from .models import FolderReportItem as FRI2
     
     # Monthly breakdown for the current year
     reports_per_folder_monthly = list(
-        FRI2.objects
+        FolderReportItem.objects
         .filter(
             folder__view_type__in=['direction', 'pole', 'consolide', 'biblio', 'anomalie'],
             report__last_synced__year=current_year
@@ -3120,7 +3014,7 @@ def dashboard(request):
     
     # Quarterly breakdown for the current year
     reports_per_folder_quarterly = list(
-        FRI2.objects
+        FolderReportItem.objects
         .filter(
             folder__view_type__in=['direction', 'pole', 'consolide', 'biblio', 'anomalie'],
             report__last_synced__year=current_year
@@ -3133,7 +3027,7 @@ def dashboard(request):
     
     # Yearly breakdown
     reports_per_folder_yearly = list(
-        FRI2.objects
+        FolderReportItem.objects
         .filter(folder__view_type__in=['direction', 'pole', 'anomalie', 'biblio', 'consolide'])
         .annotate(year=TruncYear('report__last_synced'))
         .values('year', 'folder__view_type')
@@ -3146,8 +3040,6 @@ def dashboard(request):
         'active_users': active_users,
         'users_this_month': users_this_month,
         'total_reports': total_reports_count,
-        'notifications': notifications,
-        'unread': unread,
         'permissions': permissions,
         'monthly_logins': list(monthly_logins),
         'daily_logins': list(daily_logins),
@@ -3258,88 +3150,8 @@ def get_visible_report_ids(request, view_type=None):
     return {report.pbirs_id for report in leaf_reports if report.pbirs_id}
 
 
-def get_visible_folders(request, view_type):
-    """
-    Filter custom folders to only show those containing at least one visible report.
-    Uses the local UserReportPermission cache as the source of truth.
-    """
-    visible_ids = get_visible_report_ids(request, view_type=view_type)
-    
-    if not visible_ids:
-        return []
-
-    all_folders = list(CustomFolder.objects.filter(view_type=view_type))
-    parent_by_id = {folder.id: folder.parent_id for folder in all_folders}
-
-    allowed_types, req_field, _ = _get_allowed_report_types_for_view(view_type)
-    
-    filter_kwargs = {
-        "folder__view_type": view_type,
-        "report__pbirs_id__in": visible_ids,
-    }
-    if allowed_types:
-        filter_kwargs["report__report_type__in"] = allowed_types
-    if req_field:
-        if req_field == 'is_consolide':
-            filter_kwargs["report__is_consolide"] = True
-        else:
-            filter_kwargs[f"report__{req_field}__isnull"] = False
-
-    direct_folder_ids = set(
-        FolderReportItem.objects.filter(**filter_kwargs)
-        .exclude(**{f"report__{req_field}": ""} if req_field and req_field != 'is_consolide' else {})
-        .values_list("folder_id", flat=True)
-    )
-
-    visible_folder_ids = set()
-    for folder_id in direct_folder_ids:
-        current_id = folder_id
-        while current_id:
-            if current_id in visible_folder_ids:
-                break
-            visible_folder_ids.add(current_id)
-            current_id = parent_by_id.get(current_id)
-
-    return [folder for folder in all_folders if folder.id in visible_folder_ids]
 
 
-def get_visible_reports_in_folder(request, folder):
-    """
-    Get reports in a specific folder that the user has access to locally.
-    """
-    visible_ids = get_visible_report_ids(request, view_type=folder.view_type)
-    
-    # Get reports assigned to this folder
-    folder_items = list(FolderReportItem.objects.filter(folder=folder).select_related('report'))
-    leaf_report_ids = {
-        report.id for report in _filter_reportref_to_leaf_items([item.report for item in folder_items if item.report_id])
-    }
-    
-    visible_reports = []
-    allowed_types, req_field, _ = _get_allowed_report_types_for_view(folder.view_type)
-    for item in folder_items:
-        # Check report type
-        if allowed_types and item.report.report_type not in allowed_types:
-            continue
-        # Check specific field (pole, direction, etc)
-        if req_field:
-            if req_field == 'is_consolide':
-                if not item.report.is_consolide: continue
-            else:
-                val = getattr(item.report, req_field, None)
-                if not val: continue # skip null or empty
-
-        if item.report.id in leaf_report_ids and item.report.pbirs_id in visible_ids:
-            visible_reports.append({
-                'id': item.report.id,
-                'pbirs_id': item.report.pbirs_id,
-                'name': item.report.name,
-                'path': item.report.path,
-                'embed_url': item.report.embed_url,
-                'order': item.order,
-            })
-    
-    return visible_reports
 
 
 @admin_required
@@ -3359,7 +3171,7 @@ def sync_reports_from_pbirs(request):
         logger.error("Report sync failed: %s", exc)
         messages.error(request, f"Report sync failed: {exc}")
     
-    return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_business'))
+    return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_direction'))
 
 
 @admin_required
@@ -3376,7 +3188,7 @@ def sync_permissions(request):
         messages.error(request, f"Sync failed: {str(e)}")
         log_history(request.user, f"Permission sync failed: {str(e)}")
     
-    return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_business'))
+    return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_direction'))
 
 
 @login_required
@@ -3421,7 +3233,6 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
     reports = []
     breadcrumbs = []
 
-    from powerbi_report.models import MetadataOption
     
     if folder_id is None:
         # Root level: list unique metadata values as folders
@@ -3478,8 +3289,6 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
     # Admin only: list all reports for assignment (not applicable now, but kept for compatibility or empty)
     all_reports = []
 
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
-    unread = notifications.filter(is_read=False).count()
     permissions = get_user_permissions(request.user)
 
     view_titles = {
@@ -3503,8 +3312,6 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
         'breadcrumbs': breadcrumbs,
         'parent_folder': parent_folder,
         'all_reports': all_reports,
-        'notifications': notifications,
-        'unread': unread,
         'permissions': permissions,
     })
 
@@ -3537,7 +3344,7 @@ def create_custom_folder(request, view_type):
                 parent__isnull=True, view_type=view_type
             ).aggregate(max_order=models.Max('order'))['max_order'] or 0
         
-        folder = CustomFolder.objects.create(
+        CustomFolder.objects.create(
             name=folder_name,
             view_type=view_type,
             parent=parent,
@@ -3762,7 +3569,7 @@ def delete_powerbi_report_server(request, report_id):
             if report_ref:
                 report_name = report_ref.name
 
-            response = requests.delete(url, auth=auth)
+            response = requests.delete(url, auth=auth, timeout=30)
             response.raise_for_status()
             
             # Also remove local reference
@@ -3795,7 +3602,6 @@ def embed_custom_report(request, view_type, folder_id, report_id):
     # This route is reached from a metadata grouping (direction, pôle, or
     # module). Preserve its parent chain so the report page can show the full
     # path a user used to reach the report.
-    from powerbi_report.models import MetadataOption
     folder = get_object_or_404(MetadataOption, id=folder_id)
     report_ref = get_object_or_404(ReportRef, id=report_id)
     

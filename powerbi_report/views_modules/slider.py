@@ -13,7 +13,6 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from notifications.models import Notification
 from powerbi_report.models import ReportRef, Slider, SliderItem, UserReportPermission
 from powerbi_report.services.pbirs_servers import get_primary_pbirs_server_url
 from users.utils import get_user_permissions, log_history
@@ -22,7 +21,7 @@ logger = logging.getLogger('powerbi_report')
 
 MIN_INTERVAL_SECONDS = 5
 MAX_INTERVAL_SECONDS = 3600
-PLAY_MODES = ('presentation', 'kiosk')
+PLAY_MODES = ('kiosk',)  # one way to play a slider: the auto-looping one
 
 
 def can_use_slider(user) -> bool:
@@ -41,10 +40,7 @@ def slider_required(view_func):
 
 
 def _page_context(request) -> dict:
-    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     return {
-        'notifications': notifications,
-        'unread': notifications.filter(is_read=False).count(),
         'permissions': get_user_permissions(request.user),
     }
 
@@ -153,21 +149,20 @@ def slider_play(request, slider_id: int):
 
     slider = get_object_or_404(Slider, id=slider_id, owner=request.user)
     # Permissions change with every sync: re-check each report at play time.
+    items = list(slider.items.select_related('report'))
     slides = [
         {'name': item.report.name, 'url': _embed_url(item.report)}
-        for item in slider.items.select_related('report')
+        for item in items
         if _user_can_access_report(request.user, item.report)
     ]
-    skipped = slider.items.count() - len(slides)
+    skipped = len(items) - len(slides)
     if skipped:
         logger.info("Slider %s: %s report(s) skipped, access lost for %s.", slider.id, skipped, request.user.username)
     if not slides:
         messages.error(request, "Ce slider ne contient plus aucun rapport accessible.")
         return redirect('powerbi_report:slider_list')
 
-    mode = request.GET.get('mode')
-    if mode not in PLAY_MODES:
-        mode = 'presentation'
+    mode = 'kiosk'
     log_history(request.user, f"Rapport consulté (slider) : {slider.name}")
     return render(request, 'powerbi_report/slider_play.html', {
         'slider': slider,

@@ -15,16 +15,16 @@
 
     </div>
 
-    <details class="cbi-home-notification{% if unread %} has-unread{% endif %}">
+    <details class="cbi-home-notification{% if bell_unread %} has-unread{% endif %}" data-tour="home-notifications">
         <summary>
             <span class="cbi-home-notification-icon"><span class="material-symbols-outlined" aria-hidden="true">notifications</span></span>
             <span class="cbi-home-notification-copy"><strong>Notifications récentes</strong><small>Cliquez pour consulter vos dernières mises à jour</small></span>
-            {% if unread %}<span class="cbi-home-notification-count" aria-label="{{ unread }} notifications non lues">{{ unread }}</span>{% endif %}
+            {% if bell_unread %}<span class="cbi-home-notification-count" aria-label="{{ bell_unread }} notifications non lues">{{ bell_unread }}</span>{% endif %}
             <span class="material-symbols-outlined cbi-home-notification-chevron" aria-hidden="true">expand_more</span>
         </summary>
         <div class="cbi-home-notification-list">
-            {% if notifications %}
-                {% for notification in notifications|slice:':3' %}
+            {% if bell_notifications %}
+                {% for notification in bell_notifications|slice:':3' %}
                 <article class="cbi-home-notification-item {% if not notification.is_read %}is-unread{% endif %}">
                     <span></span><div><strong>{{ notification.message }}</strong><small>{{ notification.created_at|date:'d-m-Y à H:i' }}</small></div>
                 </article>
@@ -42,7 +42,7 @@
     </div>
 
     {% if user.is_admin %}
-    <div class="cbi-home-access-grid">
+    <div class="cbi-home-access-grid" data-tour="home-access">
         <a href="{% url 'powerbi_report:dashboard' %}" class="cbi-home-access-card">
             <span class="cbi-home-access-icon blue"><span class="material-symbols-outlined" aria-hidden="true">dashboard</span></span><span class="cbi-home-access-meta">ADMINISTRATION</span><h3>Tableau de bord</h3><p>Vue d'ensemble des statistiques, de l'activité et de l'état du système.</p><span class="cbi-home-access-arrow">arrow_forward</span>
         </a>
@@ -54,7 +54,7 @@
         </a>
     </div>
     {% else %}
-    <div class="cbi-home-access-grid">
+    <div class="cbi-home-access-grid" data-tour="home-access">
         {% if permissions.can_view_module %}<a href="{% url 'powerbi_report:custom_module' %}" class="cbi-home-access-card">
         {% elif permissions.can_view_direction %}<a href="{% url 'powerbi_report:custom_direction' %}" class="cbi-home-access-card">
         {% elif permissions.can_view_pole %}<a href="{% url 'powerbi_report:custom_pole' %}" class="cbi-home-access-card">

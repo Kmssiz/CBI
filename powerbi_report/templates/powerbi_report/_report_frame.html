@@ -1,0 +1,182 @@
+{# Report iframe, share dialog and viewer script. Used with _report_toolbar.html. #}
+<div id="reportStage" class="report-stage flex-grow min-h-[600px] card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden relative shadow-xl" style="order: 3;">
+  {% if embed_url %}
+  <div class="report-viewport">
+    <div class="report-loader" id="reportLoader" aria-hidden="true"><span></span></div>
+    <iframe id="reportIframe" src="{{ embed_url }}" class="report-iframe" allowfullscreen title="Rapport Power BI"></iframe>
+    <div class="report-strip-skin" aria-hidden="true"></div>
+  </div>
+  {% else %}
+  <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
+    <div class="size-20 bg-red-400/10 rounded-2xl flex items-center justify-center text-red-400 mb-4 border border-red-500/20">
+      <span class="material-symbols-outlined text-[40px]">error</span>
+    </div>
+    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">{% if error %}Accès refusé{% else %}Erreur de chargement{% endif %}</h3>
+    <p class="text-slate-500 max-w-sm">{{ error|default:"Impossible de charger le rapport Power BI. Veuillez réessayer plus tard ou contacter l'administrateur." }}</p>
+  </div>
+  {% endif %}
+</div>
+
+{% if embed_url %}
+<div id="shareModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1100] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+  <div class="card-theme bg-white border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden max-w-md w-full transform transition-all scale-95 opacity-0" id="shareModalContent">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
+      <h5 id="shareModalTitle" class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Partager le lien du rapport</h5>
+      <button type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors" data-share-close aria-label="Fermer">
+        <span class="material-symbols-outlined text-[24px]">close</span>
+      </button>
+    </div>
+    <div class="p-6 space-y-4">
+      <div class="space-y-2">
+        <label for="shareUrlInput" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Lien de partage</label>
+        <div class="flex gap-2">
+          <input type="text" class="flex-1 min-w-0 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-mono" id="shareUrlInput" readonly>
+          <button class="px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-xl transition-all flex items-center justify-center" type="button" id="shareCopyBtn" title="Copier le lien" aria-label="Copier le lien">
+            <span class="material-symbols-outlined text-[20px]">content_copy</span>
+          </button>
+        </div>
+      </div>
+      <p class="text-xs text-emerald-500 font-medium hidden items-center gap-1.5" id="shareSuccessMsg">
+        <span class="material-symbols-outlined text-[16px]">check_circle</span> Lien copié dans le presse-papier !
+      </p>
+    </div>
+    <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800/50 flex justify-end bg-slate-50/50 dark:bg-white/5">
+      <button type="button" class="px-5 py-2 text-slate-500 hover:text-slate-700 dark:hover:text-white font-bold text-sm transition-all" data-share-close>Fermer</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<style>
+  .report-action {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .5rem 1rem; border-radius: .75rem;
+    border: 1px solid #e2e8f0; background: #fff; color: #334155;
+    font-size: .875rem; font-weight: 700; line-height: 1.25rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .06);
+    transition: color .15s, background-color .15s, border-color .15s;
+  }
+  .report-action:hover { color: #7fa82f; background: #f8fafc; border-color: #cbd5e1; }
+  .report-action:focus-visible { outline: 2px solid #a5cf4b; outline-offset: 2px; }
+  .report-action[aria-pressed="true"] { color: #5f8220; background: rgba(165, 207, 75, .14); border-color: rgba(165, 207, 75, .55); }
+  .report-action--icon { justify-content: center; width: 2.5rem; height: 2.5rem; padding: 0; }
+  .dark .report-action { border-color: #334155; background: #161d26; color: #cbd5e1; }
+  .dark .report-action:hover { color: #fff; background: rgba(255, 255, 255, .06); }
+  .dark .report-action[aria-pressed="true"] { color: #a5cf4b; background: rgba(165, 207, 75, .12); border-color: rgba(165, 207, 75, .4); }
+
+  .report-stage { --pbi-tabs-height: 38px; display: flex; flex-direction: column; }
+  .report-viewport { position: relative; flex: 1 1 0; min-height: 0; overflow: hidden; }
+  .report-iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+  .report-stage:fullscreen { border-radius: 0; border: 0; background: #fff; }
+
+  /* Skin for the page tabs PBIRS draws at the bottom of the report. The frame is cross-origin, so
+     its tabs cannot be restyled directly; this layer only recolours what is behind it. It ignores the
+     mouse (pointer-events: none), so clicks reach the real tabs: switching pages stays inside the
+     loaded report and costs PBIRS nothing. */
+  .report-strip-skin {
+    position: absolute; left: 0; right: 0; bottom: 0; height: var(--pbi-tabs-height); z-index: 2; pointer-events: none;
+    /* multiply keeps the tab text dark and readable while tinting the strip's light grey */
+    background: linear-gradient(180deg, rgba(165, 207, 75, .55) 0%, rgba(165, 207, 75, .22) 100%); mix-blend-mode: multiply;
+    box-shadow: inset 0 3px 0 #7fae1f, 0 -6px 14px rgba(28, 34, 41, .10);
+  }
+  .dark .report-strip-skin {
+    mix-blend-mode: normal; background: rgba(165, 207, 75, .05);
+    -webkit-backdrop-filter: invert(.9) hue-rotate(180deg) brightness(.95); backdrop-filter: invert(.9) hue-rotate(180deg) brightness(.95);
+  }
+
+  .report-loader { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; pointer-events: none; transition: opacity .3s; }
+  .report-loader.is-done { opacity: 0; }
+  .report-loader span { width: 42px; height: 42px; border-radius: 50%; border: 3px solid rgba(165, 207, 75, .25); border-top-color: #a5cf4b; animation: report-spin .9s linear infinite; }
+  @keyframes report-spin { to { transform: rotate(360deg); } }
+
+  @page { margin: 10mm; }
+  @media print {
+    body * { visibility: hidden; }
+    #reportIframe {
+      visibility: visible; position: fixed; top: 10mm; left: 10mm;
+      width: calc(100% - 20mm); height: calc(100% - 20mm); border: none;
+    }
+  }
+</style>
+
+<script>
+(function () {
+  document.getElementById('backBtn').addEventListener('click', function () { window.history.back(); });
+
+  var stage = document.getElementById('reportStage');
+  var iframe = document.getElementById('reportIframe');
+  if (!iframe) return;
+
+  var loader = document.getElementById('reportLoader');
+  iframe.addEventListener('load', function () { loader.classList.add('is-done'); });
+
+  /* Fullscreen the stage, not the iframe, so the tab skin stays on. */
+  document.getElementById('fullscreenBtn').addEventListener('click', function () {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else if (stage.requestFullscreen) {
+      stage.requestFullscreen().catch(function () {});
+    } else if (stage.webkitRequestFullscreen) {
+      stage.webkitRequestFullscreen();
+    }
+  });
+  document.addEventListener('fullscreenchange', function () {
+    document.getElementById('fullscreenIcon').textContent = document.fullscreenElement ? 'fullscreen_exit' : 'fullscreen';
+  });
+
+  document.getElementById('printBtn').addEventListener('click', function () { window.print(); });
+
+  /* Share dialog */
+  var modal = document.getElementById('shareModal');
+  var modalContent = document.getElementById('shareModalContent');
+  var urlInput = document.getElementById('shareUrlInput');
+  var successMsg = document.getElementById('shareSuccessMsg');
+
+  function openShare() {
+    urlInput.value = window.location.href;
+    successMsg.classList.add('hidden');
+    successMsg.classList.remove('flex');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    requestAnimationFrame(function () {
+      modalContent.classList.remove('scale-95', 'opacity-0');
+    });
+  }
+  function closeShare() {
+    modalContent.classList.add('scale-95', 'opacity-0');
+    setTimeout(function () {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }, 200);
+  }
+  document.getElementById('shareBtn').addEventListener('click', openShare);
+  modal.querySelectorAll('[data-share-close]').forEach(function (button) {
+    button.addEventListener('click', closeShare);
+  });
+  modal.addEventListener('click', function (event) { if (event.target === modal) closeShare(); });
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !modal.classList.contains('hidden')) closeShare();
+  });
+
+  /* navigator.clipboard needs HTTPS or localhost; fall back to execCommand over plain HTTP. */
+  function legacyCopy() {
+    urlInput.focus();
+    urlInput.select();
+    try { return document.execCommand('copy'); } catch (e) { return false; }
+  }
+  function onCopied() {
+    successMsg.classList.remove('hidden');
+    successMsg.classList.add('flex');
+    urlInput.select();
+  }
+  document.getElementById('shareCopyBtn').addEventListener('click', function () {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(urlInput.value).then(onCopied).catch(function () {
+        if (legacyCopy()) onCopied();
+      });
+    } else if (legacyCopy()) {
+      onCopied();
+    }
+  });
+})();
+</script>

@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
+import sys
 from pathlib import Path
 
 from decouple import config
@@ -17,9 +18,6 @@ from decouple import config
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 def _config_bool(name: str, default: bool = False) -> bool:
     """Parse relaxed boolean env values while rejecting unknown values."""
@@ -48,12 +46,11 @@ SECRET_KEY = config("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production.
 DEBUG = _config_bool("DEBUG", default=False)
 
-ALLOWED_HOSTS = ["*"]
-#ALLOWED_HOSTS = _config_list("ALLOWED_HOSTS", default="127.0.0.1,localhost")
+# Set ALLOWED_HOSTS to the site's host names in production; "*" accepts any Host header.
+ALLOWED_HOSTS = _config_list("ALLOWED_HOSTS", default="*")
 CSRF_TRUSTED_ORIGINS = _config_list("CSRF_TRUSTED_ORIGINS", default="")
 
-# Base URL of your report server 
-
+# Base URL of the report server.
 POWERBI_REPORT_SERVER_URL = config("POWERBI_REPORT_SERVER_URL", default="")
 
 # Legacy env-based PBIRS server list. The application now prefers `PBIRSServer`
@@ -97,6 +94,10 @@ LDAP_SERVER_ALTERNATES = [
 LDAP_SERVICE_USERNAME = config("LDAP_SERVICE_USERNAME", default="")
 LDAP_SERVICE_PASSWORD = config("LDAP_SERVICE_PASSWORD", default="")
 
+# Internal API that expands an AD group into its (nested) members.
+LDAP_GROUP_MEMBERS_URL = config("LDAP_GROUP_MEMBERS_URL", default="").strip().rstrip("/")
+LDAP_API_TOKEN = config("LDAP_API_TOKEN", default="")
+
 # Report permission sync should normally be handled by manual/admin-triggered
 # sync or an external hourly scheduler, not by every login.
 PBIRS_SYNC_ON_LOGIN = _config_bool("PBIRS_SYNC_ON_LOGIN", default=False)
@@ -110,7 +111,40 @@ PBIRS_SYNC_POLICY_RETRY_DELAY = config("PBIRS_SYNC_POLICY_RETRY_DELAY", default=
 PBIRS_SYNC_POLICY_REQUEST_DELAY = config("PBIRS_SYNC_POLICY_REQUEST_DELAY", default=0.05, cast=float)
 PBIRS_SYNC_MAX_WORKERS = config("PBIRS_SYNC_MAX_WORKERS", default=20, cast=int)
 
+# Odoo (PostgreSQL, read-only) is the source of employees' job titles.
+# Leave ODOO_DB_HOST empty to disable the integration.
+ODOO_DB_HOST = config("ODOO_DB_HOST", default="")
+ODOO_DB_PORT = config("ODOO_DB_PORT", default=5432, cast=int)
+ODOO_DB_NAME = config("ODOO_DB_NAME", default="")
+ODOO_DB_USER = config("ODOO_DB_USER", default="")
+ODOO_DB_PASSWORD = config("ODOO_DB_PASSWORD", default="")
+ODOO_DB_SSLMODE = config("ODOO_DB_SSLMODE", default="prefer")
+ODOO_DB_TIMEOUT = config("ODOO_DB_TIMEOUT", default=15, cast=int)
+# Optional: replace the built-in employee query (see odoo_client.DEFAULT_QUERY). It must return, in
+# order: matricule, full name, hire date, is-active flag, job title, company [, phone].
+ODOO_EMPLOYEE_QUERY = config("ODOO_EMPLOYEE_QUERY", default="")
 
+# E-mail (ticket notifications). Without EMAIL_HOST nothing leaves the server: mails are
+# printed in the application log instead, which is handy in development.
+EMAIL_HOST = config("EMAIL_HOST", default="")
+EMAIL_BACKEND = (
+    "django.core.mail.backends.smtp.EmailBackend" if EMAIL_HOST
+    else "django.core.mail.backends.console.EmailBackend"
+)
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = _config_bool("EMAIL_USE_TLS", default=True)
+EMAIL_USE_SSL = _config_bool("EMAIL_USE_SSL", default=False)
+EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=10, cast=int)
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="CBI <no-reply@groupe-hasnaoui.com>")
+# Public address of the site, used for the links in e-mails.
+SITE_URL = config("SITE_URL", default=MOBILE_WEBSITE_URL).strip()
+
+# django-easy-audit: login and model-change events feed the dashboard. Logging
+# every HTTP request costs two SELECTs and one INSERT per request into a table
+# that is never read, so it is off unless explicitly enabled.
+DJANGO_EASY_AUDIT_WATCH_REQUEST_EVENTS = _config_bool("AUDIT_REQUEST_EVENTS", default=False)
 
 # Role names (centralized to avoid hardcoded strings)
 ADMIN_ROLE_NAME = "admin"
@@ -134,10 +168,6 @@ INSTALLED_APPS = [
     'mobile',
     'guardian',
     'easyaudit',
-
-
-
-
 ]
 
 
@@ -147,6 +177,7 @@ LOGIN_URL = 'login'
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.middleware.gzip.GZipMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -154,14 +185,14 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'easyaudit.middleware.easyaudit.EasyAuditMiddleware',
-
 ]
+
 AUTHENTICATION_BACKENDS = (
-    'django.contrib.auth.backends.ModelBackend', 
+    'django.contrib.auth.backends.ModelBackend',
     'guardian.backends.ObjectPermissionBackend',
 )
 
-SESSION_ENGINE = 'django.contrib.sessions.backends.db' 
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
@@ -171,12 +202,11 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'users.context_processors.user_permissions',
-                
+                'notifications.context_processors.notifications_context',
             ],
         },
     },
@@ -217,6 +247,8 @@ CACHES = {
             default='django.core.cache.backends.locmem.LocMemCache',
         ),
         'LOCATION': config('CACHE_LOCATION', default='unique-snowflake'),
+        # Used by the in-memory and database backends (their default is 300 entries).
+        'OPTIONS': {'MAX_ENTRIES': config('CACHE_MAX_ENTRIES', default=10000, cast=int)},
     }
 }
 
@@ -282,7 +314,19 @@ if _config_bool('USE_X_FORWARDED_PROTO', default=False):
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Hashed, pre-compressed static files (cached for a year by browsers) in
+# production. Development and tests serve the files as they are, without
+# requiring collectstatic.
+_PLAIN_STATIC = DEBUG or 'test' in sys.argv
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {
+        'BACKEND': (
+            'django.contrib.staticfiles.storage.StaticFilesStorage' if _PLAIN_STATIC
+            else 'config.storage.TolerantManifestStorage'
+        ),
+    },
+}
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
@@ -313,6 +357,10 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
     },
     'loggers': {
         'powerbi_report': {

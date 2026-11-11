@@ -56,7 +56,7 @@
                         {% endif %}
                     </button>
 
-                    <button type="submit" class="hidden sm:flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all">
+                    <button type="submit" class="hidden sm:flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl text-sm font-bold hover:brightness-95 shadow-lg shadow-primary/20 transition-all">
                         Appliquer
                     </button>
                 </div>
@@ -144,7 +144,7 @@
                         
                         <div class="flex items-center gap-3">
                             <a href="{% url 'powerbi_report:report_list' %}" class="text-sm font-bold text-slate-400 hover:text-red-500 transition-colors px-4">Effacer</a>
-                            <button type="submit" class="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all">
+                            <button type="submit" class="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:brightness-95 shadow-lg shadow-primary/20 transition-all">
                                 <span class="material-symbols-outlined text-[18px]">filter_alt</span>
                                 Appliquer les filtres
                             </button>
@@ -330,14 +330,13 @@
   }
 </style>
 
+{{ metadata_relations|json_script:"metadata-relations" }}
 <script>
   // Metadata relations for cascading filters
-  const metadataRelations = {{ metadata_relations|safe }};
+  const metadataRelations = JSON.parse(document.getElementById('metadata-relations').textContent);
 
   document.addEventListener("DOMContentLoaded", function () {
-    const reportTable = document.getElementById('reportTable');
-    if (!reportTable) return;
-    
+    // Filters and sync buttons must work even when the list is empty.
     // Restore focus and cursor position after reload
     const reportSearch = document.getElementById('reportSearch');
     if (reportSearch) {

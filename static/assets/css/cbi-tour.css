@@ -1,0 +1,194 @@
+/* Visites guidées : habillage de driver.js (assets/css/plugins/driver.css) et des éléments du portail. */
+
+.driver-popover.cbi-tour-popover {
+  --cbi-green: #a5cf4b;
+  --cbi-green-dark: #7fae1f;
+  min-width: 280px;
+  max-width: min(340px, calc(100vw - 32px));
+  padding: 18px 20px 16px;
+  border: 1px solid #e3e5e8;
+  border-top: 3px solid var(--cbi-green);
+  border-radius: 10px;
+  background: #fff;
+  color: #34353a;
+  box-shadow: 0 18px 40px rgba(17, 19, 24, .28);
+  font-family: LegacyRoboto, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+.cbi-tour-popover .driver-popover-title {
+  padding-right: 22px;
+  color: #171d2d;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.cbi-tour-popover .driver-popover-description {
+  color: #5d5f66;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.cbi-tour-popover .driver-popover-close-btn {
+  top: 8px;
+  right: 6px;
+  color: #9a9ba1;
+  font-size: 20px;
+}
+.cbi-tour-popover .driver-popover-close-btn:hover,
+.cbi-tour-popover .driver-popover-close-btn:focus-visible { color: #171d2d; }
+.cbi-tour-popover .driver-popover-footer { margin-top: 16px; }
+.cbi-tour-popover .driver-popover-progress-text { color: #85868b; font-size: 12px; font-weight: 600; }
+.cbi-tour-popover .driver-popover-footer-btn {
+  padding: 7px 14px;
+  border: 1px solid #d6d8dc;
+  border-radius: 6px;
+  background: #fff;
+  color: #34353a;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-shadow: none;
+}
+.cbi-tour-popover .driver-popover-footer-btn:hover,
+.cbi-tour-popover .driver-popover-footer-btn:focus-visible { background: #f4f6ee; border-color: var(--cbi-green); }
+.cbi-tour-popover .driver-popover-next-btn {
+  border-color: var(--cbi-green-dark);
+  background: var(--cbi-green);
+  color: #1c2410;
+}
+.cbi-tour-popover .driver-popover-next-btn:hover,
+.cbi-tour-popover .driver-popover-next-btn:focus-visible { background: #b5db62; border-color: var(--cbi-green-dark); }
+.cbi-tour-popover .driver-popover-arrow { border-width: 6px; }
+.cbi-tour-popover .driver-popover-arrow-side-left { border-left-color: #fff; }
+.cbi-tour-popover .driver-popover-arrow-side-right { border-right-color: #fff; }
+.cbi-tour-popover .driver-popover-arrow-side-top { border-top-color: #fff; }
+.cbi-tour-popover .driver-popover-arrow-side-bottom { border-bottom-color: #fff; }
+
+html.dark .driver-popover.cbi-tour-popover {
+  border-color: #363943;
+  border-top-color: var(--cbi-green);
+  background: #1c1e24;
+  color: #e6e7ea;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .55);
+}
+html.dark .cbi-tour-popover .driver-popover-title { color: #f1f2f4; }
+html.dark .cbi-tour-popover .driver-popover-description { color: #b4b7bf; }
+html.dark .cbi-tour-popover .driver-popover-close-btn { color: #8d909a; }
+html.dark .cbi-tour-popover .driver-popover-close-btn:hover,
+html.dark .cbi-tour-popover .driver-popover-close-btn:focus-visible { color: #fff; }
+html.dark .cbi-tour-popover .driver-popover-progress-text { color: #8d909a; }
+html.dark .cbi-tour-popover .driver-popover-footer-btn { border-color: #3b3e48; background: #24262d; color: #e6e7ea; }
+html.dark .cbi-tour-popover .driver-popover-footer-btn:hover,
+html.dark .cbi-tour-popover .driver-popover-footer-btn:focus-visible { background: #2d3038; border-color: var(--cbi-green); }
+html.dark .cbi-tour-popover .driver-popover-next-btn { border-color: var(--cbi-green-dark); background: var(--cbi-green); color: #1c2410; }
+html.dark .cbi-tour-popover .driver-popover-next-btn:hover,
+html.dark .cbi-tour-popover .driver-popover-next-btn:focus-visible { background: #b5db62; }
+html.dark .cbi-tour-popover .driver-popover-arrow-side-left { border-left-color: #1c1e24; }
+html.dark .cbi-tour-popover .driver-popover-arrow-side-right { border-right-color: #1c1e24; }
+html.dark .cbi-tour-popover .driver-popover-arrow-side-top { border-top-color: #1c1e24; }
+html.dark .cbi-tour-popover .driver-popover-arrow-side-bottom { border-bottom-color: #1c1e24; }
+
+/* ---------- Menu latéral : deux boutons en bas (thème + visite guidée) ---------- */
+body.legacy-shell .legacy-visual-nav { padding-bottom: 7.5rem; }
+body.legacy-shell .legacy-theme-slot { display: flex; flex-direction: column; gap: 8px; }
+body.legacy-shell .legacy-theme-slot .legacy-theme-toggle { flex: 0 0 auto; }
+
+.cbi-tour-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border: 1px solid #3b3e48;
+  border-radius: 6px;
+  background: #25262d;
+  box-shadow: 0 -10px 28px rgba(0, 0, 0, .35);
+}
+.cbi-tour-menu[hidden] { display: none; }
+.cbi-tour-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #d7d9de;
+  font-family: LegacyRoboto, Roboto, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.cbi-tour-menu-item .material-symbols-outlined { color: #a5cf4b; font-size: 18px; }
+.cbi-tour-menu-item:hover,
+.cbi-tour-menu-item:focus-visible { background: #2f313a; color: #fff; outline: 0; }
+
+/* ---------- Pastille « Nouveau sur cette page ? » ---------- */
+.cbi-tour-chip {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 1090;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
+  padding: 12px 12px 12px 14px;
+  border: 1px solid #e3e5e8;
+  border-left: 3px solid #a5cf4b;
+  border-radius: 10px;
+  background: #fff;
+  color: #34353a;
+  box-shadow: 0 10px 30px rgba(17, 19, 24, .22);
+  font-family: LegacyRoboto, Roboto, Arial, sans-serif;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity .25s ease, transform .25s ease;
+}
+.cbi-tour-chip.is-visible { opacity: 1; transform: none; }
+.cbi-tour-chip-icon { color: #7fae1f; font-size: 24px; }
+.cbi-tour-chip-copy { display: flex; flex-direction: column; min-width: 0; line-height: 1.35; }
+.cbi-tour-chip-copy strong { color: #171d2d; font-size: 13px; }
+.cbi-tour-chip-copy span { color: #85868b; font-size: 12px; }
+.cbi-tour-chip-go {
+  padding: 7px 14px;
+  border: 1px solid #7fae1f;
+  border-radius: 6px;
+  background: #a5cf4b;
+  color: #1c2410;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cbi-tour-chip-go:hover,
+.cbi-tour-chip-go:focus-visible { background: #b5db62; }
+.cbi-tour-chip-close {
+  display: inline-flex;
+  padding: 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #9a9ba1;
+  cursor: pointer;
+}
+.cbi-tour-chip-close .material-symbols-outlined { font-size: 18px; }
+.cbi-tour-chip-close:hover,
+.cbi-tour-chip-close:focus-visible { color: #171d2d; background: #f1f2f4; }
+html.dark .cbi-tour-chip { border-color: #363943; border-left-color: #a5cf4b; background: #1c1e24; color: #e6e7ea; }
+html.dark .cbi-tour-chip-copy strong { color: #f1f2f4; }
+html.dark .cbi-tour-chip-copy span { color: #a8abb4; }
+html.dark .cbi-tour-chip-close:hover,
+html.dark .cbi-tour-chip-close:focus-visible { color: #fff; background: #2d3038; }
+
+@media (max-width: 640px) {
+  .cbi-tour-chip { right: 16px; bottom: 16px; left: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cbi-tour-chip { transition: none; transform: none; }
+}
+@media print {
+  .cbi-tour-chip, .driver-popover, .driver-overlay { display: none !important; }
+}

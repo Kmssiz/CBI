@@ -9,6 +9,7 @@ urlpatterns = [
     path('', views.report_list, name='report_list'),
     path('report/<str:report_id>/', views.report_detail, name='report_detail'),
     path('permissions/<str:report_id>/', views.report_permissions, name='report_permissions'),
+    path('permissions/<str:report_id>/rls/', views.report_rls_save, name='report_rls_save'),
     path('missing_users/<str:report_id>/', views.missing_users, name='missing_users'),
 
     path('user_permission/<str:username>/', views.user_permission, name='user_permission'),
@@ -51,8 +52,6 @@ urlpatterns = [
     # New: add report + local metadata management
     path('reports/add/', views.add_report_local, name='add_report_local'),
     path('report/<str:report_id>/metadata/', views.update_report_metadata_local, name='update_report_metadata'),
-
-    path('load_cache/', views.load_cache, name='load_cache'),
 
     path('report/<str:report_id>/download/', views.download_report, name='download_report'),
     path('get_folders/', views.get_folders, name='get_folders'),

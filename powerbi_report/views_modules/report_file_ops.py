@@ -4,7 +4,6 @@ import logging
 from collections.abc import Callable
 
 import requests
-from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
 from django.http import StreamingHttpResponse
@@ -75,16 +74,6 @@ def replace_powerbi_report_view(
             report_path,
         )
 
-        try:
-            policies = report_permissions_getter(request, report_id)
-            logger.info(
-                "[DEBUG_PERMS] Policies for report %s for user %s: %s",
-                report_id,
-                request.user.username,
-                policies,
-            )
-        except Exception as exc:  # defensive: optional diagnostic log
-            logger.error("[DEBUG_PERMS] Failed to fetch policies: %s", exc)
 
         response = session.post(api_url, headers=headers, files=files, timeout=120)
         response.raise_for_status()
@@ -160,16 +149,6 @@ def download_report_view(
             report_id,
         )
 
-        try:
-            policies = report_permissions_getter(request, report_id)
-            logger.info(
-                "[DEBUG_PERMS] Policies for report %s for user %s: %s",
-                report_id,
-                request.user.username,
-                policies,
-            )
-        except Exception as exc:  # defensive: optional diagnostic log
-            logger.error("[DEBUG_PERMS] Failed to fetch policies: %s", exc)
 
         response = requests.get(
             url,

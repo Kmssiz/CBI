@@ -18,7 +18,7 @@ def get_refresh_plans_data(report_id: str, request, auth_getter: Callable) -> li
     auth = auth_getter(request)
 
     try:
-        response = requests.get(url, auth=auth)
+        response = requests.get(url, auth=auth, timeout=30)
         response.raise_for_status()
         data = response.json()
         logger.debug(
@@ -41,7 +41,7 @@ def get_shared_schedules_data(request, auth_getter: Callable) -> list[dict]:
     auth = auth_getter(request)
 
     try:
-        response = requests.get(url, auth=auth)
+        response = requests.get(url, auth=auth, timeout=30)
         response.raise_for_status()
         data = response.json()
         return data.get("value", [])

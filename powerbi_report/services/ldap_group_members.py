@@ -11,15 +11,15 @@ import urllib.parse
 from typing import Optional
 
 import requests
-from decouple import config
+from django.conf import settings
 from django.core.cache import cache
 
 from users.models import CustomUser
 
 logger = logging.getLogger("powerbi_report")
 
-LDAP_GROUP_MEMBERS_URL = config("LDAP_GROUP_MEMBERS_URL")
-LDAP_API_TOKEN = config("LDAP_API_TOKEN")
+LDAP_GROUP_MEMBERS_URL = settings.LDAP_GROUP_MEMBERS_URL
+LDAP_API_TOKEN = settings.LDAP_API_TOKEN
 _REPORTED_CIRCULAR_GROUPS: set[str] = set()
 
 
@@ -53,6 +53,24 @@ def _log_group_fetch_error(group_name: str, exc: requests.RequestException) -> N
             group_name,
             exc.__class__.__name__,
         )
+
+
+def is_ldap_group(name: str) -> bool:
+    """Whether ``name`` is an AD group according to the group-members API (cached)."""
+    cache_key = "is_ldap_group:" + hashlib.sha256(name.casefold().encode("utf-8")).hexdigest()
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        response = requests.get(_group_members_url(name), timeout=10)
+        result = response.status_code == 200 and "members" in response.json()
+    except requests.RequestException as exc:
+        _log_group_fetch_error(name, exc)
+        return False
+    except ValueError:
+        return False
+    cache.set(cache_key, result, timeout=3600)
+    return result
 
 
 def get_group_members(
@@ -105,7 +123,7 @@ def get_group_members(
 
         unique_members: set[str] = set()
         for member in members:
-            cleaned_member = member.replace("GROUPE-HASNAOUI\\", "")
+            cleaned_member = member.replace(f"{settings.LDAP_DOMAIN}\\", "")
 
             if CustomUser.objects.filter(ad2000=cleaned_member).exists():
                 unique_members.add(cleaned_member)

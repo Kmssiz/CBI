@@ -1,0 +1,20 @@
+{# Action bar of the report viewer. Used with _report_frame.html, which holds the script. #}
+<div class="flex-none flex flex-wrap justify-between items-center gap-3 mb-4" style="order: 1;">
+  <button type="button" id="backBtn" class="report-action">
+    <span class="material-symbols-outlined text-[18px]">arrow_back</span> Retour
+  </button>
+
+  <div class="flex flex-wrap gap-2">
+    {% if embed_url %}
+    <button type="button" id="printBtn" class="report-action">
+      <span class="material-symbols-outlined text-[18px]">print</span> Imprimer
+    </button>
+    <button type="button" id="shareBtn" class="report-action">
+      <span class="material-symbols-outlined text-[18px]">share</span> Partager
+    </button>
+    <button type="button" id="fullscreenBtn" class="report-action report-action--icon" title="Plein écran" aria-label="Plein écran">
+      <span class="material-symbols-outlined text-[20px]" id="fullscreenIcon">fullscreen</span>
+    </button>
+    {% endif %}
+  </div>
+</div>

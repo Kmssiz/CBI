@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Nouveaux utilisateurs{% endblock %}
+{% block header_title %}Nouveaux utilisateurs{% endblock %}
+{% block header_subtitle %}Présents dans l'annuaire et dans Odoo : à vous de décider de leurs accès{% endblock %}
+
+{% block breadcrumbs_footer %}
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <a href="{% url 'users_view' %}" class="hover:text-primary transition-colors">Gestion des Utilisateurs</a>
+  <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+  <span class="text-slate-400">Nouveaux utilisateurs</span>
+{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-8 py-8">
+  <div class="max-w-6xl mx-auto space-y-6">
+    {% if messages %}
+    <div class="space-y-3">
+      {% for message in messages %}
+      <div class="alert flex items-center gap-3 px-4 py-3 rounded-xl border {% if message.tags == 'error' %}bg-red-500/10 border-red-500/30 text-red-500{% else %}bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400{% endif %}" role="alert">
+        <span class="text-sm font-medium flex-1">{{ message }}</span>
+        <button type="button" class="opacity-60 hover:opacity-100" onclick="this.closest('.alert').remove()" aria-label="Fermer"><span class="material-symbols-outlined text-[20px]">close</span></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <a href="{% url 'users_view' %}" class="inline-flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-primary"><span class="material-symbols-outlined text-[18px]">arrow_back</span> Utilisateurs</a>
+
+    <form method="post" action="{% url 'new_user_seen' %}" class="card-theme overflow-hidden m-0">
+      {% csrf_token %}
+      <header class="px-6 py-5 border-b border-slate-200 dark:border-slate-800/50 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50 dark:bg-white/[0.02]">
+        <div>
+          <h2 class="font-bold text-slate-900 dark:text-white tracking-tight">À examiner
+            <span class="ml-2 text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{{ waiting|length }}</span></h2>
+          <p class="text-xs text-slate-500 mt-0.5">Aucun accès n'est accordé automatiquement : ouvrez « Accès » pour choisir les rapports (et le RLS) de chaque personne.</p>
+        </div>
+        {% if waiting %}
+        <div class="flex items-center gap-2">
+          <button type="submit" class="px-4 py-2 text-sm font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-primary hover:text-primary transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">done</span> Marquer la sélection comme vue</button>
+          <button type="submit" name="all" value="1" class="px-4 py-2 text-sm font-bold text-white bg-primary rounded-xl hover:opacity-90 transition-opacity flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">done_all</span> Tout marquer comme vu</button>
+        </div>
+        {% endif %}
+      </header>
+
+      {% if waiting %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 dark:bg-slate-900/50 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800/50">
+              <th class="pl-6 pr-2 py-4 w-10"></th>
+              <th class="px-4 py-4">Utilisateur</th>
+              <th class="px-4 py-4">Poste</th>
+              <th class="px-4 py-4">Direction</th>
+              <th class="px-4 py-4">Société</th>
+              <th class="px-4 py-4">Arrivé le</th>
+              <th class="pl-4 pr-6 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
+            {% for row in waiting %}
+            <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+              <td class="pl-6 pr-2 py-3.5"><input type="checkbox" name="alerts" value="{{ row.alert.id }}" aria-label="Sélectionner"></td>
+              <td class="px-4 py-3.5">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="size-10 shrink-0 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background-color: {{ row.user.get_avatar_color }};">{{ row.user.get_initials }}</div>
+                  <div class="min-w-0">
+                    <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ row.user.get_full_name|default:row.user.username }}</p>
+                    <p class="text-xs font-mono text-slate-500 truncate">{{ row.user.ad2000|default:row.user.username }}</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3.5 text-sm font-medium text-slate-700 dark:text-slate-200">{{ row.title|default:"—" }}</td>
+              <td class="px-4 py-3.5 text-sm text-slate-600 dark:text-slate-300">{{ row.direction|default:"—" }}</td>
+              <td class="px-4 py-3.5 text-sm text-slate-600 dark:text-slate-300">{{ row.company|default:"—" }}</td>
+              <td class="px-4 py-3.5 text-sm text-slate-500">{{ row.alert.detected_at|date:"d/m/Y" }}</td>
+              <td class="pl-4 pr-6 py-3.5">
+                <div class="flex justify-end gap-1.5">
+                  <a href="{% url 'user_details' %}?user_id={{ row.user.id }}" title="Voir le profil" aria-label="Voir le profil" class="size-9 rounded-lg flex items-center justify-center text-blue-500 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors"><span class="material-symbols-outlined text-[18px]">person</span></a>
+                  {% if row.user.ad2000 %}
+                  <a href="{% url 'powerbi_report:missing_permissions' row.user.ad2000 %}" title="Accorder des rapports" aria-label="Accorder des rapports" class="size-9 rounded-lg flex items-center justify-center text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-colors"><span class="material-symbols-outlined text-[18px]">lock_open</span></a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="flex flex-col items-center py-16 text-center">
+        <span class="material-symbols-outlined text-slate-300 dark:text-slate-600 text-[48px] mb-3">task_alt</span>
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Personne à examiner</h3>
+        <p class="text-sm text-slate-500 max-w-md">Quand une nouvelle personne apparaît dans l'annuaire et dans Odoo, elle s'affiche ici et vous recevez une notification par jour.</p>
+      </div>
+      {% endif %}
+    </form>
+
+    {% if recent %}
+    <section class="card-theme overflow-hidden">
+      <header class="px-6 py-4 border-b border-slate-200 dark:border-slate-800/50">
+        <h2 class="text-sm font-bold text-slate-500 uppercase tracking-widest">Déjà vus (14 derniers jours)</h2>
+      </header>
+      <ul class="divide-y divide-slate-100 dark:divide-slate-800/50">
+        {% for row in recent %}
+        <li class="px-6 py-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+          <a href="{% url 'user_details' %}?user_id={{ row.user.id }}" class="font-semibold text-slate-700 dark:text-slate-200 hover:text-primary">{{ row.user.get_full_name|default:row.user.username }}</a>
+          <span class="text-slate-500">{{ row.title|default:"—" }}</span>
+          <span class="text-slate-400">{{ row.company|default:"—" }}</span>
+          <span class="ml-auto text-xs text-slate-400">vu le {{ row.alert.seen_at|date:"d/m/Y" }}{% if row.alert.seen_by %} par {{ row.alert.seen_by.get_full_name|default:row.alert.seen_by.username }}{% endif %}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

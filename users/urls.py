@@ -15,8 +15,11 @@ from .views import (
     edit_role,
     remove_role,
     permissions_list,
-    server_status
+    server_status,
+    new_users,
+    new_user_seen,
 )
+from .tours import tour_seen, tour_reset
 
 urlpatterns = [
     path('', login_view, name='login'),
@@ -37,4 +40,8 @@ urlpatterns = [
     path("roles/remove/<int:role_id>/", remove_role, name="remove_role"),
     path('roles/permissions/<int:role_id>/', permissions_list, name='permissions_list'),
     path('server-status/', server_status, name='server_status'),
+    path('new-users/', new_users, name='new_users'),
+    path('new-users/seen/', new_user_seen, name='new_user_seen'),
+    path('tour/seen/', tour_seen, name='tour_seen'),
+    path('tour/reset/', tour_reset, name='tour_reset'),
 ]

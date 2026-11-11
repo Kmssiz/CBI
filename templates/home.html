@@ -201,6 +201,7 @@
     </div>
 
 
+  </div>
   {% endif %}
 
 </div>
@@ -515,7 +516,7 @@
   }
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'assets/js/plugins/chart.umd.js' %}"></script>
 
 <script>
 
@@ -551,14 +552,14 @@
   document.addEventListener('DOMContentLoaded', function () {
     const monthlyLogins = [
       {% for login in monthly_logins %}
-      { month: "{{ login.month|date:'F' }}", count: {{ login.count }} }{% if not forloop.last %},{% endif %}
+      { month: {{ login.month|date:'n' }}, count: {{ login.count }} }{% if not forloop.last %},{% endif %}
       {% endfor %}
     ];
 
     const allMonths = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
     const data = new Array(12).fill(0);
     monthlyLogins.forEach(login => {
-      const idx = allMonths.indexOf(login.month);
+      const idx = login.month - 1;  // date:'n' is 1-12
       if (idx !== -1) data[idx] = login.count;
     });
 
@@ -678,14 +679,15 @@
   document.addEventListener('DOMContentLoaded', function () {
     const weeklyLogins = [
       {% for login in weekly_logins %}
-      { day: "{{ login.day|date:'l' }}", count: {{ login.count }} }{% if not forloop.last %},{% endif %}
+      { day: {{ login.day|date:'w' }}, count: {{ login.count }} }{% if not forloop.last %},{% endif %}
       {% endfor %}
     ];
 
     const allDays = ['Vendredi', 'Samedi', 'Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi'];
+    const weekdayOrder = [5, 6, 0, 1, 2, 3, 4];  // date:'w' (0 = dimanche) in the order of allDays
     const data = new Array(7).fill(0);
     weeklyLogins.forEach(login => {
-      const idx = allDays.indexOf(login.day);
+      const idx = weekdayOrder.indexOf(login.day);
       if (idx !== -1) data[idx] = login.count;
     });
 

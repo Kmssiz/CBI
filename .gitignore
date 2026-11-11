@@ -41,4 +41,11 @@ staticfiles/
 #celerybeat-schedule
 #anomaly_detection/models/
 UPGRADE_NOTES.md
-.env
+
+# Local tooling and working spreadsheets
+.claude/
+.antigravitycli/
+*.xlsx
+
+# Node tooling (the built static/assets/css/tailwind.css is committed)
+tools/tailwind/node_modules/

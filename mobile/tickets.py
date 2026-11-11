@@ -11,6 +11,7 @@ from django.db.models import Count
 from django.http import FileResponse, HttpRequest, HttpResponse, JsonResponse
 from django.urls import reverse
 
+from tickets import emails
 from tickets.forms import TicketForm, TicketMessageForm
 from tickets.models import Ticket, TicketMessage
 from tickets.views import _can_access_ticket, _get_admin_users, _is_admin
@@ -142,6 +143,7 @@ def _create(request: HttpRequest) -> JsonResponse:
     ticket = form.save(commit=False)
     ticket.created_by = request.user
     ticket.save()
+    emails.ticket_created(ticket)
     UserHistory.objects.create(user=request.user, action=f'Ticket créé : {ticket.title}'[:255],
                                source=UserHistory.SOURCE_MOBILE)
     return JsonResponse(serialize_ticket(ticket, 0), status=201)
@@ -180,6 +182,7 @@ def ticket_message_view(request: HttpRequest, ticket_id: int) -> JsonResponse:
     message.sender = request.user
     message.save()
     ticket.save(update_fields=['updated_at'])
+    emails.message_posted(ticket, message)
     return JsonResponse(serialize_message(message, request.user), status=201)
 
 
@@ -194,6 +197,7 @@ def ticket_update_view(request: HttpRequest, ticket_id: int) -> JsonResponse:
     data = read_json(request)
     if data is None:
         return api_error(400, 'bad_request', 'Requête invalide.')
+    previous_status, previous_assignee = ticket.status, ticket.assigned_to_id
     if 'status' in data:
         if data['status'] not in STATUSES:
             return api_error(400, 'bad_request', 'Statut invalide.')
@@ -208,6 +212,10 @@ def ticket_update_view(request: HttpRequest, ticket_id: int) -> JsonResponse:
             except (TypeError, ValueError, get_user_model().DoesNotExist):
                 return api_error(400, 'bad_request', 'Utilisateur introuvable.')
     ticket.save()
+    if ticket.status != previous_status:
+        emails.status_changed(ticket, request.user)
+    if ticket.assigned_to_id and ticket.assigned_to_id != previous_assignee:
+        emails.ticket_assigned(ticket, request.user)
     return JsonResponse(serialize_ticket(ticket))
 
 
