@@ -14,12 +14,12 @@ class Ticket(models.Model):
     STATUS_CHOICES = (
         ("open", "Ouvert"),
         ("in_progress", "En cours"),
-        ("closed", "Ferme"),
-        ("rejected", "Rejete"),
+        ("closed", "Fermé"),
+        ("rejected", "Rejeté"),
     )
 
     CATEGORY_CHOICES = (
-        ("bibliotheque", "Bibliotheque"),
+        ("bibliotheque", "Bibliothèque"),
         ("cbi", "CBI"),
     )
 

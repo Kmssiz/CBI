@@ -682,3 +682,81 @@ class ManualRlsTests(TestCase):
         self.client.post(url, {'identity': 'e1', 'roles': [self.alger]})
         client.set_role_assignments_strict.assert_not_called()
         self.assertEqual(self.client.get(url).status_code in (403, 405), True)
+
+
+class CustomFolderNavigationTests(TestCase):
+    """Direction -> reports, and Pôle -> société -> direction -> reports."""
+
+    def setUp(self):
+        from powerbi_report.models import ReportRef, MetadataOption
+        self.user = User.objects.create_user(
+            username='nav_user', password='pw', ad2000='NAV001', status='Active',
+            can_view_direction=True, can_view_pole=True,
+        )
+        mk = lambda kind, name: MetadataOption.objects.create(option_type=kind, name=name)
+        self.pole, self.other_pole = mk('pole', 'Production'), mk('pole', 'Services')
+        self.societe = mk('societe', 'Alpha')
+        self.commerce, self.finance = mk('direction', 'Commerce'), mk('direction', 'Finance')
+
+        def report(pbirs_id, name, poles=(), societes=(), directions=()):
+            r = ReportRef.objects.create(pbirs_id=pbirs_id, name=name, path=f'/CBI/{name}')
+            r.poles.set(poles)
+            r.societes.set(societes)
+            r.directions.set(directions)
+            return r
+
+        self.in_commerce = report('r1', 'Ventes', [self.pole], [self.societe], [self.commerce])
+        self.in_finance = report('r2', 'Marges', [self.pole], [self.societe], [self.finance])
+        self.no_direction = report('r3', 'Synthèse', [self.pole], [self.societe])
+        self.no_societe = report('r4', 'Pôle seul', [self.pole])
+        self.elsewhere = report('r5', 'Autre pôle', [self.other_pole], [self.societe], [self.commerce])
+        self.client.force_login(self.user)
+        patcher = patch('powerbi_report.views.get_visible_report_ids', return_value=['r1', 'r2', 'r3', 'r4', 'r5'])
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def _folder(self, view, folder, query=''):
+        return self.client.get(reverse('powerbi_report:custom_folder_detail', args=[view, folder.id]) + query)
+
+    def test_direction_goes_straight_to_the_reports(self):
+        response = self._folder('direction', self.commerce)
+        self.assertEqual(response.context['subfolders'], [])
+        self.assertEqual({r['name'] for r in response.context['reports']}, {'Ventes', 'Autre pôle'})
+
+    def test_pole_lists_its_societes_and_reports_without_societe(self):
+        response = self._folder('pole', self.pole)
+        self.assertEqual([f.name for f in response.context['subfolders']], ['Alpha'])
+        self.assertEqual([r['name'] for r in response.context['reports']], ['Pôle seul'])
+        self.assertEqual(response.context['subfolders'][0].nav_query, f'?pole={self.pole.id}')
+
+    def test_societe_inside_a_pole_lists_directions_not_reports(self):
+        response = self._folder('pole', self.societe, f'?pole={self.pole.id}')
+        self.assertEqual([f.name for f in response.context['subfolders']], ['Commerce', 'Finance'])
+        # Only the reports that have no direction stay at this level; other pôles' reports never show.
+        self.assertEqual([r['name'] for r in response.context['reports']], ['Synthèse'])
+        self.assertEqual(response.context['back_url'], reverse('powerbi_report:custom_folder_detail', args=['pole', self.pole.id]))
+
+    def test_direction_inside_pole_and_societe_lists_the_reports(self):
+        query = f'?pole={self.pole.id}&societe={self.societe.id}'
+        response = self._folder('pole', self.commerce, query)
+        self.assertEqual([r['name'] for r in response.context['reports']], ['Ventes'])
+        self.assertEqual(response.context['subfolders'], [])
+        self.assertEqual([f.name for f in response.context['breadcrumbs']], ['Production', 'Alpha', 'Commerce'])
+        self.assertEqual(response.context['report_query'], query)
+        self.assertEqual(
+            response.context['back_url'],
+            reverse('powerbi_report:custom_folder_detail', args=['pole', self.societe.id]) + f'?pole={self.pole.id}',
+        )
+        self.assertContains(response, 'Ventes')
+
+    def test_navigation_params_of_the_wrong_type_are_ignored(self):
+        # A direction id passed as the pôle must not be trusted.
+        response = self._folder('pole', self.societe, f'?pole={self.commerce.id}')
+        self.assertEqual(response.context['breadcrumbs'][0].name, 'Alpha')
+        self.assertEqual(response.context['subfolders'], [])
+
+    def test_embedded_report_page_shows_the_pole_societe_direction_path(self):
+        url = reverse('powerbi_report:embed_custom_report', args=['pole', self.commerce.id, self.in_commerce.id])
+        with patch('powerbi_report.views._user_can_access_report', return_value=True):
+            response = self.client.get(url + f'?pole={self.pole.id}&societe={self.societe.id}')
+        self.assertEqual([f.name for f in response.context['breadcrumbs']], ['Production', 'Alpha', 'Commerce'])

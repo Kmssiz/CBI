@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block header_title %}Details du ticket{% endblock %}
+{% block header_title %}Détails du ticket{% endblock %}
 {% block header_subtitle %}#{{ ticket.id }} - {{ ticket.title }}{% endblock %}
 
 {% block content %}
@@ -25,7 +25,7 @@
   <div class="mb-8">
     <a href="{% url 'tickets:ticket_list' %}" class="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors mb-4 text-sm font-bold uppercase tracking-wider">
       <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-      Retour a la liste
+      Retour à la liste
     </a>
   </div>
 
@@ -53,11 +53,11 @@
         {% if ticket.attachment %}
         <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800/50">
           <div class="flex items-center justify-between gap-3 mb-3">
-            <h2 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Piece jointe</h2>
+            <h2 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Pièce jointe</h2>
             <a href="{{ ticket.attachment.url }}" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-primary hover:text-blue-600 transition-colors">Ouvrir l'image</a>
           </div>
           <a href="{{ ticket.attachment.url }}" target="_blank" rel="noopener noreferrer" class="block rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700/50">
-            <img src="{{ ticket.attachment.url }}" alt="Piece jointe du ticket {{ ticket.id }}" class="w-full max-h-[420px] object-contain bg-slate-50 dark:bg-surface-dark">
+            <img src="{{ ticket.attachment.url }}" alt="Pièce jointe du ticket {{ ticket.id }}" class="w-full max-h-[420px] object-contain bg-slate-50 dark:bg-surface-dark">
           </a>
         </div>
         {% endif %}
@@ -71,7 +71,7 @@
                 {{ ticket.created_by.get_initials }}
               {% endif %}
             </div>
-            <span>Cree par <span class="text-slate-900 dark:text-white font-medium">{{ ticket.created_by.get_full_name|default:ticket.created_by.username }}</span></span>
+            <span>Créé par <span class="text-slate-900 dark:text-white font-medium">{{ ticket.created_by.get_full_name|default:ticket.created_by.username }}</span></span>
           </div>
           <span>{{ ticket.created_at|date:"d/m/Y H:i" }}</span>
         </div>
@@ -103,7 +103,7 @@
             {% if ticket_message.attachment %}
             <div class="mt-2">
               <a href="{{ ticket_message.attachment.url }}" target="_blank" rel="noopener noreferrer" class="block rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700/50 max-w-sm">
-                <img src="{{ ticket_message.attachment.url }}" alt="Piece jointe" class="w-full h-auto object-cover bg-slate-50 dark:bg-surface-dark">
+                <img src="{{ ticket_message.attachment.url }}" alt="Pièce jointe" class="w-full h-auto object-cover bg-slate-50 dark:bg-surface-dark">
               </a>
             </div>
             {% endif %}
@@ -142,7 +142,7 @@
 
         <div class="space-y-4">
           <div>
-            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Categorie</span>
+            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Catégorie</span>
             <div class="px-3 py-2 bg-slate-50 dark:bg-surface-dark rounded-lg border border-slate-200 dark:border-slate-800 text-sm font-bold text-slate-900 dark:text-white">
               {{ ticket.get_category_display }}
             </div>
@@ -178,7 +178,7 @@
           </div>
 
           <div>
-            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Priorite</span>
+            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Priorité</span>
             <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-surface-dark rounded-lg border border-slate-200 dark:border-slate-800">
               {% if ticket.priority == 'high' %}
               <span class="size-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></span> <span class="text-red-400 font-medium text-sm">Haute</span>
@@ -191,7 +191,7 @@
           </div>
 
           <div>
-            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Derniere mise a jour</span>
+            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Dernière mise à jour</span>
             <div class="px-3 py-2 bg-slate-50 dark:bg-surface-dark rounded-lg border border-slate-200 dark:border-slate-800 text-sm text-slate-500 dark:text-slate-400">
               {{ ticket.updated_at|date:"d/m/Y H:i" }}
             </div>
@@ -199,10 +199,10 @@
 
           {% if is_admin %}
           <div>
-            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Assigne a</span>
+            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Assigné à</span>
             <div class="relative">
               <select name="assigned_to" class="w-full bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-3 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all appearance-none">
-                <option value="">-- Non assigne --</option>
+                <option value="">-- Non assigné --</option>
                 {% for admin in admins %}
                 <option value="{{ admin.id }}" {% if ticket.assigned_to_id == admin.id %}selected{% endif %}>
                   {{ admin.get_full_name|default:admin.username }}
@@ -215,11 +215,11 @@
             </div>
           </div>
           <div>
-            <button type="submit" class="w-full px-3 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold uppercase tracking-wider transition-colors">Mettre a jour</button>
+            <button type="submit" class="w-full px-3 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold uppercase tracking-wider transition-colors">Mettre à jour</button>
           </div>
           {% elif ticket.assigned_to %}
           <div>
-            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Assigne a</span>
+            <span class="block text-xs font-bold text-slate-500 uppercase mb-1">Assigné à</span>
             <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-surface-dark rounded-lg border border-slate-200 dark:border-slate-800">
               <div class="size-6 rounded-full flex items-center justify-center text-white font-bold text-[9px] shadow-sm" style="background-color: {% if not ticket.assigned_to.profile_image %}{{ ticket.assigned_to.get_avatar_color }}{% endif %};">
                 {% if ticket.assigned_to.profile_image %}

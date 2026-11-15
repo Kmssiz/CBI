@@ -88,7 +88,7 @@ def edit_powerbi_report_name_view(
         messages.success(request, "Report name updated successfully!")
         history_logger(
             request.user,
-            f"Nom du rapport mis a jour a '{new_name}' pour l'ID '{report_id}'",
+            f"Nom du rapport mis à jour à '{new_name}' pour l'ID '{report_id}'",
         )
 
         admin_users = CustomUser.objects.filter(is_superuser=True)
@@ -204,7 +204,7 @@ def edit_powerbi_report_description_view(
         history_logger(
             request.user,
             (
-                "Description mise a jour pour le rapport "
+                "Description mise à jour pour le rapport "
                 f"{report_name} ID: {report_id} chemin {report_path} "
                 f"a '{new_description}'"
             ),

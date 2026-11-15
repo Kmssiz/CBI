@@ -113,10 +113,10 @@ def replace_powerbi_report_view(
                 "sur le serveur de rapports pour remplacer ce rapport.",
             )
         else:
-            messages.error(request, f"Echec du remplacement du rapport. Erreur HTTP: {exc}")
+            messages.error(request, f"Échec du remplacement du rapport. Erreur HTTP: {exc}")
             logger.error("HTTP Error replacing report %s: %s", report_path, exc)
     except requests.exceptions.RequestException as exc:
-        messages.error(request, f"Echec du remplacement du rapport. Erreur: {exc}")
+        messages.error(request, f"Échec du remplacement du rapport. Erreur: {exc}")
         logger.error("Request Error replacing report %s: %s", report_path, exc)
 
     return redirect("powerbi_report:report_detail", report_id=report_id)
@@ -139,7 +139,7 @@ def download_report_view(
 
     info = report_info_getter(request, report_id)
     if not info:
-        messages.error(request, "Echec de la recuperation des informations du rapport.")
+        messages.error(request, "Échec de la récupération des informations du rapport.")
         return redirect(request.META.get("HTTP_REFERER", "powerbi_report:report_list"))
 
     try:
@@ -180,7 +180,7 @@ def download_report_view(
             )
             return redirect(request.META.get("HTTP_REFERER", "powerbi_report:report_list"))
 
-        messages.error(request, f"Echec du telechargement du rapport. Code: {response.status_code}")
+        messages.error(request, f"Échec du téléchargement du rapport. Code: {response.status_code}")
         logger.error("Download failed for report %s: status %s", report_id, response.status_code)
         return redirect(request.META.get("HTTP_REFERER", "powerbi_report:report_list"))
 

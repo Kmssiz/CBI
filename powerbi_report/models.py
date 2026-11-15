@@ -55,6 +55,11 @@ class ReportRef(models.Model):
         help_text="Report ID from PBIRS (UUID)"
     )
     name = models.CharField(max_length=255)
+    name_locked = models.BooleanField(
+        default=False,
+        help_text="The name shown in the app was set here on purpose: PBIRS syncs keep it "
+                  "(the name in PBIRS itself is never changed)",
+    )
     path = models.CharField(max_length=1024, help_text="Path on PBIRS server (e.g., /Sales/Q1)")
     server_url = models.URLField(
         max_length=512,

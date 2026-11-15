@@ -106,7 +106,7 @@ def add_powerbi_folder_view(request, auth_getter: Callable, history_logger: Call
         try:
             response = session.post(url, json=payload, timeout=30)
             response.raise_for_status()
-            history_logger(request.user, f"Dossier '{folder_name}' crÃ©Ã©")
+            history_logger(request.user, f"Dossier '{folder_name}' créé")
 
             admin_users = CustomUser.objects.filter(is_superuser=True)
             folder_path = payload["Path"]
@@ -114,7 +114,7 @@ def add_powerbi_folder_view(request, auth_getter: Callable, history_logger: Call
                 Notification.objects.create(
                     user=admin,
                     message=(
-                        f"Un nouveau dossier '{folder_name}' a Ã©tÃ© crÃ©Ã© dans "
+                        f"Un nouveau dossier '{folder_name}' a été créé dans "
                         f"'{folder_path}' par {request.user.username}."
                     ),
                 )

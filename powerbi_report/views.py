@@ -950,16 +950,19 @@ def add_report_local(request):
         report_name = data.get('Name', pbix_file.name.replace('.pbix', ''))
 
         # ── Persist local metadata ────────────────────────────────────────────
+        ref_defaults = {
+            'name': report_name,
+            'path': pbirs_path,
+            'server_url': server_url,
+            'is_consolide': is_consolide,
+            'report_type': report_type or None,
+            'modified_by': request.user,
+        }
+        if ReportRef.objects.filter(pbirs_id=pbirs_id, name_locked=True).exists():
+            ref_defaults.pop('name')  # keep the app-side name set on purpose
         report_ref, _ = ReportRef.objects.update_or_create(
             pbirs_id=pbirs_id,
-            defaults={
-                'name': report_name,
-                'path': pbirs_path,
-                'server_url': server_url,
-                'is_consolide': is_consolide,
-                'report_type': report_type or None,
-                'modified_by': request.user,
-            }
+            defaults=ref_defaults,
         )
 
         # Consolidated reports may still carry Société/Module metadata for
@@ -2129,16 +2132,18 @@ def user_permission(request, username):
             
             # Sync to DB
             if allowed_reports_data:
-                # Upsert ReportRefs
-                # Upsert ReportRefs
+                # Upsert ReportRefs (an app-side name set on purpose is never overwritten)
+                locked_ids = set(
+                    ReportRef.objects.filter(name_locked=True).values_list('pbirs_id', flat=True)
+                )
                 for item in allowed_reports_data:
                     report = item['report']
+                    ref_defaults = {'path': report.get('Path')}
+                    if report.get('Id') not in locked_ids:
+                        ref_defaults['name'] = report.get('Name')
                     ReportRef.objects.update_or_create(
                         pbirs_id=report.get('Id'),
-                        defaults={
-                            'name': report.get('Name'),
-                            'path': report.get('Path'),
-                        }
+                        defaults=ref_defaults,
                     )
                 
                 # Update Permissions
@@ -3191,6 +3196,15 @@ def sync_permissions(request):
     return redirect(request.META.get('HTTP_REFERER', 'powerbi_report:custom_direction'))
 
 
+
+
+def _nav_option(raw_id, option_type: str):
+    """The folder a user came through (from the query string), if it really is of that type."""
+    if not raw_id or not str(raw_id).isdigit():
+        return None
+    return MetadataOption.objects.filter(id=int(raw_id), option_type=option_type).first()
+
+
 @login_required
 def custom_folders_list(request, view_type='direction', folder_id=None):
     """
@@ -3231,9 +3245,10 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
     parent_folder = None
     subfolders = []
     reports = []
-    breadcrumbs = []
+    trail = []          # folders the user came through, outermost first
+    back_url = None
+    report_query = ''   # carried on report links so the report page can show the path
 
-    
     if folder_id is None:
         # Root level: list unique metadata values as folders
         if grouping_type == 'direction':
@@ -3248,33 +3263,76 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
     else:
         # Inside a folder (MetadataOption)
         current_folder = get_object_or_404(MetadataOption, id=folder_id)
-        if grouping_type == 'direction':
-            reports_qs = permitted_reports.filter(directions=current_folder)
-        elif grouping_type == 'pole':
-            reports_qs = permitted_reports.filter(poles=current_folder)
-        elif grouping_type == 'module':
-            reports_qs = permitted_reports.filter(modules=current_folder)
-        else:
-            reports_qs = permitted_reports.filter(directions=current_folder)
+        root_url = reverse('powerbi_report:custom_' + view_type)
 
-        if view_type != 'consolide' and grouping_type in {'direction', 'pole'} and current_folder.option_type == grouping_type:
-            subfolders = list(
-                MetadataOption.objects.filter(
-                    option_type='societe',
-                    societe_reports__in=reports_qs,
-                ).distinct().order_by('name')
-            )
-            reports_qs = reports_qs.filter(societes__isnull=True).distinct()
-        elif current_folder.option_type == 'societe':
-            parent_id = request.GET.get('parent_id')
-            if parent_id:
-                parent_folder = MetadataOption.objects.filter(
-                    id=parent_id, option_type=grouping_type
-                ).first()
-            reports_qs = permitted_reports.filter(societes=current_folder)
-            if parent_folder:
-                parent_field = 'directions' if grouping_type == 'direction' else 'poles'
-                reports_qs = reports_qs.filter(**{parent_field: parent_folder})
+        def detail_url(folder, query=''):
+            return reverse(
+                'powerbi_report:custom_folder_detail',
+                kwargs={'view_type': view_type, 'folder_id': folder.id},
+            ) + query
+
+        if view_type == 'pole':
+            # Pôle -> société -> direction -> reports. The pôle and société we came
+            # through travel in the query string so each level can offer "Retour".
+            pole_ctx = _nav_option(request.GET.get('pole') or request.GET.get('parent_id'), 'pole')
+            if current_folder.option_type == 'societe':
+                reports_qs = permitted_reports.filter(societes=current_folder)
+                if pole_ctx:
+                    trail = [pole_ctx]
+                    reports_qs = reports_qs.filter(poles=pole_ctx)
+                    subfolders = list(
+                        MetadataOption.objects.filter(option_type='direction', direction_reports__in=reports_qs)
+                        .distinct().order_by('name')
+                    )
+                    for folder in subfolders:
+                        folder.nav_query = f'?pole={pole_ctx.id}&societe={current_folder.id}'
+                    # Reports that have no direction are listed here, right under the société.
+                    reports_qs = reports_qs.filter(directions__isnull=True).distinct()
+                    report_query = f'?pole={pole_ctx.id}'
+                back_url = detail_url(pole_ctx) if pole_ctx else root_url
+            elif current_folder.option_type == 'direction':
+                societe_ctx = _nav_option(request.GET.get('societe'), 'societe')
+                reports_qs = permitted_reports.filter(directions=current_folder)
+                query = []
+                if pole_ctx:
+                    reports_qs = reports_qs.filter(poles=pole_ctx)
+                    query.append(f'pole={pole_ctx.id}')
+                if societe_ctx:
+                    reports_qs = reports_qs.filter(societes=societe_ctx)
+                    query.append(f'societe={societe_ctx.id}')
+                trail = [folder for folder in (pole_ctx, societe_ctx) if folder]
+                report_query = '?' + '&'.join(query) if query else ''
+                if societe_ctx:
+                    back_url = detail_url(societe_ctx, f'?pole={pole_ctx.id}' if pole_ctx else '')
+                else:
+                    back_url = detail_url(pole_ctx) if pole_ctx else root_url
+            else:
+                # The pôle itself: its sociétés, then the reports that have no société.
+                reports_qs = permitted_reports.filter(poles=current_folder)
+                subfolders = list(
+                    MetadataOption.objects.filter(option_type='societe', societe_reports__in=reports_qs)
+                    .distinct().order_by('name')
+                )
+                for folder in subfolders:
+                    folder.nav_query = f'?pole={current_folder.id}'
+                reports_qs = reports_qs.filter(societes__isnull=True).distinct()
+                back_url = root_url
+        else:
+            # Direction (and consolidé, module): the reports come right after the
+            # folder, with no société level in between.
+            if current_folder.option_type == 'societe':
+                # Old bookmarks: direction -> société -> reports.
+                direction_ctx = _nav_option(request.GET.get('parent_id'), 'direction')
+                reports_qs = permitted_reports.filter(societes=current_folder)
+                if direction_ctx:
+                    trail = [direction_ctx]
+                    reports_qs = reports_qs.filter(directions=direction_ctx)
+                    report_query = f'?parent_id={direction_ctx.id}'
+            elif grouping_type == 'module':
+                reports_qs = permitted_reports.filter(modules=current_folder)
+            else:
+                reports_qs = permitted_reports.filter(directions=current_folder)
+            back_url = root_url
 
         for r in reports_qs.order_by('name'):
             reports.append({
@@ -3284,7 +3342,9 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
                 'path': r.path,
                 'embed_url': r.embed_url,
             })
-        breadcrumbs = [folder for folder in (parent_folder, current_folder) if folder]
+        parent_folder = trail[-1] if trail else None
+
+    breadcrumbs = trail + [current_folder] if current_folder else []
 
     # Admin only: list all reports for assignment (not applicable now, but kept for compatibility or empty)
     all_reports = []
@@ -3293,8 +3353,8 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
 
     view_titles = {
         'direction': 'CBI',
-        'pole': 'Rapports par Pole',
-        'biblio': 'Bibliotheque',
+        'pole': 'Rapports par Pôle',
+        'biblio': 'Bibliothèque',
         'anomalie': 'Anomalie',
         'consolide': 'Consolidé',
         'module': 'Module',
@@ -3311,6 +3371,8 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
         'reports': reports,
         'breadcrumbs': breadcrumbs,
         'parent_folder': parent_folder,
+        'back_url': back_url,
+        'report_query': report_query,
         'all_reports': all_reports,
         'permissions': permissions,
     })
@@ -3633,11 +3695,18 @@ def embed_custom_report(request, view_type, folder_id, report_id):
     breadcrumbs = []
     parent_id = request.GET.get('parent_id')
     parent_folder = None
-    if parent_id and folder.option_type == 'societe' and view_type in {'direction', 'pole'}:
+    if view_type == 'pole' and folder.option_type in {'societe', 'direction'}:
+        # Pôle -> société -> direction: rebuild the path from the query string.
+        pole = _nav_option(request.GET.get('pole') or parent_id, 'pole')
+        societe = _nav_option(request.GET.get('societe'), 'societe') if folder.option_type == 'direction' else None
+        breadcrumbs = [item for item in (pole, societe) if item]
+    elif parent_id and folder.option_type == 'societe' and view_type in {'direction', 'pole'}:
         parent_folder = MetadataOption.objects.filter(
             id=parent_id, option_type=view_type
         ).first()
-    if parent_folder:
+    if breadcrumbs:
+        pass
+    elif parent_folder:
         breadcrumbs.append(parent_folder)
     else:
         breadcrumb_folder = folder.parent

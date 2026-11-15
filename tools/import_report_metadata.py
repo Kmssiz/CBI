@@ -6,6 +6,8 @@ unless --apply is given.
     python import_report_metadata.py changes.json            # preview
     python import_report_metadata.py changes.json --apply    # write
     python import_report_metadata.py changes.json --apply --user someadmin
+    python import_report_metadata.py changes.json --only names      # only the app-side renames
+    python import_report_metadata.py changes.json --only metadata   # only the metadata
 
 Safety rules
   * Rows are matched on pbirs_id.
@@ -16,12 +18,17 @@ Safety rules
   * Rows identical to their baseline are ignored; rows emptied in Excel are
     never cleared (clear them on the platform).
   * Unknown option names abort the whole run before anything is written.
+  * Renames (row["rename"] = {"from", "to"}) change ReportRef.name in the APP ONLY and set
+    name_locked so the hourly PBIRS sync keeps the new name. PBIRS is never contacted. A row is
+    renamed only if its current app name still equals "from" (otherwise: conflict). The script
+    refuses to rename if this version of the app has no name_locked field (deploy it first).
   * Writes mirror powerbi_report.views.update_report_metadata_local: M2M sets,
     pôles derived from the sociétés' parent, legacy text fields rewritten.
 """
 import json
 import os
 import sys
+import unicodedata
 
 sys.path.insert(0, os.getcwd())
 # Never crash on an odd character in a report name (e.g. a stray control char).
@@ -71,6 +78,14 @@ def describe(s: dict) -> str:
 def main() -> int:
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     apply_ = "--apply" in sys.argv
+    only = "all"
+    if "--only" in sys.argv:
+        only = sys.argv[sys.argv.index("--only") + 1]
+        args = [a for a in args if a != only]
+        if only not in ("names", "metadata", "all"):
+            print("--only must be names, metadata or all")
+            return 2
+    do_meta, do_names = only in ("metadata", "all"), only in ("names", "all")
     user = None
     if "--user" in sys.argv:
         user = sys.argv[sys.argv.index("--user") + 1]
@@ -98,7 +113,7 @@ def main() -> int:
 
     # 1. Validate every name and expand selections ----------------------------
     errors, plan = [], []
-    for row in rows:
+    for row in (rows if do_meta else []):
         sel = row["selection"]
         label = f"{row['name']} [{row['pbirs_id']}]"
         for kind, names in (("pole", sel["poles"]), ("societe", sel["societes"]),
@@ -123,7 +138,33 @@ def main() -> int:
     # 2. Classify -------------------------------------------------------------
     unchanged = cleared = missing = 0
     conflicts, todo = [], []
+    name_todo, name_conflicts, name_unchanged = [], [], 0
     refs = {r.pbirs_id: r for r in ReportRef.objects.prefetch_related("societes", "directions", "modules")}
+
+    if do_names:
+        renames = [r for r in rows if r.get("rename")]
+        has_lock = any(f.name == "name_locked" for f in ReportRef._meta.get_fields())
+        if renames and not has_lock:
+            print("ABORTED, nothing written: this version of the app has no name_locked field, so the hourly "
+                  "PBIRS sync would undo the new names. Deploy the new version (migration included) first.")
+            return 1
+        nfc = lambda v: unicodedata.normalize("NFC", str(v or "")).strip()
+        for row in renames:
+            ref = refs.get(row["pbirs_id"])
+            if ref is None:
+                missing += 1
+                print(f"SKIP rename (not in database): {row['name']} [{row['pbirs_id']}]")
+                continue
+            cur, old, new = nfc(ref.name), nfc(row["rename"]["from"]), nfc(row["rename"]["to"])
+            if cur == new:
+                if getattr(ref, "name_locked", False):
+                    name_unchanged += 1
+                else:
+                    name_todo.append((ref, cur, new))      # right name, lock missing
+            elif cur == old:
+                name_todo.append((ref, cur, new))
+            else:
+                name_conflicts.append((row, old, cur, new))
     for row, wanted, base in plan:
         if wanted == base:
             unchanged += 1
@@ -148,6 +189,13 @@ def main() -> int:
 
     # 3. Write (or preview) ---------------------------------------------------
     with transaction.atomic():
+        for ref, cur, new in name_todo:
+            print(f"RENAME (app only) {cur!r} -> {new!r}")
+            if not apply_:
+                continue
+            ref.name = new
+            ref.name_locked = True
+            ref.save(update_fields=["name", "name_locked", "last_synced"])
         for ref, row, current, wanted in todo:
             print(f"CHANGE {row['name']}\n   from: {describe(current)}\n   to:   {describe(wanted)}")
             if not apply_:
@@ -172,10 +220,18 @@ def main() -> int:
         print(f"CONFLICT (edited on the platform since the export, NOT written): {row['name']}\n"
               f"   at export: {describe(base)}\n   now in DB: {describe(current)}\n   in Excel:  {describe(wanted)}")
 
+    for row, old, cur, new in name_conflicts:
+        print(f"NAME CONFLICT (the app name changed since the export, NOT renamed): {row['pbirs_id']}\n"
+              f"   at export: {old!r}\n   now in app: {cur!r}\n   wanted:     {new!r}")
+
     verb = "written" if apply_ else "would be written (dry run, use --apply)"
-    print(f"\nSummary: {len(todo)} {verb}, {len(conflicts)} conflicts, {unchanged} unchanged/already applied, "
-          f"{cleared} emptied-skipped, {missing} not found")
-    return 1 if conflicts else 0
+    if do_names:
+        print(f"\nNames: {len(name_todo)} {verb.replace('written', 'renamed')}, {len(name_conflicts)} conflicts, "
+              f"{name_unchanged} already done")
+    if do_meta:
+        print(f"\nSummary: {len(todo)} {verb}, {len(conflicts)} conflicts, {unchanged} unchanged/already applied, "
+              f"{cleared} emptied-skipped, {missing} not found")
+    return 1 if (conflicts or name_conflicts) else 0
 
 
 if __name__ == "__main__":

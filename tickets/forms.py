@@ -29,7 +29,7 @@ class TicketForm(ImageUploadValidationMixin, forms.ModelForm):
                 attrs={
                     "class": "form-control",
                     "rows": 5,
-                    "placeholder": "Decrivez votre probleme ou demande...",
+                    "placeholder": "Décrivez votre problème ou votre demande...",
                 }
             ),
             "ticket_type": forms.Select(attrs={"class": "form-select"}),
@@ -48,7 +48,7 @@ class TicketMessageForm(ImageUploadValidationMixin, forms.ModelForm):
                 attrs={
                     "class": "w-full bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-slate-700/50 rounded-lg px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all resize-y",
                     "rows": 3,
-                    "placeholder": "Ecrivez votre message...",
+                    "placeholder": "Écrivez votre message...",
                 }
             ),
             "attachment": forms.FileInput(

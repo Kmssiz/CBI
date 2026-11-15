@@ -138,7 +138,7 @@ class TicketTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'onchange="this.form.submit()"')
-        self.assertContains(response, "Mettre a jour")
+        self.assertContains(response, "Mettre à jour")
 
     def test_update_ticket_info_updates_status_and_assignment(self):
         self.client.login(username="admin", password="password")
@@ -244,3 +244,44 @@ class TicketEmailTests(TestCase):
         with override_settings(SITE_URL="https://cbi.example.com"):
             self.client.post(reverse("tickets:change_status", args=[self.ticket.id]), {"status": "closed"})
         self.assertIn(f"https://cbi.example.com/tickets/{self.ticket.id}/", self.mail.outbox[0].body)
+
+    def test_update_mails_the_assigned_admin_even_when_they_pressed_the_button(self):
+        self.client.login(username="admin1", password="password")
+        self.client.post(reverse("tickets:update_ticket_info", args=[self.ticket.id]),
+                         {"status": "open", "assigned_to": self.admin.id})
+        self.assertEqual(self._to(), ["admin1@example.com"])
+        self.assertIn("assigné", self.mail.outbox[0].subject)
+
+    def test_status_change_on_an_assigned_ticket_mails_the_assigned_admin_and_the_requester(self):
+        self.ticket.assigned_to = self.admin2
+        self.ticket.save()
+        self.client.login(username="admin1", password="password")
+        self.client.post(reverse("tickets:update_ticket_info", args=[self.ticket.id]),
+                         {"status": "in_progress", "assigned_to": self.admin2.id})
+        self.assertEqual(self._to(), ["admin2@example.com", "requester@example.com"])
+        self.assertTrue(any("mis à jour" in m.subject for m in self.mail.outbox))
+
+    def test_update_without_any_change_sends_nothing(self):
+        self.ticket.assigned_to = self.admin2
+        self.ticket.save()
+        self.client.login(username="admin1", password="password")
+        self.client.post(reverse("tickets:update_ticket_info", args=[self.ticket.id]),
+                         {"status": "open", "assigned_to": self.admin2.id})
+        self.assertEqual(self.mail.outbox, [])
+
+    def test_mails_have_a_styled_html_version_and_escape_user_text(self):
+        from django.test import override_settings
+        self.client.login(username="requester", password="password")
+        with override_settings(SITE_URL="https://cbi.example.com"):
+            self.client.post(reverse("tickets:add_message", args=[self.ticket.id]),
+                             {"content": "<script>alert(1)</script>\nDeuxième ligne"})
+        message = self.mail.outbox[0]
+        html, kind = message.alternatives[0]
+        self.assertEqual(kind, "text/html")
+        self.assertIn(f"https://cbi.example.com/tickets/{self.ticket.id}/", html)
+        self.assertIn("Ouvrir le ticket", html)
+        self.assertNotIn("<script>", html)
+        self.assertIn("&lt;script&gt;", html)
+        self.assertIn("<br>", html)  # line breaks of the message are kept
+        self.assertIn("Dashboard ventes", html)
+        self.assertIn("Deuxième ligne", message.body)  # plain-text version stays complete

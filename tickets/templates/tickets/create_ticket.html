@@ -25,10 +25,10 @@
   <div class="mb-8">
     <a href="{% url 'tickets:ticket_list' %}" class="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors mb-4 text-sm font-bold uppercase tracking-wider">
       <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-      Retour a la liste
+      Retour à la liste
     </a>
-    <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Creer un nouveau ticket</h2>
-    <p class="text-slate-500 dark:text-slate-400 mt-2">Detaillez votre demande ci-dessous pour aider notre equipe a comprendre vos besoins.</p>
+    <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Créer un nouveau ticket</h2>
+    <p class="text-slate-500 dark:text-slate-400 mt-2">Détaillez votre demande ci-dessous pour aider notre équipe à comprendre vos besoins.</p>
   </div>
 
   <div class="card-theme p-6 lg:p-8">
@@ -79,7 +79,7 @@
           </div>
 
           <div>
-            <label for="{{ form.category.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Categorie</label>
+            <label for="{{ form.category.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Catégorie</label>
             <div class="relative">
               <select name="{{ form.category.name }}" id="{{ form.category.id_for_label }}" class="input-theme w-full appearance-none">
                 {% for value, label in form.category.field.choices %}
@@ -93,7 +93,7 @@
           </div>
 
           <div>
-            <label for="{{ form.priority.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Priorite</label>
+            <label for="{{ form.priority.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Priorité</label>
             <div class="relative">
               <select name="{{ form.priority.name }}" id="{{ form.priority.id_for_label }}" class="input-theme w-full appearance-none">
                 {% for value, label in form.priority.field.choices %}
@@ -108,18 +108,18 @@
         </div>
 
         <div>
-          <label for="{{ form.description.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Description detaillee</label>
-          <textarea name="{{ form.description.name }}" id="{{ form.description.id_for_label }}" rows="6" class="input-theme w-full resize-y" placeholder="Expliquez votre probleme ou votre demande en detail..." required>{{ form.description.value|default:'' }}</textarea>
+          <label for="{{ form.description.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Description détaillée</label>
+          <textarea name="{{ form.description.name }}" id="{{ form.description.id_for_label }}" rows="6" class="input-theme w-full resize-y" placeholder="Expliquez votre problème ou votre demande en détail..." required>{{ form.description.value|default:'' }}</textarea>
         </div>
 
         <div>
-          <label for="{{ form.attachment.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Piece jointe (image)</label>
+          <label for="{{ form.attachment.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Pièce jointe (image)</label>
           <div class="relative">
             <input type="file" name="{{ form.attachment.name }}" id="{{ form.attachment.id_for_label }}" accept="image/*" class="input-theme w-full file:mr-4 file:py-1 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 file:cursor-pointer file:transition-all">
           </div>
-          <p class="text-xs text-slate-500 mt-1.5">Formats acceptes : JPG, PNG, GIF. Taille max : 5 Mo.</p>
+          <p class="text-xs text-slate-500 mt-1.5">Formats acceptés : JPG, PNG, GIF. Taille max : 5 Mo.</p>
           <div id="image-preview" class="mt-3 hidden">
-            <img id="preview-img" src="" alt="Apercu" class="max-h-48 rounded-lg border border-slate-200 dark:border-slate-700">
+            <img id="preview-img" src="" alt="Aperçu" class="max-h-48 rounded-lg border border-slate-200 dark:border-slate-700">
           </div>
         </div>
 

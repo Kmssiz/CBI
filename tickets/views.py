@@ -42,7 +42,7 @@ def _save_ticket_message(request: HttpRequest, ticket: Ticket, form: TicketMessa
     ticket_message.sender = request.user
     ticket_message.save()
     emails.message_posted(ticket, ticket_message)
-    messages.success(request, "Message envoye.")
+    messages.success(request, "Message envoyé.")
     return True
 
 
@@ -79,7 +79,7 @@ def create_ticket(request):
             ticket.created_by = request.user
             ticket.save()
             emails.ticket_created(ticket)
-            messages.success(request, "Ticket cree avec succes.")
+            messages.success(request, "Ticket créé avec succès.")
             
             from users.utils import log_history
             log_history(request.user, f"Ticket créé : {ticket.title}")
@@ -104,7 +104,7 @@ def ticket_detail(request, ticket_id):
         if _save_ticket_message(request, ticket, message_form):
             return redirect("tickets:ticket_detail", ticket_id=ticket.id)
 
-        messages.error(request, "Le message n'a pas pu etre envoye.")
+        messages.error(request, "Le message n'a pas pu être envoyé.")
         return _render_ticket_detail(request, ticket, message_form)
 
     return _render_ticket_detail(request, ticket)
@@ -129,14 +129,14 @@ def assign_ticket(request, ticket_id):
                 if changed:
                     emails.ticket_assigned(ticket, request.user)
                 messages.success(
-                    request, f"Ticket assigne a {user.get_full_name() or user.username}."
+                    request, f"Ticket assigné à {user.get_full_name() or user.username}."
                 )
             except get_user_model().DoesNotExist:
                 messages.error(request, "Utilisateur introuvable.")
         else:
             ticket.assigned_to = None
             ticket.save()
-            messages.success(request, "Ticket desassigne.")
+            messages.success(request, "Ticket désassigné.")
 
     return redirect("tickets:ticket_detail", ticket_id=ticket.id)
 
@@ -159,7 +159,7 @@ def change_status(request, ticket_id):
             if status_changed:
                 emails.status_changed(ticket, request.user)
             messages.success(
-                request, f"Statut du ticket mis a jour : {ticket.get_status_display()}."
+                request, f"Statut du ticket mis à jour : {ticket.get_status_display()}."
             )
         else:
             messages.error(request, "Statut invalide.")
@@ -200,9 +200,13 @@ def update_ticket_info(request, ticket_id):
         ticket.save()
         if status_changed:
             emails.status_changed(ticket, request.user)
+        # The admin the ticket is assigned to hears about it after "Mettre a jour", even when
+        # they pressed the button themselves: newly assigned, or the status of their ticket moved.
         if ticket.assigned_to_id and ticket.assigned_to_id != previous_assignee:
-            emails.ticket_assigned(ticket, request.user)
-        messages.success(request, "Informations du ticket mises a jour.")
+            emails.ticket_assigned(ticket, request.user, include_actor=True)
+        elif ticket.assigned_to_id and status_changed:
+            emails.assignee_ticket_updated(ticket, request.user, include_actor=True)
+        messages.success(request, "Informations du ticket mises à jour.")
 
     return redirect("tickets:ticket_detail", ticket_id=ticket.id)
 
@@ -220,7 +224,7 @@ def add_message(request, ticket_id):
         if _save_ticket_message(request, ticket, form):
             return redirect("tickets:ticket_detail", ticket_id=ticket.id)
 
-        messages.error(request, "Le message n'a pas pu etre envoye.")
+        messages.error(request, "Le message n'a pas pu être envoyé.")
         return _render_ticket_detail(request, ticket, form)
 
     return redirect("tickets:ticket_detail", ticket_id=ticket.id)

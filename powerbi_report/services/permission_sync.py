@@ -522,7 +522,11 @@ class PermissionSyncService:
             Number of reports synced.
         """
         synced_count = 0
-        
+        # Reports whose app-side name was set on purpose keep it (the PBIRS name is never touched).
+        locked_ids = set(
+            ReportRef.objects.filter(name_locked=True).values_list('pbirs_id', flat=True)
+        )
+
         with transaction.atomic():
             for report in reports:
                 pbirs_id = report.get('Id')
@@ -537,15 +541,14 @@ class PermissionSyncService:
                 embed_url = f"{base_embed_url}{encoded_path}?rs:embed=true"
                 
                 # Update or create
-                ReportRef.objects.update_or_create(
-                    pbirs_id=pbirs_id,
-                    defaults={
-                        'name': name,
-                        'path': path,
-                        'server_url': server_url,
-                        'embed_url': embed_url,
-                    }
-                )
+                defaults = {
+                    'path': path,
+                    'server_url': server_url,
+                    'embed_url': embed_url,
+                }
+                if pbirs_id not in locked_ids:
+                    defaults['name'] = name
+                ReportRef.objects.update_or_create(pbirs_id=pbirs_id, defaults=defaults)
                 synced_count += 1
         
         logger.info(f"Synced {synced_count} reports to ReportRef table")
