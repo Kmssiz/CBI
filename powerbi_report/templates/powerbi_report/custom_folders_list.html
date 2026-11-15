@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ view_title }}{% endblock %}
+{% block title %}{{ view_title|default:"Rapports" }}{% endblock %}
 
 {% block header_title %}{{ view_title }}{% endblock %}
 {% block header_subtitle %}Gérez vos dossiers et rapports Power BI{% endblock %}

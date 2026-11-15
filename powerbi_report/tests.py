@@ -760,3 +760,144 @@ class CustomFolderNavigationTests(TestCase):
         with patch('powerbi_report.views._user_can_access_report', return_value=True):
             response = self.client.get(url + f'?pole={self.pole.id}&societe={self.societe.id}')
         self.assertEqual([f.name for f in response.context['breadcrumbs']], ['Production', 'Alpha', 'Commerce'])
+
+
+class ReportListTableTests(TestCase):
+    """The report list: server shown by name, and the data of the details modal."""
+
+    def setUp(self):
+        from powerbi_report.models import MetadataOption, PBIRSServer, ReportRef
+        self.admin = User.objects.create_superuser(username='listadmin', password='password')
+        self.client.force_login(self.admin)
+        PBIRSServer.objects.create(
+            name='PBIRS Production', base_url='https://bi.example.com/', admin_username='x', admin_password='x',
+        )
+        pole = MetadataOption.objects.create(option_type='pole', name='Service')
+        self.societes = [
+            MetadataOption.objects.create(option_type='societe', name=n, parent=pole)
+            for n in ('ALPHA', 'BETA', 'GAMMA', 'DELTA', 'EPSILON')
+        ]
+        self.direction = MetadataOption.objects.create(option_type='direction', name='Commerce')
+        self.ref = ReportRef.objects.create(
+            pbirs_id='r-1', name='Ventes', path='/CBI/Ventes', server_url='https://bi.example.com',
+            description='Chiffre d\'affaires', report_type='dashboard',
+        )
+        self.ref.societes.set(self.societes)
+        self.ref.poles.set([pole])
+        self.ref.directions.set([self.direction])
+        self.other = ReportRef.objects.create(
+            pbirs_id='r-2', name='Autre', path='/CBI/Autre', server_url='http://10.0.0.5',
+        )
+
+    def _page(self):
+        return self.client.get(reverse('powerbi_report:report_list'))
+
+    def test_server_is_shown_by_name_and_falls_back_to_the_host(self):
+        response = self._page()
+        shown = {r['Name']: r['server_name'] for r in response.context['reports']}
+        self.assertEqual(shown, {'Ventes': 'PBIRS Production', 'Autre': '10.0.0.5'})
+        import re
+        table = re.search(r'<table[^>]*id="reportTable".*?</table>', response.content.decode(), re.S).group(0)
+        self.assertNotRegex(table, r'>\s*https?://')       # no address displayed as a cell's text
+        self.assertIn('PBIRS Production', table)
+
+    def test_modal_data_carries_the_full_lists(self):
+        response = self._page()
+        data = response.context['reports_modal']
+        d = data['r-1']
+        self.assertEqual(d['societes'], sorted(s.name for s in self.societes))
+        self.assertEqual(d['poles'], ['Service'])
+        self.assertEqual(d['directions'], ['Commerce'])
+        self.assertEqual(d['server'], 'PBIRS Production')
+        self.assertEqual(d['description'], "Chiffre d'affaires")
+        self.assertIn('report-modal-data', response.content.decode())
+
+    def test_row_is_clickable_and_actions_are_icon_buttons(self):
+        html = self._page().content.decode()
+        self.assertIn('data-report-id="r-1"', html)
+        self.assertIn('data-open-report="r-1"', html)
+        for label in ('Détails', 'Accès', 'Ouvrir le rapport'):
+            self.assertIn(f'title="{label}"', html)
+
+    def test_table_has_only_the_wanted_columns(self):
+        import re
+        html = self._page().content.decode()
+        headers = re.findall(r'<th class="[^"]*">([^<]+)</th>', html)
+        self.assertEqual(headers, ['Nom', 'Serveur', 'Direction', 'Société', 'Actions'])
+
+
+class PageTitleTests(TestCase):
+    """Every page needs a real title: without one the browser tab shows the address."""
+
+    PARTIALS_AND_MAILS = ('/email/', '/_')
+
+    def _page_templates(self):
+        import re
+        from pathlib import Path
+        root = Path(__file__).resolve().parent.parent
+        for path in root.rglob('*.html'):
+            rel = path.relative_to(root).as_posix()
+            if any(skip in '/' + rel for skip in self.PARTIALS_AND_MAILS):
+                continue
+            if rel.startswith(('venv/', 'staticfiles/', 'static/', 'node_modules/', 'tools/')) or '/node_modules/' in rel:
+                continue
+            if rel == 'templates/base.html':
+                continue
+            yield rel, path.read_text(encoding='utf-8'), re
+
+    def test_every_page_template_defines_a_title(self):
+        missing = []
+        for rel, text, re in self._page_templates():
+            if re.search(r"{%\s*extends\s", text):
+                match = re.search(r"{%\s*block title\s*%}(.*?){%\s*endblock", text, re.S)
+            elif '<html' in text.lower():
+                match = re.search(r"<title>(.*?)</title>", text, re.S)
+            else:
+                continue                      # an include, not a page
+            if not match or not match.group(1).strip():
+                missing.append(rel)
+        self.assertEqual(missing, [], 'pages without a title')
+
+    def test_pages_have_no_english_leftovers_or_the_address_in_the_title(self):
+        import re
+        banned = ('Reports', 'Upload Report', 'Report Permissions')
+        for rel, text, _ in self._page_templates():
+            match = re.search(r"{%\s*block title\s*%}(.*?){%\s*endblock", text, re.S) or re.search(r"<title>(.*?)</title>", text, re.S)
+            if match:
+                self.assertNotIn(match.group(1).strip(), banned, rel)
+                self.assertNotRegex(match.group(1), r'https?://|localhost', rel)
+
+    def test_rendered_titles_carry_the_site_suffix(self):
+        admin = User.objects.create_superuser(username='titleadmin', password='password')
+        self.client.force_login(admin)
+        for name in ('tickets:ticket_list', 'tickets:create_ticket', 'powerbi_report:report_list'):
+            html = self.client.get(reverse(name)).content.decode()
+            title = html.split('<title>')[1].split('</title>')[0]
+            self.assertTrue(title.endswith(' | CBI') and len(title) > len(' | CBI'), (name, title))
+        self.client.logout()
+        login_title = self.client.get(reverse('login')).content.decode().split('<title>')[1].split('</title>')[0]
+        self.assertEqual(login_title, 'Connexion | CBI')
+
+
+class ButtonSpinnerAssetsTests(TestCase):
+    """The in-button spinner is loaded on every page, including the login page."""
+
+    def test_assets_exist_and_are_loaded_by_base_and_login(self):
+        from django.contrib.staticfiles import finders
+        self.assertTrue(finders.find('assets/js/cbi-loading.js'))
+        self.assertTrue(finders.find('assets/css/cbi-loading.css'))
+        admin = User.objects.create_superuser(username='spinadmin', password='password')
+        self.client.force_login(admin)
+        pages = {'app page': self.client.get(reverse('tickets:ticket_list'))}
+        self.client.logout()
+        pages['login page'] = self.client.get(reverse('login'))
+        for label, response in pages.items():
+            html = response.content.decode()
+            self.assertIn('cbi-loading.js', html, label)
+            self.assertIn('cbi-loading.css', html, label)
+
+    def test_the_old_fullscreen_loader_is_gone(self):
+        admin = User.objects.create_superuser(username='loaderadmin', password='password')
+        self.client.force_login(admin)
+        html = self.client.get(reverse('tickets:ticket_list')).content.decode()
+        self.assertNotIn('globalLoadingOverlay', html)

@@ -50,7 +50,7 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                <a href="{% url 'powerbi_report:download_report' report_id=report.Id %}" id="downloadBtn" onclick="showDownloadLoading(this)" class="px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2">
+                <a href="{% url 'powerbi_report:download_report' report_id=report.Id %}" id="downloadBtn" data-cbi-loading data-cbi-timeout="5000" class="px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px]">download</span> <span class="btn-text">Télécharger</span>
                 </a>
                 <button type="button" class="px-4 py-2 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2" data-bs-toggle="modal" data-bs-target="#editReportNameModal">
@@ -768,56 +768,6 @@ async function showErrorDetails(planId) {
 </script>
 
 <script>
-function showDownloadLoading(btn) {
-    const originalContent = btn.innerHTML;
-    const btnText = btn.querySelector('.btn-text');
-    
-    // Disable clicks temporarily to prevent double download
-    btn.style.pointerEvents = 'none';
-    btn.style.opacity = '0.7';
-    
-    if (btnText) {
-        btnText.textContent = 'Téléchargement...';
-    }
-    
-    // Create spinner
-    const spinner = document.createElement('span');
-    spinner.className = 'spinner-border spinner-border-sm ml-2';
-    spinner.setAttribute('role', 'status');
-    spinner.setAttribute('aria-hidden', 'true');
-    
-    // Ensure the icon is replaced or spinner added
-    // For this specific button structure: icon + text
-    // We can just add the spinner class to the existing icon or replace it
-    const icon = btn.querySelector('.material-symbols-outlined');
-    if (icon) {
-        icon.classList.remove('material-symbols-outlined');
-        icon.classList.add('spinner-border', 'spinner-border-sm');
-        icon.textContent = ''; // Remove icon text content
-    }
-
-    // Revert after 5 seconds (reasonable timeout for download start)
-    setTimeout(() => {
-        btn.innerHTML = originalContent;
-        btn.style.pointerEvents = 'auto';
-        btn.style.opacity = '1';
-    }, 5000);
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const replaceForm = document.getElementById('replaceReportForm');
-    if (replaceForm) {
-        replaceForm.addEventListener('submit', function() {
-            const submitBtn = document.getElementById('btnReplaceSubmit');
-            if (submitBtn) {
-                const originalText = submitBtn.textContent;
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span> Remplacement...';
-            }
-        });
-    }
-});
-
 // Bibliothèque reports are not organised by module: hide that field.
 function syncMetaTypeFields() {
     const biblio = document.getElementById('meta_type_biblio');

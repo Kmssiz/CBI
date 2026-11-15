@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block title %}Ticket #{{ ticket.id }} · {{ ticket.title }}{% endblock %}
+
 {% block header_title %}Détails du ticket{% endblock %}
 {% block header_subtitle %}#{{ ticket.id }} - {{ ticket.title }}{% endblock %}
 

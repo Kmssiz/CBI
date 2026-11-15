@@ -1,0 +1,18 @@
+{% comment %}
+  Up to 3 names as small chips, then "…" when there are more (the tooltip lists all of them).
+  Parameters: items (list of names), joined (same names, comma-joined, for the tooltip),
+              consolide (bool) and fallback (text shown for a consolidated report with no value).
+{% endcomment %}{% if items %}
+<div class="flex flex-wrap items-center gap-1" title="{{ joined }}">
+    {% for item in items|slice:":3" %}
+    <span class="inline-flex max-w-[10rem] items-center truncate rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ item }}</span>
+    {% endfor %}
+    {% if items|length > 3 %}
+    <span class="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold leading-none text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400" aria-label="{{ items|length|add:'-3' }} de plus">…</span>
+    {% endif %}
+</div>
+{% elif consolide %}
+<span class="text-xs italic text-slate-400 dark:text-slate-500">{{ fallback }}</span>
+{% else %}
+<span class="text-sm text-slate-400">-</span>
+{% endif %}

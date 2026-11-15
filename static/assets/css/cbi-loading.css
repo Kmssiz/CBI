@@ -1,0 +1,40 @@
+/* Small in-button loading spinner (see static/assets/js/cbi-loading.js).
+   The ring uses currentColor, so it follows the button's text colour in light and dark themes. */
+
+@keyframes cbi-spin {
+  to { transform: rotate(360deg); }
+}
+
+.cbi-spinner {
+  display: inline-block;
+  flex: none;
+  box-sizing: border-box;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: -0.15em;
+  animation: cbi-spin .65s linear infinite;
+}
+
+/* Button without an icon: the spinner goes in front of the label. */
+.cbi-spinner--lead {
+  margin-right: .5em;
+  font-size: 14px;
+}
+
+/* A button that is working: it keeps its look but ignores further clicks. */
+.cbi-btn-loading {
+  pointer-events: none;
+  cursor: progress;
+}
+
+/* The button's own icon, hidden while the spinner takes its place. */
+.cbi-icon-hidden {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cbi-spinner { animation-duration: 1.8s; }
+}

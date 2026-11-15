@@ -6,7 +6,41 @@ from urllib.parse import quote
 from django.core.paginator import Paginator
 from django.shortcuts import render
 
-from powerbi_report.services.pbirs_servers import get_active_pbirs_server_urls
+from powerbi_report.services.pbirs_servers import (
+    get_active_pbirs_server_urls,
+    get_pbirs_server_name_map,
+)
+
+
+def _server_label(server_url, names):
+    """The server's configured name; the bare host if that URL is not a registered server."""
+    url = (server_url or "").strip().rstrip("/")
+    if not url:
+        return ""
+    return names.get(url) or url.split("://", 1)[-1]
+
+
+def _modal_payload(report):
+    """What the report-details modal shows (JSON-safe; the lists come from the report dict)."""
+    modified_by = report.get("modified_by")
+    modified_at = report.get("modified_at")
+    return {
+        "name": report.get("Name") or "",
+        "path": report.get("Path") or "",
+        "server": report.get("server_name") or "",
+        "description": (report.get("Description") or "").strip(),
+        "type": report.get("report_type") or "",
+        "consolide": bool(report.get("is_consolide")),
+        "poles": list(report.get("poles", [])),
+        "directions": list(report.get("directions", [])),
+        "societes": list(report.get("societes", [])),
+        "modules": list(report.get("modules", [])),
+        "modified_at": modified_at.strftime("%d/%m/%Y %H:%M") if modified_at else "",
+        "modified_by": (
+            (getattr(modified_by, "get_full_name", lambda: "")() or getattr(modified_by, "username", ""))
+            if modified_by else ""
+        ),
+    }
 
 
 def get_allowed_report_types_for_view(view_type):
@@ -179,11 +213,17 @@ def report_list_view(
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
+    # Server name instead of its address, and the data of the details modal (current page only).
+    server_names = get_pbirs_server_name_map()
+    for r in page_obj.object_list:
+        r["server_name"] = _server_label(r.get("server_url"), server_names)
+    reports_modal = {r["Id"]: _modal_payload(r) for r in page_obj.object_list}
+
     # Calculate page range for pagination UI
     page_range = paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)
 
     server_urls = get_active_pbirs_server_urls()
-    
+
     from powerbi_report.models import MetadataOption
     import json as _json
     metadata_options = MetadataOption.objects.all().select_related('parent')
@@ -203,6 +243,7 @@ def report_list_view(
         "powerbi_report/report_list.html",
         {
             "reports": page_obj,
+            "reports_modal": reports_modal,
             "page_range": page_range,
             "permissions": permissions,
             "query": query,

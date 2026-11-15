@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Rapport{% endblock %}
+{% block title %}{% with breadcrumbs|last as last_breadcrumb %}{{ last_breadcrumb.name|default:"Rapport" }}{% endwith %}{% endblock %}
 
 {% block header_title %}
     {% with breadcrumbs|last as last_breadcrumb %}
