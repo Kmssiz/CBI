@@ -15,6 +15,12 @@ class Command(BaseCommand):
         "At most one per admin per day; nothing when there is nobody new."
     )
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--force", action="store_true",
+            help="Notify every admin even if they already got today's notification (to test the scenario).",
+        )
+
     def handle(self, *args, **options):
         waiting = NewUserAlert.objects.filter(seen_at__isnull=True).count()
         if not waiting:
@@ -28,7 +34,7 @@ class Command(BaseCommand):
         for admin in CustomUser.objects.filter(is_active=True):
             if not admin.is_admin:
                 continue
-            if Notification.objects.filter(user=admin, link=link, created_at__date=today).exists():
+            if not options["force"] and Notification.objects.filter(user=admin, link=link, created_at__date=today).exists():
                 continue
             Notification.objects.create(user=admin, message=message, link=link)
             sent += 1

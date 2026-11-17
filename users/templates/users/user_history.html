@@ -96,7 +96,7 @@
         </div>
         
         <!-- Pagination -->
-        {% if history.has_other_pages %}
+        {% if history.paginator.count > 10 %}
         <div class="pagination-footer">
             <div class="pagination-meta-container">
                 <span class="pagination-total-badge">Total: {{ history.paginator.count }}</span>
@@ -104,6 +104,8 @@
                 <p class="pagination-meta-text">
                     Affichage {{ history.start_index }}-{{ history.end_index }} sur {{ history.paginator.count }}
                 </p>
+                <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+                {% include "_page_size.html" with page=history %}
             </div>
             
             <div class="pagination-nav">

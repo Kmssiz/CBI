@@ -1,0 +1,11 @@
+{% comment %}A non-image attachment: icon by type, file name, download link. Parameters: url, name, kind.{% endcomment %}<a href="{{ url }}" target="_blank" rel="noopener noreferrer" download
+   class="inline-flex max-w-full items-center gap-3 rounded-lg border border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-surface-dark px-4 py-3 hover:border-primary/40 transition-colors">
+  <span class="flex size-10 shrink-0 items-center justify-center rounded-lg
+    {% if kind == 'pdf' %}bg-red-500/10 text-red-500{% elif kind == 'word' %}bg-blue-500/10 text-blue-500{% elif kind == 'excel' %}bg-emerald-500/10 text-emerald-500{% else %}bg-slate-500/10 text-slate-500{% endif %}">
+    <span class="material-symbols-outlined text-[22px]">{% if kind == 'pdf' %}picture_as_pdf{% elif kind == 'excel' %}table_chart{% else %}description{% endif %}</span>
+  </span>
+  <span class="min-w-0">
+    <span class="block truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{{ name }}</span>
+    <span class="block text-xs text-slate-500">Cliquer pour télécharger</span>
+  </span>
+</a>

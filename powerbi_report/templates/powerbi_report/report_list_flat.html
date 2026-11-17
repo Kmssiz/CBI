@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Rapports{% endblock %}
+{% block title %}Tous les rapports{% if nav_section_label %} · {{ nav_section_label }}{% endif %}{% endblock %}
 
-{% block header_title %}Liste des Rapports{% endblock %}
+{% block header_title %}{% if nav_section_label %}{{ nav_section_label }} · Tous les rapports{% else %}Liste des Rapports{% endif %}{% endblock %}
 {% block header_subtitle %}Visualisez et accédez à tous vos rapports Power BI en mode liste{% endblock %}
 
 {% block breadcrumbs_footer %}
@@ -24,23 +24,9 @@
                 {% endif %}
             </form>
             
-            {% if request.GET.context == 'pole' %}
-            <a href="{% url 'powerbi_report:custom_pole' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white">
+            <a href="{% if nav_section_url %}{{ nav_section_url }}{% else %}{% url 'powerbi_report:custom_direction' %}{% endif %}" class="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white">
                 <span class="material-symbols-outlined text-[18px]">account_tree</span> Vue Hiérarchique
             </a>
-            {% elif request.GET.context == 'biblio' %}
-            <a href="{% url 'powerbi_report:custom_biblio' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white">
-                <span class="material-symbols-outlined text-[18px]">account_tree</span> Vue Hiérarchique
-            </a>
-            {% elif request.GET.context == 'anomalie' %}
-            <a href="{% url 'powerbi_report:custom_anomalie' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white">
-                <span class="material-symbols-outlined text-[18px]">account_tree</span> Vue Hiérarchique
-            </a>
-            {% else %}
-            <a href="{% url 'powerbi_report:custom_direction' %}" class="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-sm font-bold transition-all text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white">
-                <span class="material-symbols-outlined text-[18px]">account_tree</span> Vue Hiérarchique
-            </a>
-            {% endif %}
         </div>
     </div>
 
@@ -100,6 +86,8 @@
                 <p class="pagination-meta-text">
                     Affichage {{ reports.start_index }}-{{ reports.end_index }} sur {{ reports.paginator.count }}
                 </p>
+                <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+                {% include "_page_size.html" with page=reports %}
             </div>
             <div class="pagination-nav">
                 {% if reports.has_previous %}

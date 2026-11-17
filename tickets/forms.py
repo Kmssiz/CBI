@@ -1,23 +1,13 @@
 from django import forms
-from django.core.exceptions import ValidationError
 
 from .models import Ticket, TicketMessage
+from .validators import ACCEPT_ATTRIBUTE
+
+# Attachments (images, PDF, Word, Excel) are checked by the model field's validator:
+# extension, real content and size (tickets/validators.py), whichever form or admin saves them.
 
 
-MAX_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024
-
-
-class ImageUploadValidationMixin:
-    """Reject unexpectedly large image uploads before they reach storage."""
-
-    def clean_attachment(self):
-        attachment = self.cleaned_data.get("attachment")
-        if attachment and attachment.size > MAX_IMAGE_UPLOAD_BYTES:
-            raise ValidationError("L'image ne doit pas dépasser 5 Mo.")
-        return attachment
-
-
-class TicketForm(ImageUploadValidationMixin, forms.ModelForm):
+class TicketForm(forms.ModelForm):
     class Meta:
         model = Ticket
         fields = ["title", "description", "ticket_type", "category", "priority", "attachment"]
@@ -35,11 +25,11 @@ class TicketForm(ImageUploadValidationMixin, forms.ModelForm):
             "ticket_type": forms.Select(attrs={"class": "form-select"}),
             "category": forms.Select(attrs={"class": "form-select"}),
             "priority": forms.Select(attrs={"class": "form-select"}),
-            "attachment": forms.FileInput(attrs={"class": "form-control"}),
+            "attachment": forms.FileInput(attrs={"class": "form-control", "accept": ACCEPT_ATTRIBUTE}),
         }
 
 
-class TicketMessageForm(ImageUploadValidationMixin, forms.ModelForm):
+class TicketMessageForm(forms.ModelForm):
     class Meta:
         model = TicketMessage
         fields = ["content", "attachment"]
@@ -54,7 +44,7 @@ class TicketMessageForm(ImageUploadValidationMixin, forms.ModelForm):
             "attachment": forms.FileInput(
                 attrs={
                     "class": "block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer pt-2",
-                    "accept": "image/*",
+                    "accept": ACCEPT_ATTRIBUTE,
                 }
             ),
         }

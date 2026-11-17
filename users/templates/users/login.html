@@ -153,6 +153,7 @@
         }
     </style>
     <link rel="stylesheet" href="{% static 'assets/css/cbi-loading.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/cbi-controls.css' %}">
     <script src="{% static 'assets/js/cbi-loading.js' %}" defer></script>
 </head>
 <body>
@@ -241,8 +242,12 @@
             open.addEventListener('click', function () {
                 modal.classList.add('is-open');
                 text.textContent = 'Connexion au serveur en cours…';
-                fetch('{% url "server_status" %}')
-                    .then(function (response) { text.textContent = response.ok ? 'Serveur opérationnel.' : 'Serveur indisponible.'; })
+                fetch('{% url "server_status" %}', { credentials: 'same-origin' })
+                    .then(function (response) { return response.json(); })
+                    .then(function (data) {
+                        text.textContent = data.status === 'up' ? 'Serveur opérationnel.'
+                            : data.status === 'partial' ? 'Serveur partiellement disponible.' : 'Serveur indisponible.';
+                    })
                     .catch(function () { text.textContent = 'Serveur indisponible.'; });
             });
             close.addEventListener('click', function () { modal.classList.remove('is-open'); });

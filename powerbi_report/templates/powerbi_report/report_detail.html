@@ -696,6 +696,12 @@
 </div>
 
 <script>
+function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+        return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c];
+    });
+}
+
 async function showErrorDetails(planId) {
     const modal = new bootstrap.Modal(document.getElementById('errorDetailsModal'));
     const content = document.getElementById('errorDetailsContent');
@@ -726,14 +732,14 @@ async function showErrorDetails(planId) {
                     ? JSON.parse(latestRun.Details) 
                     : latestRun.Details;
                 
-                let html = `<div class="mb-3 pb-3 border-b border-slate-700/50"><div class="text-slate-400 text-xs mb-1">Session ID</div><div class="font-mono text-sm">${details.SessionID || 'N/A'}</div></div>`;
+                let html = `<div class="mb-3 pb-3 border-b border-slate-700/50"><div class="text-slate-400 text-xs mb-1">Session ID</div><div class="font-mono text-sm">${escapeHtml(details.SessionID || 'N/A')}</div></div>`;
                 
                 // Handle Errors array
                 if (details.Errors && Array.isArray(details.Errors)) {
                     html += '<div class="space-y-2">';
                     details.Errors.forEach((error, idx) => {
-                        const errorCode = error.ErrorCode || '';
-                        const message = error.Message || '';
+                        const errorCode = escapeHtml(error.ErrorCode || '');
+                        const message = escapeHtml(error.Message || '');
                         html += `
                             <div class="p-3 bg-red-900/20 border border-red-800/30 rounded-lg">
                                 <div class="flex items-start gap-2">
@@ -750,7 +756,7 @@ async function showErrorDetails(planId) {
                     content.innerHTML = html;
                 } else {
                     // Fallback: show entire Details object
-                    html += `<pre class="text-xs whitespace-pre-wrap text-slate-700 dark:text-slate-300">${JSON.stringify(details, null, 2)}</pre>`;
+                    html += `<pre class="text-xs whitespace-pre-wrap text-slate-700 dark:text-slate-300">${escapeHtml(JSON.stringify(details, null, 2))}</pre>`;
                     content.innerHTML = html;
                 }
             } else {
@@ -762,7 +768,7 @@ async function showErrorDetails(planId) {
 
     } catch (e) {
         console.error('Error fetching history:', e);
-        content.innerHTML = `<div class="text-red-400">Erreur lors du chargement des détails: ${e.message}</div>`;
+        content.innerHTML = `<div class="text-red-400">Erreur lors du chargement des détails: ${escapeHtml(e.message)}</div>`;
     }
 }
 </script>

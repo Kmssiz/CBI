@@ -1,8 +1,10 @@
 """
 E-mails of the ticket system. Whoever is on the other side of a ticket hears about it:
 
-  * the person who opened the ticket (the requester), and
+  * the person who opened the ticket (the requester), once an admin answers or changes its status, and
   * the people handling it: the assigned admin, or every admin while nobody is assigned.
+
+A NEW ticket goes to every admin; the requester gets no confirmation mail for their own ticket.
 
 The person who just did something is not e-mailed about their own action (except where a
 caller asks for it), each recipient gets their own message (addresses are never shared), and
@@ -14,6 +16,7 @@ same in Outlook and Gmail).
 """
 
 import logging
+import threading
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
@@ -103,14 +106,15 @@ def _send(recipients, mail: Mail, ticket, exclude=None) -> int:
         return 0
 
     url = _ticket_url(ticket)
-    sent = 0
+    # Everything that touches the database or the templates is done here, in the request;
+    # only the network part (SMTP) can be handed to a background thread.
+    messages = []
     try:
-        connection = get_connection(fail_silently=False)
         for user in targets:
             name = _name(user)
             message = EmailMultiAlternatives(
                 subject=mail.subject, body=_plain(mail, name, url),
-                from_email=settings.DEFAULT_FROM_EMAIL, to=[user.email], connection=connection,
+                from_email=settings.DEFAULT_FROM_EMAIL, to=[user.email],
             )
             message.attach_alternative(render_to_string('tickets/email/ticket_mail.html', {
                 'subject': mail.subject, 'preheader': mail.preheader or mail.intro, 'name': name,
@@ -118,26 +122,38 @@ def _send(recipients, mail: Mail, ticket, exclude=None) -> int:
                 'quote': {'author': mail.quote[0], 'text': mail.quote[1]} if mail.quote else None,
                 'ticket_url': url, 'ticket_id': ticket.id,
             }), 'text/html')
-            message.send()
-            sent += 1
-    except Exception:  # SMTP down, refused recipient, template problem...: never break the ticket action
-        logger.exception("Ticket e-mail not sent (%s)", mail.subject)
-    return sent
+            messages.append(message)
+    except Exception:  # template problem...: never break the ticket action
+        logger.exception("Ticket e-mail not built (%s)", mail.subject)
+        return 0
+
+    def deliver() -> int:
+        sent = 0
+        try:
+            connection = get_connection(fail_silently=False)
+        except Exception:  # SMTP misconfigured: never break the ticket action
+            logger.exception("Ticket e-mail connection failed (%s)", mail.subject)
+            return 0
+        for message in messages:
+            # One refused address must not stop the mail to the others.
+            try:
+                message.connection = connection
+                message.send()
+                sent += 1
+            except Exception:
+                logger.exception("Ticket e-mail not sent to %s (%s)", message.to, mail.subject)
+        return sent
+
+    if getattr(settings, 'TICKET_EMAILS_IN_BACKGROUND', False):
+        threading.Thread(target=deliver, name='ticket-emails', daemon=True).start()
+        return len(messages)
+    return deliver()
 
 
 def ticket_created(ticket) -> int:
-    mine = _send(
-        [ticket.created_by],
-        Mail(
-            subject=f"[CBI] Ticket #{ticket.id} : {ticket.title}",
-            heading="Votre ticket a bien été créé",
-            intro="Nous reviendrons vers vous dès que possible.",
-            rows=_details(ticket),
-        ),
-        ticket,
-    )
-    theirs = _send(
-        handlers(ticket),
+    """E-mail the new ticket to EVERY admin (an admin who opened it themselves is not mailed about it)."""
+    return _send(
+        _admins(),
         Mail(
             subject=f"[CBI] Nouveau ticket #{ticket.id} : {ticket.title}",
             heading="Nouveau ticket",
@@ -147,7 +163,6 @@ def ticket_created(ticket) -> int:
         ),
         ticket, exclude=ticket.created_by,
     )
-    return mine + theirs
 
 
 def message_posted(ticket, message) -> int:

@@ -1,22 +1,28 @@
 import logging
 
 import requests
+from users.utils import person_label
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Permission
 from django.core.cache import cache
-from django.core.paginator import Paginator
+from powerbi_report.pagination import paginate
 from django.http import JsonResponse
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
+from .directory_sync import deactivate_missing_users, sync_directory_users
 from .ldap_utils import connexion_ad2000, get_ad_users
 from .session_secrets import store_ldap_password
-from .utils import log_history, get_user_permissions, admin_required
+from .utils import (
+    admin_required, apply_role, clean_directory_value, find_directory_user,
+    get_user_permissions, is_admin_role, log_history, other_active_admins,
+)
 from powerbi_report.services.pbirs_servers import get_active_pbirs_server_urls
 from powerbi_report.services import sync_user_permissions_on_login
 from notifications.models import Notification
@@ -72,11 +78,9 @@ def login_view(request):
                 ad2000,
             )
 
-            # Normalize empty-like values
-            email = email.strip() if email else ""
-            ad2000 = ad2000.strip() if ad2000 else ""
-            if ad2000 == "[]" or ad2000 == "":
-                ad2000 = None  # Use None for unique constraint compatibility
+            # Normalize empty-like values ("[]" is how LDAP prints a missing attribute)
+            email = clean_directory_value(email)
+            ad2000 = clean_directory_value(ad2000) or None  # None for unique constraint compatibility
             
             # Look up user by LDAP username (canonical identifier), then by email, then by ad2000
             logger.debug(
@@ -86,17 +90,9 @@ def login_view(request):
                 ad2000,
             )
             
-            # Use case-insensitive lookup for username
-            user = CustomUser.objects.filter(username__iexact=ldap_username).first()
-            logger.debug("Username lookup result user_id=%s", user.id if user else None)
-            
-            if not user and email:
-                user = CustomUser.objects.filter(email__iexact=email).first()
-                logger.debug("Email lookup result user_id=%s", user.id if user else None)
-            
-            if not user and ad2000:
-                user = CustomUser.objects.filter(ad2000__iexact=ad2000).first()
-                logger.debug("AD2000 lookup result user_id=%s", user.id if user else None)
+            # Username first; e-mail / AD2000 only when they point at one single non-admin account.
+            user = find_directory_user(ldap_username, email, ad2000 or "")
+            logger.debug("Directory lookup result user_id=%s", user.id if user else None)
 
             if user:
                 # Update user info from LDAP (but keep username as LDAP's sAMAccountName)
@@ -108,7 +104,9 @@ def login_view(request):
                 user.last_name = user_info.get("last_name", "")
                 user.email = email
                 user.ad2000 = ad2000
-                user.ad_groups = user_info.get("ad_groups", [])
+                # The login lookup does not return AD groups (only the directory sync does): never wipe them here.
+                if "ad_groups" in user_info:
+                    user.ad_groups = user_info["ad_groups"]
                 user.status = "Active"
                 # Ensure default view permissions are initialized
                 if not hasattr(user, 'can_view_direction'):
@@ -139,6 +137,10 @@ def login_view(request):
                 user.save()
                 new_permissions = role.permissions.all()
                 user.user_permissions.add(*new_permissions)
+
+            if not user.is_active:
+                messages.error(request, "Ce compte est désactivé. Veuillez contacter le support BI.")
+                return render(request, 'users/login.html')
 
             # CRITICAL: Do NOT save password to DB (user.ldap_password)
             user.backend = 'django.contrib.auth.backends.ModelBackend'
@@ -239,12 +241,7 @@ def user_history(request, user_id=None):
     ]
 
     # Pagination
-    paginator = Paginator(history_query, 10)  # 10 items per page
-    page_number = request.GET.get('page')
-    history_page = paginator.get_page(page_number)
-    
-    # Calculate page range for pagination UI
-    page_range = paginator.get_elided_page_range(history_page.number, on_each_side=2, on_ends=1)
+    history_page, page_range = paginate(request, history_query)
         
     permissions = get_user_permissions(request.user)
 
@@ -338,12 +335,7 @@ def user_management(request):
     ).values_list('direction', flat=True).distinct().order_by('direction')
     
     # Pagination
-    paginator = Paginator(users_list, 10)  # Show 10 users per page
-    page_number = request.GET.get('page')
-    users = paginator.get_page(page_number)
-    
-    # Calculate page range for pagination UI
-    page_range = paginator.get_elided_page_range(users.number, on_each_side=2, on_ends=1)
+    users, page_range = paginate(request, users_list)
     
     roles = Role.objects.all()
     # log_history(request.user, "Page de gestion des utilisateurs consultée")
@@ -381,16 +373,20 @@ def manage_roles(request):
     if request.method == "POST":
         user_id = request.POST.get("user_id")
         action = request.POST.get("action")
-        user = CustomUser.objects.get(id=user_id)
+        user = get_object_or_404(CustomUser, id=user_id)
 
-        if action == "remove_role":
-            user.role = None
+        new_role = None
+        if action == "edit_role":
+            new_role = get_object_or_404(Role, id=request.POST.get("new_role"))
+        if action in ("remove_role", "edit_role"):
+            # Never leave the application without an administrator (yourself included).
+            if user.is_admin and not is_admin_role(new_role) and not other_active_admins(user).exists():
+                messages.error(request, "Impossible : il doit rester au moins un administrateur actif.")
+                return redirect("manage_roles")
+            apply_role(user, new_role)
             user.save()
-        elif action == "edit_role":
-            new_role_id = request.POST.get("new_role")
-            new_role = Role.objects.get(id=new_role_id)
-            user.role = new_role
-            user.save()
+            if user.pk == request.user.pk and not user.is_admin:
+                messages.info(request, "Vous n'êtes plus administrateur.")
 
         return redirect("manage_roles")
 
@@ -535,6 +531,7 @@ def permissions_list(request, role_id):
 #                    Synchronizes users with LDAP directory                                                     #
 #################################################################################################################
 @admin_required
+@require_POST
 def sync_users(request):
     """
     Synchronizes users with LDAP directory.
@@ -555,96 +552,13 @@ def sync_users(request):
          messages.error(request, "Échec de la récupération des utilisateurs LDAP ou aucun utilisateur trouvé.")
          return redirect('users_view')
 
-    # Optimization: Fetch all existing users in one query to create local lookup maps
-    # We only need a few fields for identification and change detection
-    all_db_users = CustomUser.objects.all().only('id', 'username', 'ad2000', 'pole', 'direction', 'societe', 'ad_groups')
-    username_map = {u.username.lower(): u for u in all_db_users}
-    ad2000_map = {u.ad2000.lower(): u for u in all_db_users if u.ad2000}
+    result = sync_directory_users(ldap_users)
+    count, already_exist = result.created, result.existing
+    if getattr(settings, 'LDAP_DEACTIVATE_MISSING', False):
+        switched_off = deactivate_missing_users(ldap_users)
+        if switched_off:
+            messages.warning(request, f"{switched_off} compte(s) désactivé(s) dans l'annuaire ont été désactivés ici aussi.")
 
-    count = 0
-    already_exist = 0
-    skipped = 0
-    
-    user_role, _ = Role.objects.get_or_create(name=settings.USER_ROLE_NAME)
-
-    for ldap_user in ldap_users:
-        ad2000 = (ldap_user.get("ad2000") or "").strip()
-        sam_account = (ldap_user.get("sAMAccountName") or "").strip()
-        ldap_groups = _normalize_ad_groups(ldap_user.get("ad_groups", []))
-        
-        # Fallback to sAMAccountName if ad2000 (extensionAttribute1) is empty or just "[]"
-        if not ad2000 or ad2000 == "[]":
-            ad2000 = sam_account
-        
-        # Skip if still no identifier available
-        if not ad2000:
-            skipped += 1
-            continue
-
-        # Check lookup maps first (O(1))
-        user = ad2000_map.get(ad2000.lower())
-        if not user:
-            user = username_map.get(sam_account.lower())
-
-        if not user:
-            try:
-                user = CustomUser(
-                    username=sam_account,  
-                    ad2000=ad2000,
-                    societe=ldap_user.get("company", "").strip(),
-                    pole=ldap_user.get("company", "").strip(),
-                    direction=ldap_user.get("department", "").strip(),
-                    first_name=ldap_user.get("name", "").split(' ')[0],
-                    last_name=" ".join(ldap_user.get("name", "").split(' ')[1:]),
-                    email=ldap_user.get("mail", "").strip(),
-                    ad_groups=ldap_groups,
-                    role=user_role,
-                    status="Not Active",
-                    can_view_direction=False
-                )
-                user.save()  
-                user.user_permissions.set(user_role.permissions.all())  
-                count += 1
-                
-                # Update maps for subsequent lookups in the same loop
-                username_map[user.username.lower()] = user
-                if user.ad2000:
-                    ad2000_map[user.ad2000.lower()] = user
-            except Exception as e:
-                logger.exception("Échec de l'enregistrement de l'utilisateur LDAP synchronisé %s: %s", sam_account, e)
-        else:
-            # Efficiently update existing users only if fields changed
-            update_fields = {}
-            company = ldap_user.get("company", "").strip()
-            department = ldap_user.get("department", "").strip()
-            
-            if not user.pole and company:
-                user.pole = company
-                update_fields["pole"] = company
-            if not user.direction and department:
-                user.direction = department
-                update_fields["direction"] = department
-            if not user.societe and company:
-                user.societe = company
-                update_fields["societe"] = company
-
-            if ldap_groups:
-                existing_groups = _normalize_ad_groups(user.ad_groups)
-                if set(existing_groups) != set(ldap_groups):
-                    update_fields["ad_groups"] = ldap_groups
-
-            if update_fields:
-                CustomUser.objects.filter(pk=user.pk).update(**update_fields)
-            
-            already_exist += 1
-
-    logger.info(
-        "Résumé de la synchronisation LDAP total=%s créés=%s existants=%s ignorés=%s",
-        len(ldap_users),
-        count,
-        already_exist,
-        skipped,
-    )
     messages.success(request, f"Synchronisation des utilisateurs terminée. {count} nouveaux utilisateurs ajoutés. ({already_exist} existaient déjà)")
     return redirect('users_view')
 
@@ -691,7 +605,11 @@ def user_edit(request, user_id):
     if request.method == 'POST':
         new_role_id = request.POST.get('role')  # Get the selected role ID
         new_role = get_object_or_404(Role, id=new_role_id) if new_role_id else None  # Fetch the role object
-        is_admin_role = bool(user.role and user.role.name.lower() == settings.ADMIN_ROLE_NAME)
+        becomes_admin = is_admin_role(user.role)
+
+        if new_role and user.is_admin and not is_admin_role(new_role) and not other_active_admins(user).exists():
+            messages.error(request, "Impossible : il doit rester au moins un administrateur actif.")
+            return redirect("user_edit", user_id=user.id)
 
         if new_role:
             # Remove all existing permissions
@@ -702,12 +620,10 @@ def user_edit(request, user_id):
             user.user_permissions.add(*new_permissions)  # Assign the new role's permissions
 
             # Update role and superuser status
-            user.role = new_role  
-            is_admin_role = new_role.name.lower() == settings.ADMIN_ROLE_NAME
-            user.is_superuser = is_admin_role
-            user.is_staff = is_admin_role
-        
-        if is_admin_role:
+            apply_role(user, new_role)
+            becomes_admin = is_admin_role(new_role)
+
+        if becomes_admin:
             # Admin has unrestricted access to all sections
             user.can_view_direction = True
             user.can_view_pole = True
@@ -743,7 +659,7 @@ def user_edit(request, user_id):
             if admin != request.user:
                 Notification.objects.create(
                     user=admin,
-                    message=f"{request.user.username} a modifié les paramètres de {user.username}."
+                    message=f"{person_label(request.user)} a modifié les paramètres de {person_label(user)}."
                 )
 
         messages.success(request, "Paramètres utilisateur mis à jour avec succès.")
@@ -756,6 +672,7 @@ def user_edit(request, user_id):
 #                    Logs out the user and clears session data                                                  #
 #################################################################################################################
 @login_required
+@require_POST
 def logout_view(request):
     user_id = request.user.id
     request.user.status = "Not Active"
@@ -771,16 +688,18 @@ def logout_view(request):
 
     return redirect("login")
 
-@login_required
 def server_status(request):
     """
-    Endpoint to check connectivity to all configured PowerBI Report Servers.
-    Used by the login page 'Systeme Status' feature.
+    Connectivity of the configured PowerBI Report Servers, for the login page's 'Système' pop-up.
+
+    Public on purpose (nobody is logged in there): anonymous callers only learn the overall status.
+    Server addresses and error details are reserved for logged-in users.
     """
+    detailed = request.user.is_authenticated
     try:
         server_urls = get_active_pbirs_server_urls()
         if not server_urls:
-            return JsonResponse({"status": "down", "error": "Aucun serveur PBIRS actif configuré"}, status=500)
+            return JsonResponse({"status": "down", **({"error": "Aucun serveur PBIRS actif configuré"} if detailed else {})}, status=500)
 
         results = []
         all_up = True
@@ -797,10 +716,13 @@ def server_status(request):
                 all_up = False
 
         overall_status = "up" if all_up else ("partial" if any(r["status"] == "up" for r in results) else "down")
-        return JsonResponse({"status": overall_status, "servers": results})
-    except Exception as e:       
+        payload = {"status": overall_status}
+        if detailed:
+            payload["servers"] = results
+        return JsonResponse(payload)
+    except Exception as e:
         logger.warning("Échec de la vérification du statut PBIRS: %s", e)
-        return JsonResponse({"status": "down", "error": str(e)}, status=500)
+        return JsonResponse({"status": "down", **({"error": str(e)} if detailed else {})}, status=500)
 
 
 #################################################################################################################

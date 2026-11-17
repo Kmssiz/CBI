@@ -98,7 +98,7 @@ class MobileTicketTests(MobileTestCase):
         CustomUser.objects.filter(pk=self.user.pk).update(email='requester@example.com')
         CustomUser.objects.filter(pk=self.admin.pk).update(email='admin@example.com')
         ticket_id = self.create().json()['id']
-        self.assertEqual(sorted(addr for m in mail.outbox for addr in m.to), ['admin@example.com', 'requester@example.com'])
+        self.assertEqual(sorted(addr for m in mail.outbox for addr in m.to), ['admin@example.com'])   # no copy for the sender
         mail.outbox.clear()
         self.client.post(url('ticket_messages', ticket_id), data={'content': 'Bonjour'}, **self.auth)
         self.assertEqual([m.to for m in mail.outbox], [['admin@example.com']])        # requester -> handlers
@@ -124,3 +124,77 @@ class MobileTicketTests(MobileTestCase):
         self.assertEqual([a['id'] for a in admins], [self.admin.pk])
         self.assertEqual(self.client.get(url('ticket_admins'), **self.auth).status_code, 403)
         self.assertEqual(TicketMessage.objects.count(), 0)
+
+
+class MobileTicketAttachmentsAndAlertsTests(MobileTestCase):
+    """The mobile app follows the web rules: documents are accepted, admins are alerted, nobody mails the sender."""
+
+    def setUp(self):
+        super().setUp()
+        self.enterContext(override_settings(MEDIA_ROOT=tempfile.mkdtemp()))
+        self.admin = CustomUser.objects.create_user(username='admin.bi', first_name='Admin', last_name='BI',
+                                                    role=self.admin_role)
+        self.admin_auth = self.bearer(self.admin)
+
+    def post(self, upload, **extra):
+        data = {'title': 'Avec fichier', 'description': 'Merci', 'ticket_type': 'dashboard', 'attachment': upload}
+        data.update(extra)
+        return self.client.post(url('tickets'), data=data, **self.auth)
+
+    def test_choices_advertise_the_real_limit_and_formats(self):
+        body = self.client.get(url('ticket_choices'), **self.auth).json()
+        self.assertEqual(body['max_attachment_bytes'], 10 * 1024 * 1024)
+        for ext in ('.pdf', '.docx', '.xlsx', '.png'):
+            self.assertIn(ext, body['attachment_extensions'])
+        self.assertNotIn('.exe', body['attachment_extensions'])
+        self.assertIn('Excel', body['attachment_formats_help'])
+        labels = {c['value']: c['label'] for c in body['ticket_types']}
+        self.assertEqual(labels['dashboard'], 'Demande de création de tableau de bord')
+        self.assertEqual([c['label'] for c in body['categories']], ['Bibliothèque', 'Tableau de bord'])
+
+    def test_a_pdf_and_an_excel_file_are_accepted_and_described(self):
+        pdf = self.post(SimpleUploadedFile('rapport.pdf', b'%PDF-1.4\n%%EOF', content_type='application/pdf'))
+        self.assertEqual(pdf.status_code, 201, pdf.content)
+        body = pdf.json()
+        self.assertEqual((body['attachment_name'], body['attachment_kind']), ('rapport.pdf', 'pdf'))
+        download = self.client.get(body['attachment_url'], **self.auth)
+        self.assertEqual(download.status_code, 200)
+        self.assertIn('attachment', download['Content-Disposition'])      # documents are downloaded, not displayed
+        self.assertEqual(download['X-Content-Type-Options'], 'nosniff')
+        download.close()
+
+        import io
+        import zipfile
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, 'w') as archive:
+            archive.writestr('[Content_Types].xml', '<x/>')
+            archive.writestr('xl/workbook.xml', '<x/>')
+        xlsx = self.post(SimpleUploadedFile('budget.xlsx', buffer.getvalue()))
+        self.assertEqual(xlsx.status_code, 201, xlsx.content)
+        self.assertEqual(xlsx.json()['attachment_kind'], 'excel')
+
+    def test_an_image_has_the_image_kind_and_is_not_forced_to_download(self):
+        body = self.post(png_upload('capture.png')).json()
+        self.assertEqual(body['attachment_kind'], 'image')
+        response = self.client.get(body['attachment_url'], **self.auth)
+        self.assertNotIn('attachment', response.get('Content-Disposition', ''))   # shown inline, not downloaded
+        response.close()
+
+    def test_unsafe_or_fake_files_are_refused_with_a_clear_message(self):
+        for name, content in (('virus.exe', b'MZ\x90'), ('page.html', b'<html></html>'), ('fake.pdf', b'nope')):
+            with self.subTest(name):
+                response = self.post(SimpleUploadedFile(name, content))
+                self.assertEqual(response.status_code, 400)
+                self.assertIn('attachment', response.json()['errors'])
+        self.assertEqual(Ticket.objects.count(), 0)
+
+    def test_every_admin_is_notified_in_the_app_and_the_sender_is_not_mailed(self):
+        from django.core import mail
+        from notifications.models import Notification
+        CustomUser.objects.filter(pk=self.user.pk).update(email='requester@example.com')
+        CustomUser.objects.filter(pk=self.admin.pk).update(email='admin@example.com')
+        ticket_id = self.post(png_upload('c.png')).json()['id']
+        self.assertEqual([m.to for m in mail.outbox], [['admin@example.com']])
+        notes = Notification.objects.filter(link=f'/tickets/{ticket_id}/')
+        self.assertEqual(sorted(notes.values_list('user__username', flat=True)), ['admin.bi'])
+        self.assertFalse(notes.filter(user=self.user).exists())

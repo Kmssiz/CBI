@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 from . import server_views
-from .views_modules import slider
+from .views_modules import access_copy, slider
 
 app_name = 'powerbi_report'
 
@@ -13,6 +13,9 @@ urlpatterns = [
     path('missing_users/<str:report_id>/', views.missing_users, name='missing_users'),
 
     path('user_permission/<str:username>/', views.user_permission, name='user_permission'),
+    path('users/search/', access_copy.copy_user_search, name='copy_user_search'),
+    path('user_permission/<str:username>/copy/', access_copy.copy_access_preview, name='copy_access_preview'),
+    path('user_permission/<str:username>/copy/apply/', access_copy.copy_access_apply, name='copy_access_apply'),
     path('missing_permissions/<str:username>/', views.missing_permissions, name='missing_permissions'),
     path('remove_permission/<str:report_id>/<str:username>/', views.remove_permission_from_server, name='remove_permission_from_server'),
     path('remove_selected_permissions/<str:username>/', views.remove_selected_permissions, name='remove_selected_permissions'),
@@ -27,7 +30,6 @@ urlpatterns = [
 
     path('add_all_permissions/<str:username>/', views.add_all_permissions, name='add_all_permissions'),
     path('add_selected_permissions/<str:username>/', views.add_selected_permissions, name='add_selected_permissions'),
-    path('add-metadata-permissions/<str:username>/', views.add_metadata_permissions, name='add_metadata_permissions'),
     path('add_users/<str:report_id>/<str:username>/', views.add_users_to_report, name='add_users_to_report'),
     path('add_all_users/<str:report_id>/', views.add_all_users_to_report, name='add_all_users_to_report'),
 
@@ -85,7 +87,6 @@ urlpatterns = [
     # Sync & API
     path('custom/sync/', views.sync_reports_from_pbirs, name='sync_reports'),
     path('custom/sync-permissions/', views.sync_permissions, name='sync_permissions'),
-    path('custom/api/reports/', views.get_available_reports_json, name='available_reports_json'),
     path('refresh-history/<str:plan_id>/', views.get_refresh_plan_history, name='get_refresh_plan_history'),
 
     # PBIRS Server Management

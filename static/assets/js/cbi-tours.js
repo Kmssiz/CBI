@@ -103,11 +103,11 @@
         {
           el: '#theme-toggle', drawer: true, side: 'right',
           title: 'Mode clair ou sombre',
-          text: 'Choisissez l\'affichage qui vous convient. Votre choix est mémorisé.'
+          text: 'Basculez entre l\'affichage clair et sombre. Votre choix est mémorisé.'
         },
         {
           el: '#tour-launcher', drawer: true, side: 'right',
-          title: 'Revoir cette visite',
+          title: 'Aide et visite guidée',
           text: 'Ce bouton relance cette visite, ou une visite propre à la page que vous consultez.'
         }
       ]

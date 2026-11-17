@@ -1,6 +1,7 @@
 """Power BI report metadata view helpers."""
 
 import logging
+from users.utils import person_label
 from collections.abc import Callable
 
 import requests
@@ -95,7 +96,7 @@ def edit_powerbi_report_name_view(
         for admin in admin_users:
             Notification.objects.create(
                 user=admin,
-                message=f"Le rapport '{new_name}' a été renommé par {request.user.username}.",
+                message=f"Le rapport '{new_name}' a été renommé par {person_label(request.user)}.",
             )
         logger.info(
             "Sent rename notification for report %s to %s admins.",
@@ -220,7 +221,7 @@ def edit_powerbi_report_description_view(
                 user=admin,
                 message=(
                     f"Description mise à jour pour le rapport '{report_name}' "
-                    f"avec la description '{new_description}' par {request.user.username}."
+                    f"avec la description '{new_description}' par {person_label(request.user)}."
                 ),
             )
     except requests.exceptions.RequestException as exc:

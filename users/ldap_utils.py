@@ -11,8 +11,68 @@ import ldap3
 from ldap3 import Connection, NONE, NTLM, Server, Tls
 from ldap3.core.exceptions import LDAPBindError, LDAPSocketOpenError, LDAPException
 from django.conf import settings
+from ldap3.utils.conv import escape_filter_chars
+
+from .utils import clean_directory_value
 
 logger = logging.getLogger('users')
+
+
+def _attr(entry, name: str) -> str:
+    """One attribute of an LDAP entry as clean text ('' when the directory has no value)."""
+    try:
+        attribute = getattr(entry, name)
+    except (AttributeError, LDAPException):
+        return ''
+    return clean_directory_value(getattr(attribute, 'value', attribute))
+
+
+def resolve_directory_username(identifier: str) -> str | None:
+    """Turn what the user typed into an AD sAMAccountName so we can always NTLM-bind.
+
+    Accepts ``H0017549``, ``GSH\\H0017549``, ``H0017549@domain.local`` (UPN) and corporate e-mail
+    addresses, which are looked up in the synced user directory. NTLM never sends the password to the
+    directory in clear text, even on port 389: a simple bind with an e-mail address would.
+    """
+    from users.models import CustomUser
+
+    value = (identifier or '').strip()
+    if '\\' in value:
+        value = value.split('\\', 1)[1].strip()
+    if '@' not in value:
+        return value or None
+
+    matches = list(CustomUser.objects.filter(email__iexact=value).exclude(username='')[:2])
+    if len(matches) == 1:
+        return matches[0].username
+    local_part, _, domain = value.partition('@')
+    domain = domain.casefold()
+    if domain.endswith('.local') or domain.split('.', 1)[0] == settings.LDAP_DOMAIN.casefold():
+        return local_part or None
+    return None
+
+
+def lookup_username_by_mail(email: str) -> str | None:
+    """The sAMAccountName that owns ``email`` in the directory (service account read), if exactly one."""
+    username = getattr(settings, 'LDAP_SERVICE_USERNAME', '')
+    password = getattr(settings, 'LDAP_SERVICE_PASSWORD', '')
+    if not (username and password):
+        return None
+    try:
+        conn = _bind_connection(f"{settings.LDAP_DOMAIN}\\{username}", password, NTLM)
+        conn.search(
+            search_base=settings.LDAP_SEARCH_BASE,
+            search_filter=f'(&(objectCategory=person)(mail={escape_filter_chars(email)}))',
+            search_scope=ldap3.SUBTREE,
+            attributes=['sAMAccountName'],
+            size_limit=2,
+        )
+        found = [_attr(entry, 'sAMAccountName') for entry in conn.entries]
+        found = [name for name in found if name]
+        return found[0] if len(found) == 1 else None
+    except LDAPException as e:
+        logger.warning("LDAP mail lookup failed: %s", e)
+        return None
 
 
 def _get_ldap_server_candidates() -> list[tuple[str, int, bool]]:
@@ -118,15 +178,19 @@ def connexion_ad2000(identifiant: str, password: str) -> dict | None:
     ldap_domain = settings.LDAP_DOMAIN
     ldap_search_base = settings.LDAP_SEARCH_BASE
 
-    # Determine if identifier is email or username
-    if '@' in identifiant:
-        user_dn = identifiant
-        search_filter = f'(mail={identifiant})'
-        auth_type = None
-    else:
-        user_dn = f"{ldap_domain}\\{identifiant}"
-        search_filter = f'(sAMAccountName={identifiant})'
-        auth_type = NTLM
+    # Always an NTLM bind on the sAMAccountName: an e-mail address is translated first.
+    identifiant = (identifiant or '').strip()
+    if not identifiant or not password:
+        return None
+    username = resolve_directory_username(identifiant)
+    if username is None and '@' in identifiant:
+        username = lookup_username_by_mail(identifiant)
+    if username is None:
+        logger.warning("LDAP login refused: no directory account for the given identifier")
+        return None
+    user_dn = f"{ldap_domain}\\{username}"
+    search_filter = f'(sAMAccountName={escape_filter_chars(username)})'
+    auth_type = NTLM
 
     try:
         conn = _bind_connection(user_dn=user_dn, password=password, authentication=auth_type)
@@ -143,17 +207,18 @@ def connexion_ad2000(identifiant: str, password: str) -> dict | None:
 
             if conn.entries:
                 entry = conn.entries[0]
-                ad2000_value = str(entry.sAMAccountName) if hasattr(entry, 'sAMAccountName') else ""
-                logger.debug(f"LDAP auth successful for user: {identifiant}, ad2000: {ad2000_value}")
+                ad2000_value = _attr(entry, 'sAMAccountName')
+                logger.debug(f"LDAP auth successful for user: {username}, ad2000: {ad2000_value}")
 
+                full_name = _attr(entry, 'name').split(' ')
                 return {
-                    'username': str(entry.sAMAccountName) if hasattr(entry, 'sAMAccountName') else identifiant,
-                    'email': str(entry.mail) if hasattr(entry, 'mail') else "",
-                    'first_name': str(entry.name).split(' ')[0] if hasattr(entry, 'name') else "",
-                    'last_name': " ".join(str(entry.name).split(' ')[1:]) if hasattr(entry, 'name') else "",
+                    'username': ad2000_value or username,
+                    'email': _attr(entry, 'mail'),
+                    'first_name': full_name[0],
+                    'last_name': " ".join(full_name[1:]),
                     'ad2000': ad2000_value,
-                    'department': str(entry.department) if hasattr(entry, 'department') else "",
-                    'title': str(entry.title) if hasattr(entry, 'title') else "",
+                    'department': _attr(entry, 'department'),
+                    'title': _attr(entry, 'title'),
                 }
         return None
 

@@ -99,19 +99,15 @@ def server_create(request):
         data = request.POST
         name = data.get('name')
         base_url = data.get('base_url')
-        admin_username = data.get('admin_username')
-        admin_password = data.get('admin_password')
         is_active = data.get('is_active') == 'on'
 
-        if not name or not base_url or not admin_username or not admin_password:
-            messages.error(request, "Tous les champs sont requis.")
+        if not name or not base_url:
+            messages.error(request, "Le nom et l'URL sont requis.")
             return redirect('powerbi_report:server_management_list')
 
         PBIRSServer.objects.create(
             name=name,
             base_url=base_url,
-            admin_username=admin_username,
-            admin_password=admin_password,
             is_active=is_active
         )
         messages.success(request, f"Serveur '{name}' ajouté avec succès.")
@@ -131,13 +127,6 @@ def server_edit(request, server_id):
         
         server.name = data.get('name', server.name)
         server.base_url = data.get('base_url', server.base_url)
-        server.admin_username = data.get('admin_username', server.admin_username)
-        
-        # Only update password if provided
-        new_password = data.get('admin_password')
-        if new_password:
-            server.admin_password = new_password
-            
         server.is_active = data.get('is_active') == 'on'
         server.save()
         

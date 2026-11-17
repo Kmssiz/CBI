@@ -71,10 +71,17 @@ LDAP_CA_CERT_FILE = config("LDAP_CA_CERT_FILE", default="").strip() or None
 LDAP_CONNECT_TIMEOUT = config("LDAP_CONNECT_TIMEOUT", default=8, cast=int)
 LDAP_RECEIVE_TIMEOUT = config("LDAP_RECEIVE_TIMEOUT", default=20, cast=int)
 LDAP_ENABLE_PORT_FALLBACK = _config_bool("LDAP_ENABLE_PORT_FALLBACK", default=True)
+# Switch off (never delete) local accounts that AD no longer lists as active. Off by default: turn it on once
+# the hourly user sync has been seen to return the full directory.
+LDAP_DEACTIVATE_MISSING = _config_bool("LDAP_DEACTIVATE_MISSING", default=False)
 MOBILE_LOGIN_RATE_LIMIT_PER_IP = config("MOBILE_LOGIN_RATE_LIMIT_PER_IP", default=100, cast=int)
 MOBILE_LOGIN_RATE_LIMIT_PER_USER = config("MOBILE_LOGIN_RATE_LIMIT_PER_USER", default=10, cast=int)
 MOBILE_LOGIN_RATE_LIMIT_WINDOW = config("MOBILE_LOGIN_RATE_LIMIT_WINDOW", default=900, cast=int)
 MOBILE_LOGIN_CLIENT_IP_HEADER = config("MOBILE_LOGIN_CLIENT_IP_HEADER", default="").strip()
+# Addresses or networks of the reverse proxy in front of the application (e.g. "10.0.0.5,10.0.1.0/24").
+# Only from these does X-Forwarded-For count: it gives each caller its own login-throttle bucket and the
+# audit trail the caller's real address. Empty = the direct peer address is used.
+TRUSTED_PROXY_IPS = [item.strip() for item in config("TRUSTED_PROXY_IPS", default="").split(",") if item.strip()]
 # Mobile app (see docs/MOBILE_API.md)
 MOBILE_SESSION_DAYS = config("MOBILE_SESSION_DAYS", default=30, cast=int)
 MOBILE_MIN_APP_VERSION = config("MOBILE_MIN_APP_VERSION", default="3.0.0").strip()
@@ -97,6 +104,9 @@ LDAP_SERVICE_PASSWORD = config("LDAP_SERVICE_PASSWORD", default="")
 # Internal API that expands an AD group into its (nested) members.
 LDAP_GROUP_MEMBERS_URL = config("LDAP_GROUP_MEMBERS_URL", default="").strip().rstrip("/")
 LDAP_API_TOKEN = config("LDAP_API_TOKEN", default="")
+# Header that carries the token (e.g. "X-API-Key"). Empty keeps the legacy ?token= query string, which
+# ends up in proxy and access logs.
+LDAP_API_TOKEN_HEADER = config("LDAP_API_TOKEN_HEADER", default="").strip()
 
 # Report permission sync should normally be handled by manual/admin-triggered
 # sync or an external hourly scheduler, not by every login.
@@ -145,6 +155,22 @@ SITE_URL = config("SITE_URL", default=MOBILE_WEBSITE_URL).strip()
 # every HTTP request costs two SELECTs and one INSERT per request into a table
 # that is never read, so it is off unless explicitly enabled.
 DJANGO_EASY_AUDIT_WATCH_REQUEST_EVENTS = _config_bool("AUDIT_REQUEST_EVENTS", default=False)
+# Bookkeeping tables written in bulk or on every action are not audited: each row would cost a SELECT,
+# an INSERT and a user lookup (the permission cache alone holds about 1.8 million rows, and a report
+# with 3,000 users meant 3,000 audit rows per grant click). Real changes (users, roles, reports,
+# metadata, servers, tickets) are still audited.
+DJANGO_EASY_AUDIT_UNREGISTERED_CLASSES_EXTRA = [
+    'powerbi_report.UserReportPermission',
+    'powerbi_report.PermissionSyncLog',
+    'powerbi_report.OdooProfile',
+    'powerbi_report.NewUserAlert',
+    'notifications.Notification',
+    'users.UserHistory',
+]
+DJANGO_EASY_AUDIT_CHECK_IF_REQUEST_USER_EXISTS = False
+DJANGO_EASY_AUDIT_CRUD_EVENT_NO_CHANGED_FIELDS_SKIP = True
+# Ticket e-mails leave in the background (an SMTP server that answers slowly must not hold a click).
+TICKET_EMAILS_IN_BACKGROUND = 'test' not in sys.argv
 
 # Role names (centralized to avoid hardcoded strings)
 ADMIN_ROLE_NAME = "admin"
@@ -184,6 +210,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'users.middleware.AdminAuditMiddleware',
     'easyaudit.middleware.easyaudit.EasyAuditMiddleware',
 ]
 
@@ -206,6 +233,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'users.context_processors.user_permissions',
+                'powerbi_report.context_processors.nav_section',
+                'powerbi_report.context_processors.table_page_sizes',
                 'notifications.context_processors.notifications_context',
             ],
         },

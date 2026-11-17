@@ -3,9 +3,10 @@
 from collections.abc import Callable
 from urllib.parse import quote
 
-from django.core.paginator import Paginator
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import render
 
+from powerbi_report.pagination import paginate
 from powerbi_report.services.pbirs_servers import (
     get_active_pbirs_server_urls,
     get_pbirs_server_name_map,
@@ -95,6 +96,13 @@ def report_list_flat_view(
             )
 
     context_param = request.GET.get("context", "").strip()
+    # The folder views are gated by a per-user flag; the flat list must not be a way around it.
+    view_flag = {
+        "direction": "can_view_direction", "pole": "can_view_pole", "module": "can_view_module",
+        "anomalie": "can_view_anomalie", "consolide": "can_view_consolide",
+    }.get(context_param)
+    if view_flag and not (request.user.is_admin or getattr(request.user, view_flag, False)):
+        raise PermissionDenied
     root_folder = context_root_folders.get(context_param)
     if root_folder:
         reports = [r for r in reports if r.get("Path", "").startswith(root_folder + "/")]
@@ -116,14 +124,9 @@ def report_list_flat_view(
 
     reports.sort(key=lambda x: x.get("Name", "").lower())
 
-    paginator = Paginator(reports, 10)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    page_obj, page_range = paginate(request, reports)
 
     permissions = permissions_getter(request.user)
-
-    # Calculate page range for pagination UI
-    page_range = paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)
 
     return render(
         request,
@@ -209,18 +212,13 @@ def report_list_view(
 
     reports.sort(key=lambda x: x.get("Name", "").lower())
 
-    paginator = Paginator(reports, 10)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    page_obj, page_range = paginate(request, reports)
 
     # Server name instead of its address, and the data of the details modal (current page only).
     server_names = get_pbirs_server_name_map()
     for r in page_obj.object_list:
         r["server_name"] = _server_label(r.get("server_url"), server_names)
     reports_modal = {r["Id"]: _modal_payload(r) for r in page_obj.object_list}
-
-    # Calculate page range for pagination UI
-    page_range = paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)
 
     server_urls = get_active_pbirs_server_urls()
 

@@ -45,7 +45,7 @@ class UserManagementAndSyncTests(TestCase):
     def test_sync_users_shows_error_when_ldap_fetch_returns_no_users(self, mock_get_ad_users) -> None:
         self.client.login(username="admin_user", password="password123")
 
-        response = self.client.get(reverse("sync_users"), follow=True)
+        response = self.client.post(reverse("sync_users"), follow=True)
 
         self.assertEqual(response.status_code, 200)
         mock_get_ad_users.assert_called_once_with("svc_user", "svc_password")
@@ -71,7 +71,7 @@ class UserManagementAndSyncTests(TestCase):
         ]
         self.client.login(username="admin_user", password="password123")
 
-        response = self.client.get(reverse("sync_users"), follow=True)
+        response = self.client.post(reverse("sync_users"), follow=True)
 
         self.assertEqual(response.status_code, 200)
         created = CustomUser.objects.get(username="newldapuser")
@@ -96,7 +96,7 @@ class UserManagementAndSyncTests(TestCase):
         )
         self.client.force_login(user_without_role)
 
-        response = self.client.get(reverse("sync_users"))
+        response = self.client.post(reverse("sync_users"))
 
         self.assertEqual(response.status_code, 403)
 
@@ -256,3 +256,21 @@ class ProductTourTests(TestCase):
         self.assertContains(response, 'data-tour="space-anomalie"')
         self.assertNotContains(response, 'data-tour="space-pole"')
         self.assertNotContains(response, 'data-tour="nav-slider"')
+
+
+class ServerStatusTests(TestCase):
+    def test_the_login_page_can_ask_and_learns_only_the_overall_status(self):
+        from unittest.mock import patch
+        from django.urls import reverse
+        with patch('users.views.get_active_pbirs_server_urls', return_value=['http://pbirs.internal']), \
+                patch('users.views.requests.get', return_value=type('R', (), {'status_code': 200})()):
+            anonymous = self.client.get(reverse('server_status'))
+        self.assertEqual(anonymous.status_code, 200)            # no redirect to the login page any more
+        self.assertEqual(anonymous.json(), {'status': 'up'})    # and no internal address
+        user = CustomUser.objects.create_user(username='st_user', password='x')
+        self.client.force_login(user)
+        with patch('users.views.get_active_pbirs_server_urls', return_value=['http://pbirs.internal']), \
+                patch('users.views.requests.get', return_value=type('R', (), {'status_code': 503})()):
+            logged_in = self.client.get(reverse('server_status')).json()
+        self.assertEqual(logged_in['status'], 'down')
+        self.assertEqual(logged_in['servers'][0]['url'], 'http://pbirs.internal')

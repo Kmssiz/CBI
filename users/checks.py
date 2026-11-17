@@ -21,4 +21,11 @@ def check_mobile_login_security(app_configs, **kwargs):
             id='users.W002',
         ))
 
+    if not settings.DEBUG and '*' in settings.ALLOWED_HOSTS:
+        warnings.append(Warning(
+            'ALLOWED_HOSTS accepts any Host header.',
+            hint='Set ALLOWED_HOSTS in .env to the real host names of the site (comma separated).',
+            id='users.W003',
+        ))
+
     return warnings

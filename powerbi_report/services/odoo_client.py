@@ -109,7 +109,9 @@ def fetch_current_employees() -> list[OdooEmployee]:
             company=str(company or '').strip(),
             phone=str(phone or '').strip(),
         )
-        known = latest.get(employee.employee_id)
+        # Employees without a matricule are told apart by name: they must not collapse into one.
+        key = employee.employee_id or f"name:{employee.full_name.casefold()}"
+        known = latest.get(key)
         if known is None or (hire_date and (known.hire_date is None or hire_date > known.hire_date)):
-            latest[employee.employee_id] = employee
+            latest[key] = employee
     return list(latest.values())

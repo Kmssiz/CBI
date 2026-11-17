@@ -1,17 +1,27 @@
 """PBIRS folder management view helpers."""
 
 import logging
+from users.utils import person_label
 from collections.abc import Callable
 
 import requests
 from django.contrib import messages
 from django.shortcuts import redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from notifications.models import Notification
 from powerbi_report.services.pbirs_servers import get_primary_pbirs_server_url
 from users.models import CustomUser
 
 logger = logging.getLogger("powerbi_report")
+
+
+def _redirect_back(request, fallback: str):
+    """Back to the page the request came from (same host only), else to ``fallback``."""
+    referer = request.META.get("HTTP_REFERER", "")
+    if referer and url_has_allowed_host_and_scheme(referer, allowed_hosts={request.get_host()}):
+        return redirect(referer)
+    return redirect(fallback)
 
 
 def report_folders_list_view(
@@ -87,12 +97,12 @@ def add_powerbi_folder_view(request, auth_getter: Callable, history_logger: Call
 
         if not folder_name:
             messages.error(request, "Folder name is required.")
-            return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
+            return _redirect_back(request, "powerbi_report:report_folders_list")
 
         base_url = get_primary_pbirs_server_url()
         if not base_url:
             messages.error(request, "No active PBIRS server is configured.")
-            return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
+            return _redirect_back(request, "powerbi_report:report_folders_list")
         url = f"{base_url}/Reports/api/v2.0/Folders"
         auth = auth_getter(request)
         session = requests.Session()
@@ -115,17 +125,17 @@ def add_powerbi_folder_view(request, auth_getter: Callable, history_logger: Call
                     user=admin,
                     message=(
                         f"Un nouveau dossier '{folder_name}' a été créé dans "
-                        f"'{folder_path}' par {request.user.username}."
+                        f"'{folder_path}' par {person_label(request.user)}."
                     ),
                 )
 
-            return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
+            return _redirect_back(request, "powerbi_report:report_folders_list")
         except requests.exceptions.HTTPError as exc:
             messages.error(request, f"Failed to create folder due to HTTP error: {exc}")
-            return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
+            return _redirect_back(request, "powerbi_report:report_folders_list")
         except requests.exceptions.RequestException as exc:
             messages.error(request, f"Failed to create folder due to request error: {exc}")
-            return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
+            return _redirect_back(request, "powerbi_report:report_folders_list")
 
     return render(request, "powerbi_report/report_folders_list.html")
 
@@ -141,7 +151,7 @@ def delete_powerbi_folder_view(
         base_url = get_primary_pbirs_server_url()
         if not base_url:
             messages.error(request, "No active PBIRS server is configured.")
-            return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
+            return _redirect_back(request, "powerbi_report:report_folders_list")
         url = f"{base_url}/Reports/api/v2.0/Folders({folder_id})"
         auth = auth_getter(request)
         session = requests.Session()
@@ -165,16 +175,16 @@ def delete_powerbi_folder_view(
             for admin in admin_users:
                 Notification.objects.create(
                     user=admin,
-                    message=f"Le dossier '{folder_name}' a été supprimé par {request.user.username}.",
+                    message=f"Le dossier '{folder_name}' a été supprimé par {person_label(request.user)}.",
                 )
 
-            return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
+            return _redirect_back(request, "powerbi_report:report_folders_list")
         except requests.exceptions.HTTPError as exc:
             messages.error(request, f"Failed to delete folder due to HTTP error: {exc}")
-            return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
+            return _redirect_back(request, "powerbi_report:report_folders_list")
         except requests.exceptions.RequestException as exc:
             messages.error(request, f"Failed to delete folder due to request error: {exc}")
-            return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
+            return _redirect_back(request, "powerbi_report:report_folders_list")
 
     messages.error(request, "Invalid request method. Please use POST to delete a folder.")
-    return redirect(request.META.get("HTTP_REFERER", "report_folders_list"))
+    return _redirect_back(request, "powerbi_report:report_folders_list")

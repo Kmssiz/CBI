@@ -22,6 +22,68 @@ def admin_required(view_func):
         return view_func(request, *args, **kwargs)
     return _wrapped_view
 
+def clean_directory_value(value) -> str:
+    """An LDAP attribute as text. A missing attribute reads as "[]" or "None": that is no value."""
+    if isinstance(value, (list, tuple)):
+        value = value[0] if value else ''
+    text = '' if value is None else str(value).strip()
+    return '' if text in ('[]', 'None') else text
+
+
+def find_directory_user(username: str, email: str = '', ad2000: str = ''):
+    """
+    The local account of a person who just authenticated against the directory.
+
+    The directory username is the identity. AD2000 is the authenticated account name itself (and is
+    unique), so it is a safe fallback. E-mail is not: it is only used when it points at exactly one
+    account that is not an administrator, so people who share a mailbox (or whose mail is missing)
+    are never merged into one account.
+    """
+    from .models import CustomUser
+
+    user = CustomUser.objects.filter(username__iexact=username).first() if username else None
+    if user is not None:
+        return user
+    ad2000 = clean_directory_value(ad2000)
+    if ad2000:
+        user = CustomUser.objects.filter(ad2000__iexact=ad2000).first()
+        if user is not None:
+            return user
+    email = clean_directory_value(email)
+    if email:
+        matches = list(CustomUser.objects.filter(email__iexact=email)[:2])
+        if len(matches) == 1 and not matches[0].is_admin:
+            return matches[0]
+    return None
+
+
+def is_admin_role(role) -> bool:
+    from django.conf import settings
+    return bool(role and role.name.lower() == settings.ADMIN_ROLE_NAME.lower())
+
+
+def other_active_admins(user):
+    """Active administrators other than ``user`` (superuser flag or admin role)."""
+    from django.conf import settings
+    from django.db.models import Q
+    from .models import CustomUser
+
+    return CustomUser.objects.filter(is_active=True).filter(
+        Q(is_superuser=True) | Q(role__name__iexact=settings.ADMIN_ROLE_NAME)
+    ).exclude(pk=user.pk)
+
+
+def apply_role(user, role) -> None:
+    """
+    Give ``user`` a role (or none) and keep the admin flags in step with it, so that taking the admin
+    role away also takes the superuser rights away. The caller saves.
+    """
+    admin = is_admin_role(role)
+    user.role = role
+    user.is_superuser = admin
+    user.is_staff = admin
+
+
 def log_history(user, action):
     """
     Logs user actions in the UserHistory model.
@@ -101,3 +163,23 @@ def _compute_user_permissions(user) -> dict[str, bool]:
     
     return permissions
 
+
+
+def person_label(value) -> str:
+    """
+    How a person is named in a notification: "Prénom Nom", never the AD identifier.
+    Accepts a user object, or an AD identifier / username (looked up); falls back to what was given.
+    """
+    from django.db.models import Q
+    from .models import CustomUser
+
+    if isinstance(value, CustomUser):
+        user = value
+    else:
+        text = (value or '').strip()
+        if not text:
+            return ''
+        user = CustomUser.objects.filter(Q(ad2000__iexact=text) | Q(username__iexact=text)).first()
+    if user is None:
+        return str(value or '')
+    return user.get_full_name() or user.username

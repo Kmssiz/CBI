@@ -59,6 +59,7 @@
                 <span class="material-symbols-outlined text-[18px]">person_add</span> Nouveaux utilisateurs
                 {% if new_users_count %}<span class="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center" title="Nouveaux utilisateurs à examiner">{{ new_users_count }}</span>{% endif %}
             </a>
+            <form id="syncUsersForm" method="post" action="{% url 'sync_users' %}" class="hidden">{% csrf_token %}</form>
             <button type="button" id="syncUsersBtn" class="flex items-center gap-2 px-5 py-2.5 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-slate-700/50 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl text-sm font-bold transition-all text-slate-700 dark:text-white" onclick="startSyncUsers()">
                 <span class="material-symbols-outlined text-[18px]">sync</span> Synchroniser
             </button>
@@ -158,6 +159,8 @@
                 <p class="pagination-meta-text">
                     Affichage {{ users.start_index }}-{{ users.end_index }} sur {{ users.paginator.count }}
                 </p>
+                <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+                {% include "_page_size.html" with page=users %}
             </div>
             <div class="pagination-nav">
                 {% if users.has_previous %}
@@ -365,9 +368,9 @@
       );
     }
     
-    // Navigate to sync URL after a small delay to ensure overlay is visible
+    // Submit the sync (a POST: it changes data) after a small delay so the overlay is visible
     setTimeout(function() {
-      window.location.href = "{% url 'sync_users' %}";
+      document.getElementById('syncUsersForm').submit();
     }, 100);
   }
 

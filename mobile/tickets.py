@@ -1,6 +1,6 @@
 """Tickets for the mobile app: the platform's ticket system (tickets app), same rules.
 
-Validation reuses ``tickets.forms`` (fields, choices, 5 MB image attachments) and
+Validation reuses ``tickets.forms`` (fields, choices, attachments: images, PDF, Word, Excel, 10 MB) and
 permissions reuse ``tickets.views`` helpers: admins see every ticket and can
 change its status / assignee; other users see the tickets they created.
 """
@@ -11,9 +11,10 @@ from django.db.models import Count
 from django.http import FileResponse, HttpRequest, HttpResponse, JsonResponse
 from django.urls import reverse
 
-from tickets import emails
+from tickets import alerts, emails
 from tickets.forms import TicketForm, TicketMessageForm
 from tickets.models import Ticket, TicketMessage
+from tickets.validators import ALLOWED_EXTENSIONS, FORMATS_HELP, MAX_ATTACHMENT_BYTES, is_image_name
 from tickets.views import _can_access_ticket, _get_admin_users, _is_admin
 from users.models import CustomUser, UserHistory
 
@@ -57,6 +58,8 @@ def serialize_ticket(ticket: Ticket, messages_count: int | None = None) -> dict:
         'created_by': _person(ticket.created_by),
         'assigned_to': _person(ticket.assigned_to),
         'attachment_url': reverse('mobile:ticket_attachment', args=[ticket.pk]) if ticket.attachment else None,
+        'attachment_name': ticket.attachment_filename or None,
+        'attachment_kind': ticket.attachment_kind or None,       # image | pdf | word | excel | file
         'created_at': _iso(ticket.created_at),
         'updated_at': _iso(ticket.updated_at),
         'messages_count': messages_count if messages_count is not None else ticket.messages.count(),
@@ -75,6 +78,8 @@ def serialize_message(message: TicketMessage, viewer: CustomUser) -> dict:
             reverse('mobile:ticket_message_attachment', args=[message.ticket_id, message.pk])
             if message.attachment else None
         ),
+        'attachment_name': message.attachment_filename or None,
+        'attachment_kind': message.attachment_kind or None,
         'created_at': _iso(message.created_at),
     }
 
@@ -111,7 +116,9 @@ def choices_view(request: HttpRequest) -> JsonResponse:
         'priorities': _choices(Ticket.PRIORITY_CHOICES),
         'statuses': _choices(Ticket.STATUS_CHOICES),
         'is_admin': _is_admin(request.user),
-        'max_attachment_bytes': 5 * 1024 * 1024,
+        'max_attachment_bytes': MAX_ATTACHMENT_BYTES,
+        'attachment_extensions': sorted(ALLOWED_EXTENSIONS),
+        'attachment_formats_help': FORMATS_HELP,
     })
 
 
@@ -144,6 +151,7 @@ def _create(request: HttpRequest) -> JsonResponse:
     ticket.created_by = request.user
     ticket.save()
     emails.ticket_created(ticket)
+    alerts.notify_admins_of_new_ticket(ticket)
     UserHistory.objects.create(user=request.user, action=f'Ticket créé : {ticket.title}'[:255],
                                source=UserHistory.SOURCE_MOBILE)
     return JsonResponse(serialize_ticket(ticket, 0), status=201)
@@ -236,6 +244,9 @@ def _file(field) -> HttpResponse:
         return _not_found()
     response = FileResponse(handle, content_type=mimetypes.guess_type(field.name)[0] or 'application/octet-stream')
     response['Cache-Control'] = 'private, max-age=86400'
+    response['X-Content-Type-Options'] = 'nosniff'
+    if not is_image_name(field.name):                       # documents are downloaded, never rendered
+        response['Content-Disposition'] = f'attachment; filename="{field.name.rsplit("/", 1)[-1]}"'
     return response
 
 

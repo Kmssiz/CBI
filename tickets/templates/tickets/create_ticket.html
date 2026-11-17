@@ -115,14 +115,18 @@
         </div>
 
         <div>
-          <label for="{{ form.attachment.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Pièce jointe (image)</label>
+          <label for="{{ form.attachment.id_for_label }}" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Pièce jointe</label>
           <div class="relative">
-            <input type="file" name="{{ form.attachment.name }}" id="{{ form.attachment.id_for_label }}" accept="image/*" class="input-theme w-full file:mr-4 file:py-1 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 file:cursor-pointer file:transition-all">
+            <input type="file" name="{{ form.attachment.name }}" id="{{ form.attachment.id_for_label }}" accept="{{ form.attachment.field.widget.attrs.accept }}" class="input-theme w-full file:mr-4 file:py-1 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 file:cursor-pointer file:transition-all">
           </div>
-          <p class="text-xs text-slate-500 mt-1.5">Formats acceptés : JPG, PNG, GIF. Taille max : 5 Mo.</p>
+          <p class="text-xs text-slate-500 mt-1.5">{{ formats_help }}</p>
           <div id="image-preview" class="mt-3 hidden">
             <img id="preview-img" src="" alt="Aperçu" class="max-h-48 rounded-lg border border-slate-200 dark:border-slate-700">
           </div>
+          <p id="file-chosen" class="mt-3 hidden items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200">
+            <span class="material-symbols-outlined text-[18px] text-slate-400">description</span><span id="file-chosen-name"></span>
+          </p>
+          {% if form.attachment.errors %}<p class="mt-2 text-sm text-red-500">{{ form.attachment.errors|join:", " }}</p>{% endif %}
         </div>
 
         <div class="pt-4 border-t border-slate-200 dark:border-slate-800/50 flex justify-end gap-3">
@@ -143,15 +147,24 @@
     fileInput.addEventListener('change', function() {
       const preview = document.getElementById('image-preview');
       const previewImg = document.getElementById('preview-img');
-      if (this.files && this.files[0]) {
+      const chosen = document.getElementById('file-chosen');
+      const chosenName = document.getElementById('file-chosen-name');
+      preview.classList.add('hidden');
+      chosen.classList.add('hidden');
+      chosen.classList.remove('inline-flex');
+      const file = this.files && this.files[0];
+      if (!file) return;
+      if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = function(event) {
           previewImg.src = event.target.result;
           preview.classList.remove('hidden');
         };
-        reader.readAsDataURL(this.files[0]);
+        reader.readAsDataURL(file);
       } else {
-        preview.classList.add('hidden');
+        chosenName.textContent = file.name;      // PDF / Word / Excel: no preview, just the name
+        chosen.classList.remove('hidden');
+        chosen.classList.add('inline-flex');
       }
     });
   }

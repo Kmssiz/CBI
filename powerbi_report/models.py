@@ -1,6 +1,7 @@
 # powerbi_report/models.py
 
 from django.db import models
+from django.utils import timezone
 from users.models import CustomUser
 
 # Unused models removed for cleanup
@@ -18,8 +19,6 @@ def metadata_logo_path(instance, filename: str) -> str:
 class PBIRSServer(models.Model):
     name = models.CharField(max_length=255, unique=True, help_text="A display name for this PBIRS instance")
     base_url = models.URLField(max_length=512, help_text="Base URL for the PBIRS API (e.g., http://server/Reports/api/v2.0)")
-    admin_username = models.CharField(max_length=255, help_text="Admin username (e.g., DOMAIN\\User)")
-    admin_password = models.CharField(max_length=255, help_text="Admin password")
     is_active = models.BooleanField(default=True, help_text="Whether this server is currently active")
 
     class Meta:
@@ -70,6 +69,10 @@ class ReportRef(models.Model):
     embed_url = models.URLField(max_length=2048, blank=True, null=True)
     description = models.TextField(blank=True, null=True, help_text="Report description from PBIRS")
     last_synced = models.DateTimeField(auto_now=True)
+    first_seen = models.DateTimeField(
+        default=timezone.now, editable=False,
+        help_text="When the report first appeared in the application (dashboard statistics)",
+    )
     modified_at = models.DateTimeField(null=True, blank=True)
     modified_by = models.ForeignKey(
         CustomUser, 
@@ -385,6 +388,16 @@ class SliderItem(models.Model):
 
     def __str__(self):
         return f"{self.slider} #{self.position}: {self.report}"
+
+
+def _forget_cached_servers(**kwargs):
+    from django.core.cache import cache
+    from powerbi_report.services.pbirs_servers import SERVERS_CACHE_KEY
+    cache.delete(SERVERS_CACHE_KEY)
+
+
+models.signals.post_save.connect(_forget_cached_servers, sender=PBIRSServer, dispatch_uid='forget_cached_servers_save')
+models.signals.post_delete.connect(_forget_cached_servers, sender=PBIRSServer, dispatch_uid='forget_cached_servers_delete')
 
 
 class OdooSettings(models.Model):

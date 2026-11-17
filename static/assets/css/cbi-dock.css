@@ -1,0 +1,121 @@
+/*
+ * The dock: one slim bar at the bottom of the sidebar holding the notification bell, the help
+ * button (guided tour, regular users) and the light/dark switch. It replaces the two big stacked
+ * buttons that used to sit there. The legacy shell hides the page header, so the sidebar is the
+ * one place that is always visible; the sidebar is dark in both themes, so these colours are fixed.
+ */
+
+body.legacy-shell .legacy-visual-nav { padding-bottom: 5.5rem; }
+
+.cbi-dock {
+  position: absolute;
+  right: 20px;
+  bottom: 18px;
+  left: 20px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid #34353d;
+  border-radius: 999px;
+  background: #25262d;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+}
+/* the light/dark switch takes the right-hand end */
+.cbi-dock .cbi-theme-switch { margin-left: auto; }
+.cbi-help { display: flex; }
+
+/* ---------- Round dock buttons (bell, help) ---------- */
+.cbi-dock-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #b5b7bf !important;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color .16s ease, color .16s ease;
+}
+.cbi-dock-btn .material-symbols-outlined { font-size: 20px; }
+.cbi-dock-btn:hover,
+.cbi-dock-btn:focus-visible { background: #34363f; color: #a5cf4b !important; outline: 0; }
+.cbi-dock-badge {
+  position: absolute;
+  top: 1px;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #a5cf4b;
+  color: #1c1d22;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+
+/* ---------- Light / dark switch ---------- */
+.cbi-theme-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  width: 60px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #3b3e48;
+  border-radius: 999px;
+  background: #1c1d22;
+  cursor: pointer;
+  transition: border-color .2s ease;
+}
+.cbi-theme-switch:hover { border-color: #a5cf4b; }
+.cbi-theme-switch:focus-visible { outline: 2px solid #a5cf4b; outline-offset: 2px; }
+
+/* the two faint icons laid under the thumb */
+.cbi-theme-switch .cbi-ts-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: #6f727c;
+  pointer-events: none;
+}
+.cbi-theme-switch .cbi-ts-sun  { left: 8px; }
+.cbi-theme-switch .cbi-ts-moon { right: 8px; }
+
+.cbi-theme-switch .cbi-ts-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f5f6f8;
+  color: #f59e0b;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .45);
+  transition: transform .28s cubic-bezier(.34, 1.4, .64, 1), background-color .25s ease, color .25s ease;
+}
+.cbi-theme-switch .cbi-ts-thumb .material-symbols-outlined { font-size: 16px; line-height: 1; }
+.cbi-theme-switch .cbi-ts-thumb .cbi-ts-thumb-moon { display: none; }
+
+html.dark .cbi-theme-switch .cbi-ts-thumb { transform: translateX(28px); background: #a5cf4b; color: #1c1d22; }
+html.dark .cbi-theme-switch .cbi-ts-thumb .cbi-ts-thumb-sun  { display: none; }
+html.dark .cbi-theme-switch .cbi-ts-thumb .cbi-ts-thumb-moon { display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cbi-theme-switch,
+  .cbi-theme-switch .cbi-ts-thumb,
+  .cbi-dock-btn { transition: none; }
+}

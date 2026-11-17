@@ -29,6 +29,25 @@ from powerbi_report.services.pbirs_servers import get_active_pbirs_server_urls, 
 logger = logging.getLogger('powerbi_report')
 
 
+class PolicyFetchError(Exception):
+    """PBIRS could not be asked (outage, expired credentials...): 'no answer' is not 'nobody has access'."""
+
+
+_FETCH_FAILED = object()
+
+
+def _is_outage(exc: Exception) -> bool:
+    """
+    True when PBIRS could not give an answer (no response, refused credentials, throttling, server error).
+    A 403 (the account may not read that item's policies) or a 404 is an answer: "no policy of its own".
+    """
+    response = getattr(exc, 'response', None)
+    if response is None:
+        return True
+    status = response.status_code
+    return status in (401, 407, 408, 429) or status >= 500
+
+
 class PermissionSyncService:
     """
     Service for synchronizing PBIRS report permissions to local database.
@@ -311,12 +330,13 @@ class PermissionSyncService:
             if policies:
                 return policies
         except requests.exceptions.RequestException as e:
-            logger.warning(
-                "Failed to fetch report policies for %s on %s: %s",
-                report_id,
-                server_url,
-                e,
-            )
+            if _is_outage(e):
+                # Falling back to the folder here would hand out the folder's policies instead of
+                # the report's own: report the failure and let the caller keep what it already has.
+                raise PolicyFetchError(f"report policies for {report_id} on {server_url}: {e}") from e
+            logger.info("No readable policy on report %s (%s): using its folder's.", report_id, e)
+        except ValueError as e:
+            raise PolicyFetchError(f"unreadable policies for {report_id} on {server_url}: {e}") from e
 
         folder_by_server_path = folder_by_server_path or {}
         folder_policy_cache = folder_policy_cache if folder_policy_cache is not None else {}
@@ -403,9 +423,12 @@ class PermissionSyncService:
         if in_cache:
             if lock:
                 with lock:
-                    return folder_policy_cache[cache_key]
+                    cached = folder_policy_cache[cache_key]
             else:
-                return folder_policy_cache[cache_key]
+                cached = folder_policy_cache[cache_key]
+            if cached is _FETCH_FAILED:
+                raise PolicyFetchError(f"folder policies for {folder_id} on {server_url}")
+            return cached
 
         try:
             url = f"{server_url}/Reports/api/v2.0/Folders({folder_id})/Policies"
@@ -416,20 +439,22 @@ class PermissionSyncService:
                 f"folder policies for {folder_id} on {server_url}",
             )
             policies = response.json().get("Policies", [])
-        except requests.exceptions.RequestException as e:
+        except (requests.exceptions.RequestException, ValueError) as e:
             logger.warning(
                 "Failed to fetch folder policies for %s on %s: %s",
                 folder_id,
                 server_url,
                 e,
             )
-            policies = []
+            policies = _FETCH_FAILED if (isinstance(e, ValueError) or _is_outage(e)) else []
 
         if lock:
             with lock:
                 folder_policy_cache[cache_key] = policies
         else:
             folder_policy_cache[cache_key] = policies
+        if policies is _FETCH_FAILED:
+            raise PolicyFetchError(f"folder policies for {folder_id} on {server_url}")
         return policies
 
 
@@ -580,8 +605,12 @@ class PermissionSyncService:
 
             queryset = ReportRef.objects.filter(server_filter)
             valid_ids = valid_ids_by_server.get(server_url, set())
-            if valid_ids:
-                queryset = queryset.exclude(pbirs_id__in=valid_ids)
+            if not valid_ids:
+                # A server that answers with nothing is far more likely misconfigured or restricted
+                # than empty: deleting would cascade to favourites, sliders and tags.
+                logger.warning("PBIRS %s returned no report at all; its local reports are kept.", server_url)
+                continue
+            queryset = queryset.exclude(pbirs_id__in=valid_ids)
 
             deleted_count, deleted_details = queryset.delete()
             deleted_report_refs = deleted_details.get("powerbi_report.ReportRef", 0)
@@ -737,11 +766,16 @@ class PermissionSyncService:
 
             permission_map = {}
             folder_policy_cache = {}
+            failed_report_ids = set()
+            abort_sync = threading.Event()
+            abort_after = max(10, len(all_reports) // 4)
 
             folder_policy_lock = threading.Lock()
             permission_map_lock = threading.Lock()
 
             def process_report(report):
+                if abort_sync.is_set():
+                    return
                 close_old_connections()
                 try:
                     report_id = report.get("Id")
@@ -749,13 +783,22 @@ class PermissionSyncService:
                     if not report_ref:
                         return
 
-                    policies = self._fetch_report_policies_for_auth(
-                        auth_to_use,
-                        report,
-                        folder_by_server_path=folder_by_server_path,
-                        folder_policy_cache=folder_policy_cache,
-                        lock=folder_policy_lock,
-                    )
+                    try:
+                        policies = self._fetch_report_policies_for_auth(
+                            auth_to_use,
+                            report,
+                            folder_by_server_path=folder_by_server_path,
+                            folder_policy_cache=folder_policy_cache,
+                            lock=folder_policy_lock,
+                        )
+                    except PolicyFetchError as exc:
+                        # No answer is not "nobody": this report keeps the access already stored.
+                        logger.warning("Permission sync could not read a report: %s", exc)
+                        with permission_map_lock:
+                            failed_report_ids.add(report_ref.id)
+                            if len(failed_report_ids) >= abort_after:
+                                abort_sync.set()
+                        return
 
                     local_permissions = []
                     for policy in policies:
@@ -786,6 +829,12 @@ class PermissionSyncService:
                         logger.error(f"Error processing report policies in thread: {exc}")
 
 
+            if abort_sync.is_set():
+                raise Exception(
+                    f"PBIRS did not answer for {len(failed_report_ids)} of {len(all_reports)} reports "
+                    "(server down or credentials refused). Existing permissions were kept."
+                )
+
             permissions_to_create = [
                 UserReportPermission(
                     user_id=user_id,
@@ -793,13 +842,22 @@ class PermissionSyncService:
                     is_direct=is_direct,
                 )
                 for (user_id, report_id), is_direct in permission_map.items()
+                if report_id not in failed_report_ids
             ]
-            users_synced = len({user_id for user_id, _ in permission_map.keys()})
+            users_synced = len({permission.user_id for permission in permissions_to_create})
             total_permissions = len(permissions_to_create)
 
             # Rebuild the permission table in bulk to avoid per-row CRUD signal overhead.
             with transaction.atomic():
-                self._clear_user_report_permissions_fast()
+                if failed_report_ids:
+                    logger.warning(
+                        "Permission sync: %s report(s) could not be read; their stored access is kept.",
+                        len(failed_report_ids),
+                    )
+                    kept_back = UserReportPermission.objects.exclude(report_id__in=failed_report_ids)
+                    kept_back._raw_delete(kept_back.db)
+                else:
+                    self._clear_user_report_permissions_fast()
                 if permissions_to_create:
                     UserReportPermission.objects.bulk_create(
                         permissions_to_create,

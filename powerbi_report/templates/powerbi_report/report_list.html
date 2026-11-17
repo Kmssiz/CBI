@@ -70,12 +70,18 @@
                     
                     {% if user.is_superuser %}
                     <div class="flex items-center gap-2">
-                        <a href="{% url 'powerbi_report:sync_reports' %}" id="syncPbirsBtn" class="size-11 flex items-center justify-center bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 border border-yellow-500/20 rounded-xl transition-all" title="Sync Reports">
-                            <span class="material-symbols-outlined">sync</span>
-                        </a>
-                        <a href="{% url 'powerbi_report:sync_permissions' %}" id="syncPermissionsBtn" class="size-11 flex items-center justify-center bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 border border-cyan-500/20 rounded-xl transition-all" title="Sync Permissions">
-                            <span class="material-symbols-outlined">group</span>
-                        </a>
+                        <form method="post" action="{% url 'powerbi_report:sync_reports' %}" class="contents">
+                            {% csrf_token %}
+                            <button type="submit" id="syncPbirsBtn" class="size-11 flex items-center justify-center bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-600 border border-yellow-500/20 rounded-xl transition-all" title="Sync Reports">
+                                <span class="material-symbols-outlined">sync</span>
+                            </button>
+                        </form>
+                        <form method="post" action="{% url 'powerbi_report:sync_permissions' %}" class="contents">
+                            {% csrf_token %}
+                            <button type="submit" id="syncPermissionsBtn" class="size-11 flex items-center justify-center bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 border border-cyan-500/20 rounded-xl transition-all" title="Sync Permissions">
+                                <span class="material-symbols-outlined">group</span>
+                            </button>
+                        </form>
                     </div>
                     {% endif %}
                 </div>
@@ -211,10 +217,10 @@
                         </td>
                         <td class="whitespace-nowrap px-3 py-3 sm:px-4 sm:py-4 xl:px-6">
                             <div class="flex items-center justify-end gap-1.5">
-                                <button type="button" data-open-report="{{ report.Id }}" title="Détails" aria-label="Détails de {{ report.Name }}"
-                                        class="inline-flex size-9 items-center justify-center rounded-lg border border-blue-500/30 text-blue-500 transition-colors hover:bg-blue-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 sm:size-8">
+                                <a href="{% url 'powerbi_report:report_detail' report.Id %}" data-act="detail" title="Détails" aria-label="Page de détails de {{ report.Name }}"
+                                   class="inline-flex size-9 items-center justify-center rounded-lg border border-blue-500/30 text-blue-500 transition-colors hover:bg-blue-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 sm:size-8">
                                     <span class="material-symbols-outlined text-[18px]">info</span>
-                                </button>
+                                </a>
                                 <a href="{% url 'powerbi_report:report_permissions' report.Id %}" data-act="perm" title="Accès" aria-label="Accès au rapport {{ report.Name }}"
                                    class="btn-outline-permission inline-flex size-9 items-center justify-center rounded-lg border border-pink-500/30 text-pink-500 transition-colors hover:bg-pink-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/50 sm:size-8">
                                     <span class="material-symbols-outlined text-[18px]">vpn_key</span>
@@ -239,6 +245,8 @@
                 <p class="pagination-meta-text">
                     Affichage {{ reports.start_index }}-{{ reports.end_index }} sur {{ reports.paginator.count }}
                 </p>
+                <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+                {% include "_page_size.html" with page=reports %}
             </div>
             
             <div class="pagination-nav">
@@ -596,35 +604,26 @@
     const syncReportsBtn = document.getElementById('syncPbirsBtn');
     const syncPermissionsBtn = document.getElementById('syncPermissionsBtn');
 
+    // These are submit buttons of POST forms: show the overlay, the form then submits by itself.
     if (syncReportsBtn) {
-        syncReportsBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const href = syncReportsBtn.getAttribute('href');
+        syncReportsBtn.addEventListener('click', () => {
             if (window.showLoadingOverlay) {
                 window.showLoadingOverlay(
                     "Synchronisation des Rapports",
                     "Récupération et indexation de la liste des rapports depuis le serveur Power BI..."
                 );
             }
-            setTimeout(() => {
-                window.location.href = href;
-            }, 100);
         });
     }
 
     if (syncPermissionsBtn) {
-        syncPermissionsBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const href = syncPermissionsBtn.getAttribute('href');
+        syncPermissionsBtn.addEventListener('click', () => {
             if (window.showLoadingOverlay) {
                 window.showLoadingOverlay(
                     "Synchronisation des Permissions",
                     "Mise à jour des accès utilisateurs à partir des stratégies de sécurité PBIRS et LDAP..."
                 );
             }
-            setTimeout(() => {
-                window.location.href = href;
-            }, 100);
         });
     }
 

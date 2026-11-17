@@ -86,11 +86,7 @@ html.dark .cbi-tour-popover .driver-popover-arrow-side-right { border-right-colo
 html.dark .cbi-tour-popover .driver-popover-arrow-side-top { border-top-color: #1c1e24; }
 html.dark .cbi-tour-popover .driver-popover-arrow-side-bottom { border-bottom-color: #1c1e24; }
 
-/* ---------- Menu latéral : deux boutons en bas (thème + visite guidée) ---------- */
-body.legacy-shell .legacy-visual-nav { padding-bottom: 7.5rem; }
-body.legacy-shell .legacy-theme-slot { display: flex; flex-direction: column; gap: 8px; }
-body.legacy-shell .legacy-theme-slot .legacy-theme-toggle { flex: 0 0 auto; }
-
+/* ---------- Menu de la visite guidée (placé sous le bouton d'aide de l'en-tête, voir cbi-header.css) ---------- */
 .cbi-tour-menu {
   position: absolute;
   right: 0;

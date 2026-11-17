@@ -6,18 +6,15 @@ from django.db import models
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from . import emails
+from . import alerts, emails
 from .forms import TicketForm, TicketMessageForm
 from .models import Ticket
+from .validators import FORMATS_HELP
 
 
 def _is_admin(user) -> bool:
-    role_name = (getattr(getattr(user, "role", None), "name", "") or "").lower()
-    return (
-        user.is_superuser
-        or role_name == settings.ADMIN_ROLE_NAME.lower()
-        or user.groups.filter(name=settings.ADMIN_ROLE_NAME).exists()
-    )
+    # One definition of "admin" for the whole application (superuser flag or admin role).
+    return bool(user.is_authenticated and user.is_admin)
 
 
 def _can_access_ticket(user, ticket: Ticket) -> bool:
@@ -26,10 +23,8 @@ def _can_access_ticket(user, ticket: Ticket) -> bool:
 
 def _get_admin_users():
     user_model = get_user_model()
-    return user_model.objects.filter(
-        models.Q(is_superuser=True)
-        | models.Q(role__name__iexact=settings.ADMIN_ROLE_NAME)
-        | models.Q(groups__name=settings.ADMIN_ROLE_NAME)
+    return user_model.objects.filter(is_active=True).filter(
+        models.Q(is_superuser=True) | models.Q(role__name__iexact=settings.ADMIN_ROLE_NAME)
     ).distinct()
 
 
@@ -79,6 +74,7 @@ def create_ticket(request):
             ticket.created_by = request.user
             ticket.save()
             emails.ticket_created(ticket)
+            alerts.notify_admins_of_new_ticket(ticket)
             messages.success(request, "Ticket créé avec succès.")
             
             from users.utils import log_history
@@ -88,7 +84,7 @@ def create_ticket(request):
     else:
         form = TicketForm()
 
-    return render(request, "tickets/create_ticket.html", {"form": form})
+    return render(request, "tickets/create_ticket.html", {"form": form, "formats_help": FORMATS_HELP})
 
 
 @login_required

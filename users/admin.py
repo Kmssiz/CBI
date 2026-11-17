@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django import forms
-from .models import CustomUser, UserHistory, Role
+from .models import AdminAuditLog, CustomUser, UserHistory, Role
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -79,3 +79,21 @@ class CustomUserAdmin(UserAdmin):
 
 admin.site.register(UserHistory)
 admin.site.register(Role)
+
+
+@admin.register(AdminAuditLog)
+class AdminAuditLogAdmin(admin.ModelAdmin):
+    """Read-only trail of administrator actions: nobody can add, edit or delete an entry here."""
+    list_display = ('timestamp', 'admin_username', 'method', 'path', 'status_code', 'ip_address')
+    list_filter = ('method', 'status_code')
+    search_fields = ('admin_username', 'path', 'view_name')
+    date_hierarchy = 'timestamp'
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

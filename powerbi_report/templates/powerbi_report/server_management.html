@@ -57,7 +57,7 @@
                                 <span class="material-symbols-outlined text-[20px]">more_vert</span>
                             </button>
                             <div class="dropdown-menu dropdown-menu-end p-2 card-theme !bg-white dark:!bg-surface-dark border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl w-48">
-                                <button onclick="editServer('{{ server.id }}', '{{ server.name|escapejs }}', '{{ server.base_url|escapejs }}', '{{ server.admin_username|escapejs }}', '{{ server.is_active|yesno:'true,false' }}')" class="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors">
+                                <button onclick="editServer('{{ server.id }}', '{{ server.name|escapejs }}', '{{ server.base_url|escapejs }}', '{{ server.is_active|yesno:'true,false' }}')" class="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors">
                                     <span class="material-symbols-outlined text-[18px]">edit</span> Modifier
                                 </button>
                                 <div class="h-px bg-slate-200 dark:bg-slate-800 my-1"></div>
@@ -76,10 +76,7 @@
                 </p>
                 
                 <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/50 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-slate-400 text-[16px]">person</span>
-                        <span class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ server.admin_username }}</span>
-                    </div>
+                    <span></span>
                     <span class="text-[10px] font-bold text-slate-400 tracking-wider">ID: {{ server.id }}</span>
                 </div>
             </div>
@@ -285,35 +282,6 @@
                             <input type="url" name="base_url" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white" placeholder="ex: http://powerbi.mycompany.local">
                             <p class="text-[11px] text-slate-500 mt-1.5">L'URL racine du serveur (sans /reports ou /api/v2.0)</p>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Compte de Service</label>
-                                <input type="text" name="admin_username" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white" placeholder="DOMAIN\user">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Mot de passe</label>
-                                <input type="password" name="admin_password" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white" placeholder="••••••••">
-                            </div>
-                        </div>
-                        <div class="pt-2">
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <div class="relative flex items-center">
-                                    <input type="checkbox" name="is_active" class="sr-only peer" checked>
-                                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
-                                </div>
-                                <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Serveur Actif</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-white/5 flex justify-end gap-3">
-                        <button type="button" onclick="closeModal('addServerModal')" class="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">Annuler</button>
-                        <button type="submit" class="px-5 py-2.5 text-sm font-bold bg-primary text-white rounded-xl hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 transition-all">Ajouter le serveur</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Edit Server Modal -->
@@ -345,35 +313,6 @@
                             <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">URL de Base</label>
                             <input type="url" id="edit_base_url" name="base_url" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white">
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Compte de Service</label>
-                                <input type="text" id="edit_admin_username" name="admin_username" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Mot de passe</label>
-                                <input type="password" name="admin_password" class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white" placeholder="Laisser vide pour ne pas changer">
-                            </div>
-                        </div>
-                        <div class="pt-2">
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <div class="relative flex items-center">
-                                    <input type="checkbox" id="edit_is_active" name="is_active" class="sr-only peer">
-                                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
-                                </div>
-                                <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Serveur Actif</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-white/5 flex justify-end gap-3">
-                        <button type="button" onclick="closeModal('editServerModal')" class="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">Annuler</button>
-                        <button type="submit" class="px-5 py-2.5 text-sm font-bold bg-blue-500 text-white rounded-xl hover:bg-blue-600 hover:shadow-lg hover:shadow-blue-500/30 transition-all">Enregistrer</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Delete Server Modal -->
@@ -686,13 +625,12 @@
         openModal('editMetadataModal');
     }
 
-    function editServer(id, name, baseUrl, adminUsername, isActive) {
+    function editServer(id, name, baseUrl, isActive) {
         const form = document.getElementById('editServerForm');
         form.action = "{% url 'powerbi_report:server_edit' 999999 %}".replace('999999', id);
         
         document.getElementById('edit_name').value = name;
         document.getElementById('edit_base_url').value = baseUrl;
-        document.getElementById('edit_admin_username').value = adminUsername;
         document.getElementById('edit_is_active').checked = (isActive === 'true');
         
         openModal('editServerModal');

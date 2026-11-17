@@ -1,5 +1,16 @@
 /*
- * Small loading spinner inside buttons, for the whole site.
+ * Loading feedback for the whole site, in two layers:
+ *
+ *  1. PAGE SHIELD. While a page change, a form submission or a request started by a click is running,
+ *     the page is blocked: nothing behind can be clicked or tabbed to, so nobody can fire a second
+ *     action or leave the first one half-done. The shield is invisible for the first 150 ms (fast
+ *     actions never flash anything), then a small "Chargement…" card appears. After 5 minutes the shield
+ *     gives up on its own and a dialog explains the likely causes, so a download or a cancelled
+ *     navigation can never leave the page locked. Escape also releases it.
+ *       CBI.block({title, subtitle})  ->  returns release()      CBI.unblockAll()
+ *     Opt out: data-no-block on a link / button / form (downloads: data-cbi-timeout does it too).
+ *
+ *  2. A small spinner inside the button that was pressed (the part below).
  *
  * A spinner appears in the button the user just pressed, and goes away when the page changes or the
  * request ends. It replaces the button's own icon (so nothing shifts) or sits in front of its label.
@@ -13,8 +24,8 @@
  * Force on a button or link that is not a form: data-cbi-loading (optional data-cbi-timeout="5000",
  * in milliseconds, for actions that do not leave the page, e.g. a file download).
  *
- * The old full-screen loader (window.showLoadingOverlay / hideLoadingOverlay) now drives the same
- * in-button spinner, so no modal is shown.
+ * window.showLoadingOverlay(title, subtitle) / hideLoadingOverlay() (called by several pages) use the
+ * shield above, with their own wording.
  */
 (function () {
   'use strict';
@@ -26,8 +37,140 @@
   var NOT_BUTTONS = 'nav, aside, [role="menu"], [role="menuitem"], [role="tab"], .sidebar-theme, ' +
                     '.pagination-nav, .pagination-footer, .pagination-btn, .dropdown-menu, .cbi-no-spinner';
   var parts = new WeakMap();   // button -> {spinner, icon, timer}
+  // A form's fields are also its properties: an input named "target" or "method" hides form.target / form.method.
+  // Forms are therefore read through the element methods only, never through those properties.
+  var elHas = Element.prototype.hasAttribute, elGet = Element.prototype.getAttribute;
+  var elSet = Element.prototype.setAttribute, elDel = Element.prototype.removeAttribute;
+  var elFind = Element.prototype.querySelector;
   var busy = [];               // buttons currently spinning
   var last = { el: null, t: 0 };
+
+  /* ------------------------------------------------------------------ page shield */
+
+  var SHOW_AFTER = 150;          // ms before the card is drawn; the page is blocked from the first instant
+  var GIVE_UP_AFTER = 300000;    // ms (5 min): release the page, then explain why (see giveUp)
+  var shield = null, holds = 0, showTimer = null, giveUpTimer = null;
+  var inerted = [];              // page children made inert while blocked
+  var messages = [];             // stack of {title, subtitle}; the latest is displayed
+
+  function buildShield() {
+    var el = document.createElement('div');
+    el.id = 'cbi-shield';
+    el.setAttribute('role', 'alert');
+    el.setAttribute('aria-live', 'assertive');
+    el.innerHTML =
+      '<div class="cbi-shield-card">' +
+        '<span class="cbi-spinner cbi-spinner--xl" aria-hidden="true"></span>' +
+        '<div class="cbi-shield-text"><strong class="cbi-shield-title"></strong><span class="cbi-shield-sub"></span></div>' +
+      '</div>';
+    // Keyboard: nothing but the shield's own button may act while blocked.
+    el.addEventListener('keydown', function (e) { if (e.key === 'Escape') unblockAll(); });
+    return el;
+  }
+
+  function paintMessage() {
+    if (!shield) return;
+    var m = messages[messages.length - 1] || {};
+    shield.querySelector('.cbi-shield-title').textContent = m.title || 'Chargement…';
+    var sub = shield.querySelector('.cbi-shield-sub');
+    sub.textContent = m.subtitle || '';
+    sub.hidden = !m.subtitle;
+  }
+
+  function lockPage() {
+    inerted = [];
+    Array.prototype.forEach.call(document.body.children, function (child) {
+      if (child === shield || child.hasAttribute('inert')) return;
+      if (/^(SCRIPT|STYLE|LINK|NOSCRIPT)$/.test(child.tagName)) return;
+      child.setAttribute('inert', '');
+      inerted.push(child);
+    });
+  }
+
+  function unlockPage() {
+    inerted.forEach(function (child) { child.removeAttribute('inert'); });
+    inerted = [];
+  }
+
+  function block(opts) {
+    opts = opts || {};
+    if (!document.body) return function () {};
+    var message = { title: opts.title, subtitle: opts.subtitle };
+    messages.push(message);
+    holds++;
+    if (holds === 1) {
+      shield = shield || buildShield();
+      document.body.appendChild(shield);
+      shield.classList.remove('is-visible');
+      lockPage();
+      document.body.setAttribute('aria-busy', 'true');
+      showTimer = setTimeout(function () { if (shield) shield.classList.add('is-visible'); }, SHOW_AFTER);
+      giveUpTimer = setTimeout(giveUp, GIVE_UP_AFTER);
+    }
+    paintMessage();
+    var released = false;
+    return function release() {
+      if (released) return;
+      released = true;
+      var i = messages.indexOf(message);
+      if (i > -1) messages.splice(i, 1);
+      if (holds > 0) holds--;
+      if (holds === 0) teardown(); else paintMessage();
+    };
+  }
+
+  function teardown() {
+    clearTimeout(showTimer); clearTimeout(giveUpTimer);
+    holds = 0; messages = [];
+    unlockPage();
+    document.body && document.body.removeAttribute('aria-busy');
+    if (shield && shield.parentNode) shield.parentNode.removeChild(shield);
+  }
+
+  function unblockAll() {
+    teardown();
+    stopAll();
+  }
+
+  // Still blocked after GIVE_UP_AFTER: release the page, and say why instead of failing silently.
+  function giveUp() {
+    var m = messages[messages.length - 1];
+    var what = (m && m.title && m.title !== 'Chargement…') ? m.title : "L'opération en cours";
+    unblockAll();
+    explain(what);
+  }
+
+  function explain(what) {
+    if (!document.body) return;
+    var old = document.getElementById('cbi-timeout');
+    if (old) old.parentNode.removeChild(old);
+    var box = document.createElement('div');
+    box.id = 'cbi-timeout';
+    box.innerHTML =
+      '<div class="cbi-timeout-card" role="alertdialog" aria-modal="true" aria-labelledby="cbi-timeout-title" aria-describedby="cbi-timeout-body">' +
+        '<h2 id="cbi-timeout-title" class="cbi-timeout-title">L\'opération prend trop de temps</h2>' +
+        '<p id="cbi-timeout-body" class="cbi-timeout-body"></p>' +
+        '<p class="cbi-timeout-why">Causes possibles :</p>' +
+        '<ul class="cbi-timeout-list">' +
+          '<li>le serveur PBIRS, Odoo ou l\'annuaire (AD) est lent ou ne répond pas ;</li>' +
+          '<li>la connexion a été interrompue entre votre poste et le site ;</li>' +
+          '<li>le traitement porte sur un très grand nombre de rapports ou de personnes.</li>' +
+        '</ul>' +
+        '<p class="cbi-timeout-note">L\'action a peut-être été effectuée en partie ou en totalité : vérifiez la page avant de la refaire. Si cela se reproduit, prévenez l\'administrateur.</p>' +
+        '<div class="cbi-timeout-actions"><button type="button" class="cbi-timeout-ok">J\'ai compris</button></div>' +
+      '</div>';
+    box.querySelector('.cbi-timeout-body').textContent =
+      '« ' + what + ' » n\'a pas répondu depuis 5 minutes, l\'écran a donc été débloqué.';
+    var onKey = function (e) { if (e.key === 'Escape') close(); };
+    var close = function () {
+      document.removeEventListener('keydown', onKey, true);
+      if (box.parentNode) box.parentNode.removeChild(box);
+    };
+    box.querySelector('.cbi-timeout-ok').addEventListener('click', close);
+    document.addEventListener('keydown', onKey, true);
+    document.body.appendChild(box);
+    box.querySelector('.cbi-timeout-ok').focus();
+  }
 
   /* ------------------------------------------------------------------ spinner on / off */
 
@@ -76,7 +219,7 @@
   function stopAll() {
     busy.slice().forEach(stop);
     Array.prototype.forEach.call(document.querySelectorAll('form[data-cbi-busy]'), function (f) {
-      f.removeAttribute('data-cbi-busy');
+      elDel.call(f, 'data-cbi-busy');
     });
   }
 
@@ -123,6 +266,13 @@
     return el;
   }
 
+  // True when a click happened in the last 300 ms on something that is not opted out.
+  function clickStartedWork() {
+    var el = last.el;
+    if (!el || Date.now() - last.t > 300) return false;
+    return !(el.hasAttribute('data-no-block') || el.closest('[data-no-block]'));
+  }
+
   /* ------------------------------------------------------------------ automatic triggers */
 
   // Clicks: remember what was pressed; start the spinner for link-buttons and data-cbi-loading.
@@ -131,6 +281,13 @@
     last = { el: el, t: Date.now() };
     if (!el) return;
     if (parts.has(el)) { e.preventDefault(); return; }            // already working: ignore a second click
+
+    // Any link that really changes the page blocks it until the next page replaces this one.
+    if (el.tagName === 'A' && leavesThePage(el, e) && !el.hasAttribute('data-no-block') &&
+        !el.hasAttribute('data-cbi-timeout') && !el.closest('[data-bs-toggle], [data-no-block]') &&
+        el.origin === window.location.origin) {
+      setTimeout(function () { if (!e.defaultPrevented) block(); }, 0);
+    }
 
     var forced = el.hasAttribute('data-cbi-loading');
     var isLink = el.tagName === 'A';
@@ -145,24 +302,27 @@
   document.addEventListener('submit', function (e) {
     var form = e.target;
     if (!form || form.tagName !== 'FORM') return;
-    if (form.hasAttribute('data-cbi-busy')) { e.preventDefault(); e.stopImmediatePropagation(); return; }
-    var target = (e.submitter && e.submitter.formTarget) || form.target;
-    if (form.hasAttribute('data-no-spinner') || (target && target !== '_self') || form.method === 'dialog') return;
-    var btn = e.submitter || form.querySelector('button[type="submit"], button:not([type]), input[type="submit"]');
-    form.setAttribute('data-cbi-busy', '1');
+    if (elHas.call(form, 'data-cbi-busy')) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+    var target = (e.submitter && elGet.call(e.submitter, 'formtarget')) || elGet.call(form, 'target');
+    var method = (elGet.call(form, 'method') || '').toLowerCase();
+    if (elHas.call(form, 'data-no-spinner') || (target && target !== '_self') || method === 'dialog') return;
+    var btn = e.submitter || elFind.call(form, 'button[type="submit"], button:not([type]), input[type="submit"]');
+    elSet.call(form, 'data-cbi-busy', '1');
     setTimeout(function () {
-      if (e.defaultPrevented) { form.removeAttribute('data-cbi-busy'); return; }   // handled by the page (AJAX...)
+      if (e.defaultPrevented) { elDel.call(form, 'data-cbi-busy'); return; }   // handled by the page (AJAX...)
       if (btn && !btn.hasAttribute('data-no-spinner')) start(btn);
+      if (!elHas.call(form, 'data-no-block')) block();
     }, 0);
   }, true);
 
   // form.submit() does not fire a submit event: use the button that was just pressed.
   var nativeSubmit = HTMLFormElement.prototype.submit;
   HTMLFormElement.prototype.submit = function () {
-    var target = this.target;
-    if (!this.hasAttribute('data-no-spinner') && (!target || target === '_self')) {
+    var target = elGet.call(this, 'target');
+    if (!elHas.call(this, 'data-no-spinner') && (!target || target === '_self')) {
       var btn = recentButton(2000, true);
       if (btn && btn.tagName !== 'A') start(btn);
+      if (!elHas.call(this, 'data-no-block')) block();
     }
     return nativeSubmit.apply(this, arguments);
   };
@@ -172,25 +332,47 @@
     var nativeFetch = window.fetch;
     window.fetch = function () {
       var btn = recentButton(300, true);
+      var release = clickStartedWork() ? block() : null;
       var request = nativeFetch.apply(this, arguments);
       if (btn && btn.tagName !== 'A' && !btn.hasAttribute('data-no-spinner') && start(btn)) {
         var done = function () { stop(btn); };
         request.then(done, done);
       }
+      if (release) request.then(release, release);
       return request;
     };
   }
 
+  // XMLHttpRequest (jQuery $.ajax...) started by a click behaves the same way.
+  if (window.XMLHttpRequest) {
+    var nativeSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function () {
+      if (clickStartedWork()) {
+        var release = block();
+        this.addEventListener('loadend', release);
+      }
+      return nativeSend.apply(this, arguments);
+    };
+  }
+
   // Back / forward from the browser cache must not show a spinner that never ends.
-  window.addEventListener('pageshow', function (e) { if (e.persisted) stopAll(); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) unblockAll(); });
 
   /* ------------------------------------------------------------------ old full-screen loader */
 
-  window.showLoadingOverlay = function () {
+  var overlayRelease = null;
+  window.showLoadingOverlay = function (title, subtitle) {
     var btn = recentButton(2500, false);
     if (btn) start(btn);
+    if (overlayRelease) overlayRelease();
+    overlayRelease = block({ title: title, subtitle: subtitle });
   };
-  window.hideLoadingOverlay = function () { stopAll(); };
+  window.hideLoadingOverlay = function () {
+    if (overlayRelease) { overlayRelease(); overlayRelease = null; }
+    stopAll();
+  };
 
-  CBI.btnLoading = { start: start, stop: stop, stopAll: stopAll, wrap: wrap, isButtonLikeLink: isButtonLikeLink };
+  CBI.btnLoading = { start: start, stop: stop, stopAll: stopAll, wrap: wrap };
+  CBI.block = block;
+  CBI.unblockAll = unblockAll;
 })();

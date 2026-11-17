@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Copier les accès{% endblock %}
+
+{% block header_title %}Copier les accès{% endblock %}
+{% block header_subtitle %}Vérifiez ce qui va être copié, rien n'est modifié tant que vous n'avez pas confirmé{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-8 py-6 max-w-5xl mx-auto space-y-6">
+
+  <!-- Source -> destination -->
+  <div class="card-theme p-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+    <div class="flex-1 min-w-0">
+      <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Copier les accès de</p>
+      <p class="text-lg font-bold text-slate-900 dark:text-white truncate">{{ source.get_full_name|default:source.username }}</p>
+      <p class="text-xs text-slate-500">{{ source.ad2000 }}</p>
+    </div>
+    <span class="material-symbols-outlined text-[28px] text-primary self-center rotate-90 sm:rotate-0">arrow_forward</span>
+    <div class="flex-1 min-w-0">
+      <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">vers</p>
+      <p class="text-lg font-bold text-slate-900 dark:text-white truncate">{{ target.get_full_name|default:target.username }}</p>
+      <p class="text-xs text-slate-500">{{ target.ad2000 }}</p>
+    </div>
+  </div>
+
+  {% if plan.is_empty %}
+  <div class="rounded-xl border border-slate-200 dark:border-slate-700 p-5 text-sm text-slate-600 dark:text-slate-300">
+    <strong class="block mb-1 text-slate-900 dark:text-white">Rien à copier</strong>
+    {{ target.get_full_name|default:target.username }} a déjà tout ce que cette copie lui donnerait (ou la source n'a rien de copiable).
+  </div>
+  {% endif %}
+
+  <!-- Summary -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    {% if options.do_reports %}
+    <div class="card-theme p-4"><p class="text-2xl font-extrabold text-emerald-500" id="countGrant">{{ plan.to_grant|length }}</p><p class="text-xs text-slate-500">rapport(s) à ajouter</p></div>
+    <div class="card-theme p-4"><p class="text-2xl font-extrabold text-slate-700 dark:text-slate-200">{{ plan.already_have }}</p><p class="text-xs text-slate-500">déjà accessible(s)</p></div>
+    <div class="card-theme p-4"><p class="text-2xl font-extrabold text-slate-700 dark:text-slate-200">{{ plan.group_only }}</p><p class="text-xs text-slate-500">via un groupe (non copiés)</p></div>
+    {% endif %}
+    {% if options.do_rls %}
+    <div class="card-theme p-4"><p class="text-2xl font-extrabold text-violet-500" id="countRls">{{ plan.rls|length }}</p><p class="text-xs text-slate-500">rapport(s) avec RLS à appliquer{% if plan.rls_already %} ({{ plan.rls_already }} déjà en place){% endif %}</p></div>
+    {% endif %}
+  </div>
+
+  {% if plan.elevated and options.do_reports %}
+  <div class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300">
+    <strong>{{ target.get_full_name|default:target.username }} est administrateur</strong> : comme pour un ajout normal, il recevra aussi les rôles
+    {{ plan.roles|join:", " }}.
+  </div>
+  {% endif %}
+
+  {% if plan.source_synced_at %}
+  <p class="text-xs text-slate-500">
+    Accès de {{ source.get_full_name|default:source.username }} d'après la dernière synchronisation ({{ plan.source_synced_at|date:"d/m/Y H:i" }}).
+    Pour partir de l'état actuel de PBIRS,
+    <a class="text-primary font-semibold" href="{% url 'powerbi_report:user_permission' source.ad2000 %}">resynchronisez ses accès</a> (bouton Sync) d'abord.
+  </p>
+  {% endif %}
+
+  {% if plan.rls_unreadable %}
+  <div class="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300">
+    <strong>RLS illisible sur {{ plan.rls_unreadable|length }} rapport(s)</strong> (PBIRS n'a pas répondu) : il ne sera pas copié pour
+    {% for r in plan.rls_unreadable|slice:":5" %}« {{ r.name }} »{% if not forloop.last %}, {% endif %}{% endfor %}{% if plan.rls_unreadable|length > 5 %} …{% endif %}.
+  </div>
+  {% endif %}
+
+  {% if options.do_sections %}
+  <div class="card-theme p-4 text-sm space-y-2">
+    <strong class="block text-slate-900 dark:text-white">Sections visibles dans le menu</strong>
+    {% if plan.sections %}
+    <p>
+      <span class="text-xs text-slate-500">Seront activées :</span>
+      {% for field, label in plan.sections %}<span class="inline-block ml-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{{ label }}</span>{% endfor %}
+    </p>
+    {% endif %}
+    {% if plan.sections_already %}
+    <p>
+      <span class="text-xs text-slate-500">Déjà visibles :</span>
+      {% for label in plan.sections_already %}<span class="inline-block ml-1 rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs font-semibold text-slate-600 dark:text-slate-300">{{ label }}</span>{% endfor %}
+    </p>
+    {% endif %}
+    {% if not plan.sections and not plan.sections_already %}
+    <p class="text-xs text-slate-500">{{ source.get_full_name|default:source.username }} ne voit aucune section en plus de la Bibliothèque.</p>
+    {% endif %}
+    <p class="text-xs text-slate-500">Seules les sections manquantes sont ajoutées ; le rôle n'est jamais copié et rien n'est retiré. La Bibliothèque est visible par tous.</p>
+  </div>
+  {% endif %}
+
+  {% if to_grant_shown %}
+  <div class="card-theme overflow-hidden">
+    <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-slate-200 dark:border-slate-800">
+      <div>
+        <p class="text-sm font-bold text-slate-900 dark:text-white">Rapports qui seront ajoutés</p>
+        <p class="text-[11px] text-slate-500">Décochez un rapport pour ne pas l'ajouter : ses rôles RLS sont alors verrouillés et ne seront pas appliqués.</p>
+      </div>
+      <button type="button" data-toggle-all="grant" class="text-xs font-bold text-primary hover:underline">Tout cocher / décocher</button>
+    </div>
+    <div class="max-h-96 overflow-y-auto">
+      <table class="w-full text-left text-sm">
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          {% for report in to_grant_shown %}
+          <tr>
+            <td class="pl-5 pr-2 py-2 w-8"><input type="checkbox" class="copy-grant h-4 w-4 cursor-pointer accent-[#a5cf4b]" data-report="{{ report.pk }}" checked aria-label="Ajouter {{ report.name }}"></td>
+            <td class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">{{ report.name }}</td>
+            <td class="px-5 py-2 text-xs text-slate-500 break-all">{{ report.path }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if to_grant_more %}<p class="px-5 py-2 text-xs text-slate-500 border-t border-slate-200 dark:border-slate-800">… et {{ to_grant_more }} autre(s), ajoutés tels quels.</p>{% endif %}
+  </div>
+  {% endif %}
+
+  {% if rls_shown %}
+  <div class="card-theme overflow-hidden">
+    <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-slate-200 dark:border-slate-800">
+      <div>
+        <p class="text-sm font-bold text-slate-900 dark:text-white">Rôles RLS qui seront ajoutés</p>
+        <p class="text-[11px] text-slate-500">Un rôle RLS suit son rapport : si le rapport est décoché, le rôle est verrouillé.</p>
+      </div>
+      <button type="button" data-toggle-all="rls" class="text-xs font-bold text-primary hover:underline">Tout cocher / décocher</button>
+    </div>
+    <div class="max-h-96 overflow-y-auto">
+      <table class="w-full text-left text-sm">
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          {% for item in rls_shown %}
+          <tr>
+            <td class="pl-5 pr-2 py-2 w-8"><input type="checkbox" class="copy-rls h-4 w-4 cursor-pointer accent-[#a5cf4b] disabled:cursor-not-allowed" data-report="{{ item.report.pk }}" checked aria-label="Appliquer les rôles RLS de {{ item.report.name }}"></td>
+            <td class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">
+              <span class="inline-flex items-center gap-1.5">{{ item.report.name }}
+                <span class="rls-lock hidden material-symbols-outlined text-[15px] text-slate-400" title="Verrouillé : le rapport n'est pas ajouté">lock</span>
+              </span>
+            </td>
+            <td class="px-5 py-2">
+              <div class="rls-picker relative max-w-full">
+                <input type="hidden" form="copyConfirmForm" name="rls_pick" value="{{ item.report.pk }}">
+                <button type="button" data-report="{{ item.report.name }}" class="rls-picker-btn inline-flex max-w-full items-center gap-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 px-2.5 py-1 text-xs font-semibold text-violet-500 hover:bg-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed" aria-expanded="false" title="Changer le groupe RLS">
+                  <span class="rls-picker-label truncate">{% for role in item.role_names %}{{ role }}{% if not forloop.last %}, {% endif %}{% empty %}Aucun rôle{% endfor %}</span>
+                  <span class="material-symbols-outlined text-[16px] shrink-0">expand_more</span>
+                </button>
+                <div class="rls-picker-menu hidden absolute left-0 top-full z-30 mt-1 w-72 max-h-60 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-1.5 shadow-xl">
+                  {% for rid, rname in item.available %}
+                  <label class="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer">
+                    <input type="checkbox" form="copyConfirmForm" name="rls_roles_{{ item.report.pk }}" value="{{ rid }}" data-name="{{ rname }}"{% if rid in item.role_ids %} checked{% endif %} class="h-4 w-4 cursor-pointer accent-[#a5cf4b]">
+                    <span class="truncate">{{ rname }}</span>
+                  </label>
+                  {% empty %}<p class="px-2 py-1.5 text-xs text-slate-500">Aucun rôle défini sur ce rapport.</p>{% endfor %}
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if rls_more %}<p class="px-5 py-2 text-xs text-slate-500 border-t border-slate-200 dark:border-slate-800">… et {{ rls_more }} autre(s), appliqués tels quels.</p>{% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Confirm -->
+  <form id="copyConfirmForm" method="post" action="{% url 'powerbi_report:copy_access_apply' current.ad2000 %}" class="flex flex-wrap items-center justify-end gap-3">
+    {% csrf_token %}
+    <input type="hidden" name="source_user" value="{{ source.ad2000 }}">
+    <input type="hidden" name="target_user" value="{{ target.ad2000 }}">
+    {% if options.do_reports %}<input type="hidden" name="do_reports" value="on">{% endif %}
+    {% if options.do_rls %}<input type="hidden" name="do_rls" value="on">{% endif %}
+    {% if options.do_sections %}<input type="hidden" name="do_sections" value="on">{% endif %}
+    <a href="{% url 'powerbi_report:user_permission' current.ad2000 %}" class="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">Annuler</a>
+    {% if not plan.is_empty %}
+    <button type="submit" id="copyConfirm" class="px-6 py-2.5 rounded-xl bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none">
+      <span class="material-symbols-outlined text-[18px]">content_copy</span> Confirmer la copie
+    </button>
+    {% endif %}
+  </form>
+</div>
+
+<!-- RLS role popup: opened by a role picker button (see the script below) -->
+<div id="rlsPopup" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="rlsPopupTitle">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" data-rls-close></div>
+  <div class="relative z-10 flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl">
+    <div class="flex items-start justify-between gap-3 border-b border-slate-200 dark:border-slate-800 px-5 py-4">
+      <div class="min-w-0">
+        <h5 id="rlsPopupTitle" class="text-base font-bold text-slate-900 dark:text-white">Groupes RLS</h5>
+        <p class="text-xs text-slate-500">Cochez les rôles RLS à appliquer sur ce rapport.</p>
+        <p id="rlsPopupReport" class="mt-1 truncate text-sm font-semibold text-slate-700 dark:text-slate-200"></p>
+      </div>
+      <button type="button" data-rls-close class="p-1 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white" aria-label="Fermer"><span class="material-symbols-outlined text-[24px]">close</span></button>
+    </div>
+    <div id="rlsPopupBody" class="flex-1 overflow-y-auto px-4 py-3"></div>
+    <div class="flex justify-end border-t border-slate-200 dark:border-slate-800 px-5 py-3">
+      <button type="button" data-rls-close class="px-6 py-2 rounded-xl bg-primary text-white text-sm font-bold hover:opacity-90">OK</button>
+    </div>
+  </div>
+</div>
+<style>
+  /* the role list, once it is inside the popup, is a plain list (no dropdown positioning) */
+  #rlsPopupBody .rls-picker-menu {
+    position: static !important; width: auto !important; max-height: none !important;
+    border: 0 !important; box-shadow: none !important; padding: 0 !important; background: transparent !important;
+  }
+  #rlsPopupBody .rls-picker-menu label { padding-top: .5rem; padding-bottom: .5rem; }
+</style>
+
+<script>
+(function () {
+  const form = document.getElementById('copyConfirmForm');
+  if (!form) return;
+  const confirmBtn = document.getElementById('copyConfirm');
+  const grants = [...document.querySelectorAll('.copy-grant')];
+  const rlsBoxes = [...document.querySelectorAll('.copy-rls')];
+  const totalGrant = {{ plan.to_grant|length }};
+  const totalRls = {{ plan.rls|length }};
+
+  // Unticked boxes are sent as skip_grant / skip_rls (report ids). Rebuilt on every change.
+  const sync = () => {
+    form.querySelectorAll('.skip-input').forEach((n) => n.remove());
+    const addSkip = (name, value) => {
+      const i = document.createElement('input');
+      i.type = 'hidden';
+      i.name = name;
+      i.value = value;
+      i.className = 'skip-input';
+      form.appendChild(i);
+    };
+    const skippedGrant = new Set();
+    grants.forEach((cb) => {
+      if (!cb.checked) {
+        skippedGrant.add(cb.dataset.report);
+        addSkip('skip_grant', cb.dataset.report);
+      }
+    });
+    let skippedRls = 0;
+    rlsBoxes.forEach((cb) => {
+      const locked = skippedGrant.has(cb.dataset.report);     // its report is not being added
+      const wasLocked = cb.dataset.locked === '1';
+      if (locked && !wasLocked) cb.checked = false;
+      if (!locked && wasLocked) cb.checked = true;             // report ticked again: RLS back on
+      cb.dataset.locked = locked ? '1' : '0';
+      cb.disabled = locked;
+      const row = cb.closest('tr');
+      const lock = row.querySelector('.rls-lock');
+      if (lock) lock.classList.toggle('hidden', !locked);
+      const picker = row.querySelector('.rls-picker-btn');
+      if (picker) picker.disabled = locked;
+      if (locked) row.querySelectorAll('.rls-picker-menu').forEach((m) => m.classList.add('hidden'));
+      if (!cb.checked) {
+        skippedRls++;
+        addSkip('skip_rls', cb.dataset.report);
+      }
+    });
+
+    const countGrant = document.getElementById('countGrant');
+    const countRls = document.getElementById('countRls');
+    const selectedGrant = totalGrant - skippedGrant.size;
+    const selectedRls = totalRls - skippedRls;
+    if (countGrant) countGrant.textContent = selectedGrant;
+    if (countRls) countRls.textContent = selectedRls;
+    if (confirmBtn) confirmBtn.disabled = selectedGrant + selectedRls === 0;
+  };
+
+  // RLS role picker: the button opens a popup holding that line's role list. The list node is moved
+  // into the popup while it is open (its checkboxes keep their form association) and put back on close.
+  const popup = document.getElementById('rlsPopup');
+  const popupBody = document.getElementById('rlsPopupBody');
+  const popupTitle = document.getElementById('rlsPopupReport');
+  let openPicker = null;
+  const closePopup = () => {
+    if (!openPicker) return;
+    const { menu, btn } = openPicker;
+    openPicker.home.appendChild(menu);
+    menu.classList.add('hidden');
+    btn.setAttribute('aria-expanded', 'false');
+    popup.classList.add('hidden');
+    popup.classList.remove('flex');
+    btn.focus();
+    openPicker = null;
+  };
+  document.querySelectorAll('.rls-picker').forEach((picker) => {
+    const btn = picker.querySelector('.rls-picker-btn');
+    const menu = picker.querySelector('.rls-picker-menu');
+    const label = picker.querySelector('.rls-picker-label');
+    const boxes = [...menu.querySelectorAll('input[type="checkbox"]')];
+    const paint = () => {
+      const names = boxes.filter((b) => b.checked).map((b) => b.dataset.name);
+      label.textContent = names.length ? names.join(', ') : 'Aucun rôle';
+    };
+    btn.addEventListener('click', () => {
+      if (!popup || btn.disabled) return;
+      openPicker = { picker, menu, btn, home: picker };
+      popupTitle.textContent = btn.dataset.report || '';
+      popupBody.appendChild(menu);
+      menu.classList.remove('hidden');
+      btn.setAttribute('aria-expanded', 'true');
+      popup.classList.remove('hidden');
+      popup.classList.add('flex');
+      const first = boxes[0];
+      if (first) first.focus();
+    });
+    boxes.forEach((b) => b.addEventListener('change', paint));
+    paint();
+  });
+  if (popup) {
+    popup.addEventListener('click', (e) => { if (e.target.closest('[data-rls-close]')) closePopup(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && openPicker) { e.stopPropagation(); closePopup(); }
+    });
+  }
+
+  grants.forEach((cb) => cb.addEventListener('change', sync));
+  rlsBoxes.forEach((cb) => cb.addEventListener('change', sync));
+  document.querySelectorAll('[data-toggle-all]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const list = btn.dataset.toggleAll === 'grant' ? grants : rlsBoxes;
+      const anyChecked = list.some((cb) => cb.checked && !cb.disabled);
+      list.forEach((cb) => { if (!cb.disabled) cb.checked = !anyChecked; });
+      sync();
+    });
+  });
+  sync();
+})();
+</script>
+{% endblock %}

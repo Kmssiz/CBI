@@ -364,15 +364,18 @@ document.addEventListener("DOMContentLoaded", function () {
                 members.forEach(member => {
                     const div = document.createElement('div');
                     div.className = 'flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg';
+                    // Names come from the directory: they are written as text, never as markup.
                     div.innerHTML = `
                         <div class="size-8 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold text-xs">
                             <span class="material-symbols-outlined text-[16px]">person</span>
                         </div>
                         <div>
-                            <p class="text-sm font-semibold text-slate-900 dark:text-white">${member.FullName || member.UserName}</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">${member.UserName}</p>
+                            <p class="text-sm font-semibold text-slate-900 dark:text-white" data-member-name></p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400" data-member-login></p>
                         </div>
                     `;
+                    div.querySelector('[data-member-name]').textContent = member.FullName || member.UserName || '';
+                    div.querySelector('[data-member-login]').textContent = member.UserName || '';
                     membersList.appendChild(div);
                 });
             }

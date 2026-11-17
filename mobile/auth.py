@@ -8,7 +8,9 @@ from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
-from users.ldap_utils import connexion_ad2000
+from users.ldap_utils import connexion_ad2000, resolve_directory_username  # noqa: F401 (re-exported)
+from users.net import client_ip as _client_ip
+from users.utils import clean_directory_value, find_directory_user
 from users.models import CustomUser, MobileApiSession, Role, UserHistory
 
 from .http import api_error, issue_token, mobile_endpoint, read_json, session_lifetime
@@ -33,35 +35,8 @@ def config_view(request: HttpRequest) -> JsonResponse:
     })
 
 
-def resolve_directory_username(identifier: str) -> str | None:
-    """Turn what the user typed into an AD sAMAccountName so we can always NTLM-bind.
-
-    Accepts ``H0017549``, ``GSH\\H0017549``, ``H0017549@domain.local`` (UPN) and
-    corporate e-mail addresses, which are looked up in the synced user directory.
-    NTLM never sends the password to the directory in clear text, even on port 389.
-    """
-    value = identifier.strip()
-    if '\\' in value:
-        value = value.split('\\', 1)[1].strip()
-    if '@' not in value:
-        return value or None
-
-    known = CustomUser.objects.filter(email__iexact=value).exclude(username='').first()
-    if known is not None:
-        return known.username
-    local_part, _, domain = value.partition('@')
-    domain = domain.casefold()
-    if domain.endswith('.local') or domain.split('.', 1)[0] == settings.LDAP_DOMAIN.casefold():
-        return local_part or None
-    return None
-
-
 def _throttle_keys(request: HttpRequest, identifier: str) -> dict[str, str]:
-    ip_header = settings.MOBILE_LOGIN_CLIENT_IP_HEADER
-    source_ip = (
-        request.META.get(ip_header, '').split(',', 1)[0].strip() if ip_header
-        else request.META.get('REMOTE_ADDR', '')
-    ) or 'unknown'
+    source_ip = _client_ip(request)
     identities = {'ip': source_ip, 'user': identifier.strip().casefold()}
     return {
         scope: f'mobile-login:{scope}:' + salted_hmac('cbi-mobile-login-throttle', value).hexdigest()
@@ -84,16 +59,10 @@ def _consume(key: str, limit: int, window: int) -> bool:
 def _sync_directory_user(info: dict, fallback_username: str) -> CustomUser:
     """Create/update the local account exactly like users.views.login_view."""
     ldap_name = info.get('username') or fallback_username
-    email = (info.get('email') or '').strip()
-    ad2000 = (info.get('ad2000') or '').strip()
-    if ad2000 in ('', '[]'):
-        ad2000 = None
+    email = clean_directory_value(info.get('email'))
+    ad2000 = clean_directory_value(info.get('ad2000')) or None
 
-    user = CustomUser.objects.filter(username__iexact=ldap_name).first()
-    if user is None and email:
-        user = CustomUser.objects.filter(email__iexact=email).first()
-    if user is None and ad2000:
-        user = CustomUser.objects.filter(ad2000__iexact=ad2000).first()
+    user = find_directory_user(ldap_name, email, ad2000 or '')
     created = user is None
     if created:
         role, _ = Role.objects.get_or_create(name=settings.USER_ROLE_NAME)

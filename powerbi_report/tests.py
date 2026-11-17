@@ -770,7 +770,7 @@ class ReportListTableTests(TestCase):
         self.admin = User.objects.create_superuser(username='listadmin', password='password')
         self.client.force_login(self.admin)
         PBIRSServer.objects.create(
-            name='PBIRS Production', base_url='https://bi.example.com/', admin_username='x', admin_password='x',
+            name='PBIRS Production', base_url='https://bi.example.com/',
         )
         pole = MetadataOption.objects.create(option_type='pole', name='Service')
         self.societes = [
@@ -815,7 +815,7 @@ class ReportListTableTests(TestCase):
     def test_row_is_clickable_and_actions_are_icon_buttons(self):
         html = self._page().content.decode()
         self.assertIn('data-report-id="r-1"', html)
-        self.assertIn('data-open-report="r-1"', html)
+        self.assertIn('data-act="detail"', html)                 # a link to the report page, not a second modal trigger
         for label in ('Détails', 'Accès', 'Ouvrir le rapport'):
             self.assertIn(f'title="{label}"', html)
 
@@ -901,3 +901,239 @@ class ButtonSpinnerAssetsTests(TestCase):
         self.client.force_login(admin)
         html = self.client.get(reverse('tickets:ticket_list')).content.decode()
         self.assertNotIn('globalLoadingOverlay', html)
+
+
+class NavSectionTests(TestCase):
+    """'Tous les rapports' keeps the user inside the section he came from, and the menu keeps its highlight."""
+
+    SECTIONS = [('direction', 'Direction'), ('pole', 'Pôle'), ('consolide', 'Consolidé'),
+                ('biblio', 'Bibliothèque'), ('module', 'Module'), ('anomalie', 'Anomalie')]
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(username='navadmin', password='password')
+        self.client.force_login(self.admin)
+
+    def _flat(self, query=''):
+        return self.client.get(reverse('powerbi_report:report_list_flat') + query)
+
+    @staticmethod
+    def _classes(html, label, tag):
+        import re
+        match = re.search(r'class="([^"]*)">' + re.escape(label) + r'</' + tag + '>', html)
+        assert match, f'{label!r} not found in the menu'
+        return match.group(1)
+
+    def test_every_section_keeps_its_own_highlight_on_tous_les_rapports(self):
+        for key, label in self.SECTIONS:
+            with self.subTest(key):
+                response = self._flat(f'?context={key}')
+                html = response.content.decode()
+                self.assertEqual(response.context['nav_section'], key)
+                self.assertIn('is-current', self._classes(html, label, 'a'))
+                for other_key, other_label in self.SECTIONS:
+                    if other_key != key:
+                        self.assertNotIn('is-current', self._classes(html, other_label, 'a'))
+                self.assertIn('is-current', self._classes(html, 'Tableau de bord', 'summary'))
+                self.assertNotIn('is-current', self._classes(html, 'Admin', 'summary'))   # the highlight no longer jumps to Admin
+                self.assertRegex(html, r'<details class="legacy-report-group"[^>]*\bopen\b')
+
+    def test_the_flat_list_outside_any_section_still_belongs_to_the_admin_area(self):
+        html = self._flat().content.decode()
+        self.assertEqual(self._flat().context['nav_section'], '')
+        self.assertIn('is-current', self._classes(html, 'Admin', 'summary'))
+        self.assertNotIn('is-current', self._classes(html, 'Tableau de bord', 'summary'))
+
+    def test_an_unknown_context_is_not_a_section(self):
+        for context in ('list_flat', 'nonsense', ''):
+            with self.subTest(context):
+                self.assertEqual(self._flat(f'?context={context}').context['nav_section'], '')
+
+    def test_the_section_pages_themselves_are_still_highlighted_by_their_path(self):
+        for key, _ in self.SECTIONS:
+            with self.subTest(key):
+                response = self.client.get(reverse(f'powerbi_report:custom_{key}'))
+                self.assertEqual(response.context['nav_section'], key)
+
+    def test_title_header_and_back_button_stay_in_the_section(self):
+        for key, label in self.SECTIONS:
+            with self.subTest(key):
+                response = self._flat(f'?context={key}')
+                html = response.content.decode()
+                section_url = reverse(f'powerbi_report:custom_{key}')
+                self.assertContains(response, f'{label} · Tous les rapports')
+                self.assertIn(f'<title>Tous les rapports · {label} | CBI</title>', html)
+                self.assertEqual(response.context['nav_section_url'], section_url)
+                self.assertIn(f'href="{section_url}" class="flex items-center gap-2 px-4 py-2 border', html)   # "Vue Hiérarchique"
+
+    def test_the_report_page_opened_from_a_section_keeps_that_section(self):
+        from django.test import RequestFactory
+        from django.urls import resolve
+        from powerbi_report.context_processors import nav_section
+        request = RequestFactory().get('/powerbi/embed/CBI/Pole%20Production/rapport/', {'context': 'pole'})
+        request.resolver_match = resolve(request.path)
+        self.assertEqual(request.resolver_match.url_name, 'embed_report')
+        self.assertEqual(nav_section(request)['nav_section'], 'pole')
+        request = RequestFactory().get('/powerbi/embed/CBI/x/', {'context': 'list_flat'})
+        request.resolver_match = resolve(request.path)
+        self.assertEqual(nav_section(request), {'nav_section': ''})
+
+    def test_the_context_is_kept_by_the_links_of_the_list(self):
+        from powerbi_report.models import MetadataOption, ReportRef
+        ref = ReportRef.objects.create(pbirs_id='nav-1', name='Ventes', path='/CBI/Ventes', report_type='dashboard')
+        ref.directions.add(MetadataOption.objects.create(option_type='direction', name='Commerce'))
+        html = self._flat('?context=direction').content.decode()
+        self.assertIn('?context=direction', html)
+        self.assertIn('Ventes', html)
+
+
+class NavigationUiTests(TestCase):
+    """Library by module, folder search + 'Tous les rapports', sidebar label, header controls."""
+
+    def setUp(self):
+        from powerbi_report.models import MetadataOption, ReportRef
+        self.admin = User.objects.create_superuser(username='nav_admin', password='x')
+        self.plain = User.objects.create_user(username='nav_user', password='x')
+        self.mod_fin = MetadataOption.objects.create(option_type='module', name='Finance')
+        self.dir_cpo = MetadataOption.objects.create(option_type='direction', name='CPO')
+        self.lib = ReportRef.objects.create(pbirs_id='lib-1', name='Balance âgée', path='/BI/Balance', report_type='bibliotheque')
+        self.lib.modules.add(self.mod_fin)
+        self.lib.directions.add(self.dir_cpo)
+        self.loose = ReportRef.objects.create(pbirs_id='lib-2', name='Rapport libre', path='/BI/Libre', report_type='bibliotheque')
+
+    def test_the_library_is_grouped_by_module_not_by_direction(self):
+        self.client.force_login(self.admin)
+        page = self.client.get(reverse('powerbi_report:custom_biblio'))
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual([f.name for f in page.context['subfolders']], ['Finance'])
+        self.assertContains(page, 'Finance')
+        self.assertNotContains(page, '>CPO<')
+
+    def test_a_library_report_without_module_is_still_reachable_from_the_root(self):
+        self.client.force_login(self.admin)
+        page = self.client.get(reverse('powerbi_report:custom_biblio'))
+        self.assertEqual([r['name'] for r in page.context['loose_reports']], ['Rapport libre'])
+        self.assertContains(page, 'Rapport libre')
+        self.assertContains(page, 'Sans module')
+
+    def test_a_module_folder_lists_its_reports(self):
+        self.client.force_login(self.admin)
+        page = self.client.get(reverse('powerbi_report:custom_folder_detail', args=['biblio', self.mod_fin.id]))
+        self.assertEqual([r['name'] for r in page.context['reports']], ['Balance âgée'])
+
+    def test_folders_have_a_search_bar_and_the_all_reports_button_on_every_level(self):
+        self.client.force_login(self.admin)
+        flat = reverse('powerbi_report:report_list_flat') + '?context=biblio'
+        root = self.client.get(reverse('powerbi_report:custom_biblio'))
+        inside = self.client.get(reverse('powerbi_report:custom_folder_detail', args=['biblio', self.mod_fin.id]))
+        for page in (root, inside):
+            self.assertContains(page, 'id="folderSearch"')
+            self.assertContains(page, 'Tous les rapports')
+            self.assertContains(page, flat)
+        self.assertContains(inside, 'data-search-card')
+
+    def test_the_sidebar_calls_the_server_page_config(self):
+        self.client.force_login(self.admin)
+        page = self.client.get(reverse('powerbi_report:server_management_list'))
+        self.assertContains(page, '>Config</a>')
+        self.assertNotContains(page, '>Serveurs</a>')
+
+    def test_one_theme_switch_in_the_dock_and_none_in_the_hidden_header(self):
+        self.client.force_login(self.plain)
+        page = self.client.get(reverse('landing'))
+        body = page.content.decode()
+        self.assertEqual(body.count('id="theme-toggle"'), 1)
+        self.assertIn('role="switch"', body)
+        self.assertNotIn('legacy-theme-slot', body)
+        self.assertNotIn('theme-toggle-header', body)
+
+    def test_the_help_button_is_for_regular_users_only(self):
+        self.client.force_login(self.plain)
+        self.assertContains(self.client.get(reverse('landing')), 'id="tour-launcher"')
+        self.client.force_login(self.admin)
+        self.assertNotContains(self.client.get(reverse('landing')), 'id="tour-launcher"')
+
+
+class PerformanceFixesTests(TestCase):
+    """The cheap, behaviour-neutral speed-ups: same answers, fewer queries and calls."""
+
+    def test_the_leaf_filter_keeps_reports_and_drops_folder_like_rows(self):
+        from powerbi_report.models import ReportRef
+        from powerbi_report.views import _filter_reportref_to_leaf_items
+        refs = [ReportRef.objects.create(pbirs_id=f'p-{i}', name=path or 'vide', path=path)
+                for i, path in enumerate(['/CBI', '/CBI/A', '/CBI/A/B', '/CBI/C', '/CBI/Ab', '/', '', '/Z/'])]
+        kept = sorted(r.path for r in _filter_reportref_to_leaf_items(refs))
+        # '/CBI' and '/CBI/A' have children; '/CBI/Ab' is NOT a parent of anything ('/CBI/A' is not its prefix + '/')
+        self.assertEqual(kept, ['/CBI/A/B', '/CBI/Ab', '/CBI/C', '/Z/'])
+
+    def test_the_server_list_is_cached_and_a_change_clears_it(self):
+        from powerbi_report.models import PBIRSServer
+        from powerbi_report.services.pbirs_servers import get_primary_pbirs_server_url
+        server = PBIRSServer.objects.create(name='A', base_url='http://one.example', is_active=True)
+        self.assertEqual(get_primary_pbirs_server_url(), 'http://one.example')
+        with self.assertNumQueries(0):
+            self.assertEqual(get_primary_pbirs_server_url(), 'http://one.example')
+        server.base_url = 'http://two.example'
+        server.save()
+        self.assertEqual(get_primary_pbirs_server_url(), 'http://two.example')
+        server.delete()
+        self.assertNotEqual(get_primary_pbirs_server_url(), 'http://two.example')  # back to the configured fallback
+
+    def test_the_local_report_list_costs_the_same_number_of_queries_whatever_the_number_of_reports(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        from powerbi_report.models import ReportRef
+        from powerbi_report.views import get_local_reports_for_user
+        admin = User.objects.create_superuser(username='perf_admin', password='x')
+
+        def queries_for(count):
+            ReportRef.objects.all().delete()
+            for i in range(count):
+                ReportRef.objects.create(pbirs_id=f'm-{i}', name=f'R{i}', path=f'/CBI/R{i}', modified_by=admin)
+            get_local_reports_for_user(admin)            # warm the server-url cache: only the report queries are counted
+            with CaptureQueriesContext(connection) as captured:
+                reports = get_local_reports_for_user(admin)
+            self.assertEqual(len(reports), count)
+            return len(captured)
+
+        self.assertEqual(queries_for(3), queries_for(15))   # the modifier used to cost one query per report
+
+    @patch('powerbi_report.views.get_powerbi_reports')
+    @patch('powerbi_report.views.get_group_members', return_value=[])
+    @patch('powerbi_report.views.is_ldap_group', return_value=False)
+    @patch('powerbi_report.views.get_report_permissions')
+    @patch('powerbi_report.services.pbirs_client.PBIRSClient')
+    def test_the_permissions_page_skips_the_catalogue_and_the_group_lookup_for_known_people(
+            self, client_cls, policies, is_group, _members, catalogue):
+        from powerbi_report.models import ReportRef
+        from powerbi_report.services.pbirs_client import PBIRSClientError
+        ReportRef.objects.create(pbirs_id='perm-1', name='Ventes', path='/CBI/Ventes')
+        User.objects.create_user(username='known', password='x', ad2000='KNOWN1')
+        policies.return_value = [{'GroupUserName': r'DOM\KNOWN1', 'Roles': []}, {'GroupUserName': r'DOM\SOME-GROUP', 'Roles': []}]
+        client_cls.return_value.get_data_model_roles_strict.side_effect = PBIRSClientError('no rls here')
+        admin = User.objects.create_superuser(username='perm_admin', password='x')
+        self.client.force_login(admin)
+        page = self.client.get(reverse('powerbi_report:report_permissions', args=['perm-1']))
+        self.assertEqual(page.status_code, 200)
+        catalogue.assert_not_called()                                   # the local row gave the name
+        self.assertEqual([c.args[0] for c in is_group.call_args_list], ['SOME-GROUP'])   # not asked about KNOWN1
+        self.assertContains(page, 'Ventes')
+
+    @patch('powerbi_report.views.get_powerbi_report_info')
+    def test_the_report_label_comes_from_the_local_row_without_calling_pbirs(self, pbirs_info):
+        from powerbi_report.models import ReportRef
+        from powerbi_report.views import _get_report_label
+        ReportRef.objects.create(pbirs_id='lbl-1', name='Marges', path='/CBI/Marges')
+        self.assertEqual(_get_report_label(Mock(), 'LBL-1'), {'name': 'Marges', 'path': '/CBI/Marges'})
+        pbirs_info.assert_not_called()
+
+
+class LoginKeepsAdGroupsTests(TestCase):
+    def test_logging_in_does_not_erase_the_cached_ad_groups(self):
+        user = User.objects.create_user(username='grp_user', password='x', ad2000='GRP1', ad_groups=['BI-Finance', 'BI-RH'])
+        ldap_answer = {'username': 'grp_user', 'email': 'g@example.com', 'first_name': 'Gil', 'last_name': 'Roup',
+                       'ad2000': 'GRP1', 'department': '', 'title': ''}   # the login lookup has no 'ad_groups'
+        with patch('users.views.connexion_ad2000', return_value=ldap_answer), \
+                patch('users.views.sync_user_permissions_on_login', create=True):
+            self.client.post(reverse('login'), {'username': 'grp_user', 'password': 'x'})
+        user.refresh_from_db()
+        self.assertEqual(user.ad_groups, ['BI-Finance', 'BI-RH'])

@@ -1,6 +1,7 @@
 """Power BI report file operation view helpers."""
 
 import logging
+from users.utils import person_label
 from collections.abc import Callable
 
 import requests
@@ -33,7 +34,7 @@ def replace_powerbi_report_view(
     permissions_syncer: Callable,
 ):
     """Replace an existing PBIRS Power BI report with a new PBIX file."""
-    if not request.user.has_perm("powerbi_report.change_powerbireport"):
+    if not request.user.is_admin:
         messages.error(request, "Vous n'avez pas la permission de remplacer les rapports.")
         return redirect("powerbi_report:report_detail", report_id=report_id)
 
@@ -90,7 +91,7 @@ def replace_powerbi_report_view(
             if admin.id != request.user.id:
                 Notification.objects.create(
                     user=admin,
-                    message=f"Le rapport '{report_name}' a été remplacé par {request.user.username}.",
+                    message=f"Le rapport '{report_name}' a été remplacé par {person_label(request.user)}.",
                 )
         logger.info("Sent notifications to admin users about replacing report '%s'.", report_name)
 

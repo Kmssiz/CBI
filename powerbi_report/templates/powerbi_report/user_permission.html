@@ -69,11 +69,20 @@
             
             <div class="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-2"></div>
             
-            <a href="?force_sync=true" id="syncButton" class="flex items-center gap-2 px-4 py-3 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-bold rounded-xl transition-all border border-cyan-500/20" title="Synchroniser">
-              <span class="material-symbols-outlined text-[18px]">sync</span>
-              <span class="hidden sm:inline">Sync</span>
-            </a>
+            <form method="post" class="contents">
+              {% csrf_token %}
+              <input type="hidden" name="force_sync" value="true">
+              <button type="submit" id="syncButton" class="flex items-center gap-2 px-4 py-3 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs font-bold rounded-xl transition-all border border-cyan-500/20" title="Synchroniser">
+                <span class="material-symbols-outlined text-[18px]">sync</span>
+                <span class="hidden sm:inline">Sync</span>
+              </button>
+            </form>
             
+            <button type="button" id="copyAccessButton" class="flex items-center gap-2 px-4 py-3 bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 text-xs font-bold rounded-xl transition-all" title="Copier les accès et le RLS">
+              <span class="material-symbols-outlined text-[18px]">content_copy</span>
+              <span class="hidden sm:inline">Copier</span>
+            </button>
+
             <a href="{% url 'powerbi_report:missing_permissions' selected_user %}" class="flex items-center gap-2 px-4 py-3 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold rounded-xl transition-all border border-primary/20" title="Ajouter des permissions">
               <span class="material-symbols-outlined text-[18px]">add</span>
               <span class="hidden sm:inline">Ajouter</span>
@@ -135,51 +144,6 @@
       </div>
     </div>
 
-    <!-- Grant direct access by metadata -->
-    <details class="card-theme bg-white border border-slate-200 dark:border-slate-800/50 rounded-2xl mb-8 shadow-sm group">
-      <summary class="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer list-none select-none">
-        <div class="flex items-center gap-3 min-w-0">
-          <span class="material-symbols-outlined text-primary">dataset</span>
-          <div class="min-w-0">
-            <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-widest">Accès par métadonnées</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">Accorder l'accès aux rapports correspondant à au moins une sélection.</p>
-          </div>
-        </div>
-        <span class="material-symbols-outlined text-slate-400 transition-transform group-open:rotate-180">expand_more</span>
-      </summary>
-      <div class="border-t border-slate-200 dark:border-slate-800 px-5 py-4">
-        <form method="post" action="{% url 'powerbi_report:add_metadata_permissions' selected_user %}" class="space-y-4">
-          {% csrf_token %}
-          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-            {% for group_name, field_name, options in metadata_groups %}
-            <div class="metadata-dropdown relative min-w-0" data-field="{{ field_name }}">
-              <span class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">{{ group_name }}</span>
-              <button type="button" class="metadata-dropdown-toggle w-full flex items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:border-primary/50 transition-all">
-                <span class="metadata-dropdown-label truncate">Sélectionner...</span>
-                <span class="material-symbols-outlined text-[17px] text-slate-400">expand_more</span>
-              </button>
-              <div class="metadata-dropdown-menu hidden absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl">
-                {% for option in options %}
-                <label class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer text-xs text-slate-700 dark:text-slate-300">
-                  <span class="relative flex shrink-0">
-                    <input type="checkbox" name="{{ field_name }}" value="{{ option.id }}" class="metadata-checkbox peer" data-label="{{ option.name }}">
-                    <span class="metadata-checkbox-mark material-symbols-outlined pointer-events-none absolute inset-0 text-[13px] leading-4 text-white opacity-0 peer-checked:opacity-100">check</span>
-                  </span>
-                  <span class="truncate" title="{{ option.name }}">{{ option.name }}</span>
-                </label>
-                {% empty %}<span class="text-xs text-slate-400">Aucune option</span>{% endfor %}
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-          <div class="flex justify-end">
-            <button type="submit" id="metadataAccessSubmit" class="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-xs font-bold transition-all">
-              <span class="material-symbols-outlined text-[17px]">person_add</span><span>Accorder les accès</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </details>
 
 
     <div class="card-theme bg-white border border-slate-200 dark:border-slate-800/50 rounded-3xl overflow-hidden shadow-2xl">
@@ -273,13 +237,14 @@
         </div>
       </form>
       
-      {% if reports.paginator.num_pages > 1 %}
+      {% if reports.paginator.count > 10 %}
       <!-- Pagination -->
       <div class="pagination-footer">
           <div class="pagination-meta-container">
               <p class="pagination-meta-text">
                   Affichage de {{ reports.start_index }} à {{ reports.end_index }} sur {{ reports.paginator.count }} rapports
               </p>
+              {% include "_page_size.html" with page=reports %}
           </div>
           <div class="pagination-nav">
               {% if reports.has_previous %}
@@ -707,94 +672,243 @@
   });
 </script>
 
+
+<!-- ========== Copy access modal ========== -->
+<div id="copyAccessModal" class="fixed inset-0 z-[9999] hidden items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="copyAccessTitle">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" data-copy-close></div>
+  <form method="post" action="{% url 'powerbi_report:copy_access_preview' selected_user %}" class="relative z-10 flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl sm:max-w-lg sm:rounded-2xl">
+    {% csrf_token %}
+    <div class="flex items-start justify-between gap-3 px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+      <div>
+        <h5 id="copyAccessTitle" class="text-base font-bold text-slate-900 dark:text-white">Copier les accès</h5>
+        <p class="text-xs text-slate-500">Vous verrez ce qui sera copié avant de confirmer.</p>
+      </div>
+      <button type="button" data-copy-close class="p-1 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white" aria-label="Fermer"><span class="material-symbols-outlined text-[24px]">close</span></button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+      <fieldset class="space-y-2">
+        <label class="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-700 p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+          <input type="radio" name="direction" value="from_me" checked class="mt-1">
+          <span class="text-sm text-slate-700 dark:text-slate-200">Donner les accès de <strong>{{ full_name }}</strong> à une autre personne</span>
+        </label>
+        <label class="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-700 p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+          <input type="radio" name="direction" value="to_me" class="mt-1">
+          <span class="text-sm text-slate-700 dark:text-slate-200">Donner à <strong>{{ full_name }}</strong> les accès d'une autre personne</span>
+        </label>
+      </fieldset>
+
+      <div>
+        <label for="copyOther" class="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">L'autre personne</label>
+        <div class="relative">
+          <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">person_search</span>
+          <input type="text" id="copyOther" name="other" required autocomplete="off" spellcheck="false"
+                 role="combobox" aria-expanded="false" aria-controls="copyResults" aria-autocomplete="list"
+                 placeholder="Nom, prénom ou identifiant AD…"
+                 class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 pl-10 pr-10 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
+          <button type="button" id="copyClear" hidden class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white" aria-label="Effacer le champ">
+            <span class="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+        <div id="copyResults" role="listbox" aria-label="Personnes trouvées" class="hidden mt-2 max-h-60 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-1"></div>
+        <p id="copyHint" class="mt-1.5 text-[11px] text-slate-500">Tapez au moins 2 lettres, puis choisissez une personne dans la liste (flèches et Entrée possibles).</p>
+      </div>
+
+      <fieldset class="space-y-2.5">
+        <legend class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">À copier</legend>
+        <label class="flex items-center gap-2.5 text-sm text-slate-700 dark:text-slate-200"><input type="checkbox" name="do_reports" checked> Accès aux rapports <span class="text-xs text-slate-500">(accès directs)</span></label>
+        <label class="flex items-center gap-2.5 text-sm text-slate-700 dark:text-slate-200"><input type="checkbox" name="do_rls" checked> Rôles RLS</label>
+        <label class="flex items-center gap-2.5 text-sm text-slate-700 dark:text-slate-200"><input type="checkbox" name="do_sections" checked> Sections visibles <span class="text-xs text-slate-500">(Direction, Pôle, Consolidé, Anomalie, Module, slider)</span></label>
+      </fieldset>
+      <p class="text-xs text-slate-500">Rien n'est retiré à la personne qui reçoit : on ajoute seulement ce qui lui manque.</p>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 px-5 py-4 border-t border-slate-200 dark:border-slate-800">
+      <button type="button" data-copy-close class="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5">Annuler</button>
+      <button type="submit" class="px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:opacity-90 inline-flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">visibility</span> Voir l'aperçu</button>
+    </div>
+  </form>
+</div>
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const metadataForm = document.querySelector('form[action*="add-metadata-permissions"]');
-    const dropdowns = document.querySelectorAll('.metadata-dropdown');
+(function () {
+  const modal = document.getElementById('copyAccessModal');
+  const openBtn = document.getElementById('copyAccessButton');
+  if (!modal || !openBtn) return;
+  const input = document.getElementById('copyOther');
+  const box = document.getElementById('copyResults');
+  const clearBtn = document.getElementById('copyClear');
+  const hint = document.getElementById('copyHint');
+  const SEARCH_URL = "{% url 'powerbi_report:copy_user_search' %}";
+  const EXCLUDE = "{{ selected_user }}";
+  const HINT_DEFAULT = hint.textContent;
+  let timer = null, seq = 0, items = [], active = -1, chosen = '';
 
-    function updateMetadataLabel(dropdown) {
-      const selected = [...dropdown.querySelectorAll('.metadata-checkbox:checked')];
-      const label = dropdown.querySelector('.metadata-dropdown-label');
-      if (!selected.length) {
-        label.textContent = 'Sélectionner...';
-        label.classList.add('text-slate-400');
-      } else if (selected.length <= 2) {
-        label.textContent = selected.map(input => input.dataset.label).join(', ');
-        label.classList.remove('text-slate-400');
-      } else {
-        label.textContent = `${selected.length} sélectionnés`;
-        label.classList.remove('text-slate-400');
-      }
+  const isOpen = () => !box.classList.contains('hidden');
+  const close = () => {
+    box.classList.add('hidden');
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
+    active = -1;
+  };
+  const openList = () => {
+    box.classList.remove('hidden');
+    input.setAttribute('aria-expanded', 'true');
+  };
+  const show = () => {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    input.focus();
+  };
+  const hide = () => {
+    close();
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    openBtn.focus();
+  };
+
+  // "Nom Prénom (ad2000)" -> name and identifier, for the two-line row
+  const parse = (label) => {
+    const m = label.match(/^(.*)\s\(([^()]+)\)$/);
+    return m ? { name: m[1], id: m[2] } : { name: label, id: '' };
+  };
+  const initials = (name) => name.split(/\s+/).filter(Boolean).slice(0, 2)
+    .map((w) => w[0].toUpperCase()).join('') || '?';
+
+  const highlight = (i) => {
+    active = i;
+    items.forEach((el, k) => {
+      const on = k === i;
+      el.setAttribute('aria-selected', on ? 'true' : 'false');
+      el.classList.toggle('bg-primary/10', on);
+    });
+    if (items[i]) {
+      input.setAttribute('aria-activedescendant', items[i].id);
+      items[i].scrollIntoView({ block: 'nearest' });
     }
+  };
 
-    dropdowns.forEach(dropdown => {
-      const toggle = dropdown.querySelector('.metadata-dropdown-toggle');
-      const menu = dropdown.querySelector('.metadata-dropdown-menu');
-      toggle.addEventListener('click', function (event) {
-        event.stopPropagation();
-        document.querySelectorAll('.metadata-dropdown-menu').forEach(other => {
-          if (other !== menu) other.classList.add('hidden');
-        });
-        menu.classList.toggle('hidden');
-      });
-      menu.addEventListener('click', event => event.stopPropagation());
-      dropdown.querySelectorAll('.metadata-checkbox').forEach(input => {
-        input.addEventListener('change', () => updateMetadataLabel(dropdown));
-      });
-      updateMetadataLabel(dropdown);
+  const choose = (label) => {
+    chosen = label;
+    input.value = label;
+    clearBtn.hidden = false;
+    close();
+    hint.textContent = 'Personne sélectionnée : ' + parse(label).name + '.';
+  };
+
+  const message = (text) => {
+    items = [];
+    active = -1;
+    const p = document.createElement('div');
+    p.className = 'px-3 py-3 text-xs text-slate-500';
+    p.textContent = text;
+    box.replaceChildren(p);
+    openList();
+  };
+
+  const render = (results) => {
+    if (!results.length) {
+      message("Aucune personne trouvée. Essayez un autre nom ou l'identifiant AD complet.");
+      return;
+    }
+    items = results.map((label, k) => {
+      const p = parse(label);
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.id = 'copyOpt' + k;
+      row.setAttribute('role', 'option');
+      row.setAttribute('aria-selected', 'false');
+      row.className = 'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-slate-100 dark:hover:bg-white/5 transition-colors';
+      const av = document.createElement('span');
+      av.className = 'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-[11px] font-bold';
+      av.textContent = initials(p.name);
+      const txt = document.createElement('span');
+      txt.className = 'min-w-0 flex-1';
+      const name = document.createElement('span');
+      name.className = 'block truncate text-sm font-semibold text-slate-800 dark:text-slate-100';
+      name.textContent = p.name;
+      const id = document.createElement('span');
+      id.className = 'block truncate text-xs text-slate-500';
+      id.textContent = p.id;
+      txt.append(name, id);
+      row.append(av, txt);
+      row.dataset.label = label;
+      row.addEventListener('mousedown', (e) => e.preventDefault());   // keeps the focus in the field
+      row.addEventListener('click', () => choose(label));
+      row.addEventListener('mouseenter', () => highlight(k));
+      return row;
     });
+    box.replaceChildren(...items);
+    openList();
+    highlight(0);
+  };
 
-    document.addEventListener('click', function () {
-      document.querySelectorAll('.metadata-dropdown-menu').forEach(menu => menu.classList.add('hidden'));
-    });
+  const search = async (q) => {
+    const mine = ++seq;
+    try {
+      const url = SEARCH_URL + '?q=' + encodeURIComponent(q) + '&exclude=' + encodeURIComponent(EXCLUDE);
+      const res = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (mine === seq) render(data.results || []);
+    } catch (err) {
+      if (mine === seq) message("Recherche impossible pour le moment. Réessayez, ou tapez l'identifiant AD complet.");
+    }
+  };
 
-    if (metadataForm) {
-      metadataForm.addEventListener('submit', function () {
-        const submit = document.getElementById('metadataAccessSubmit');
-        if (!submit) return;
-        submit.disabled = true;
-        submit.classList.add('opacity-70', 'cursor-wait');
-        submit.querySelector('.material-symbols-outlined').textContent = 'progress_activity';
-        submit.querySelector('span:last-child').textContent = 'Attribution en cours...';
-        if (window.showLoadingOverlay) {
-          window.showLoadingOverlay('Mise à jour des accès', 'Attribution des rapports sélectionnés...');
-        }
-      });
+  input.addEventListener('input', () => {
+    if (chosen && input.value !== chosen) {
+      chosen = '';
+      hint.textContent = HINT_DEFAULT;
+    }
+    clearBtn.hidden = !input.value;
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 2) {
+      seq++;
+      close();
+      return;
+    }
+    message('Recherche…');
+    timer = setTimeout(() => search(q), 200);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' && items.length) {
+      e.preventDefault();
+      highlight(Math.min(active + 1, items.length - 1));
+    } else if (e.key === 'ArrowUp' && items.length) {
+      e.preventDefault();
+      highlight(Math.max(active - 1, 0));
+    } else if (e.key === 'Enter' && isOpen() && items[active]) {
+      e.preventDefault();                       // choose, do not submit the form
+      choose(items[active].dataset.label);
+    } else if (e.key === 'Escape' && isOpen()) {
+      e.preventDefault();
+      e.stopPropagation();                      // closes the list only, not the dialog
+      close();
     }
   });
-</script>
 
-<style>
-  .metadata-checkbox {
-    appearance: auto !important;
-    -webkit-appearance: checkbox !important;
-    width: 1rem;
-    height: 1rem;
-    margin: 0;
-    border: 1px solid #cbd5e1;
-    border-radius: .25rem;
-    background: transparent;
-    cursor: pointer;
-    transition: background-color .15s, border-color .15s, box-shadow .15s;
-  }
-  .metadata-checkbox:focus-visible {
-    outline: 2px solid #a5cf4b;
-    outline-offset: 2px;
-  }
-  .metadata-checkbox:checked {
-    background: #a5cf4b;
-    border-color: #a5cf4b;
-  }
-  html.dark .metadata-checkbox {
-    background: #1e293b;
-    border-color: #64748b;
-  }
-  html.dark .metadata-checkbox:checked {
-    background: #a5cf4b;
-    border-color: #a5cf4b;
-  }
-  .metadata-checkbox-mark { display: none !important; }
-</style>
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    chosen = '';
+    clearBtn.hidden = true;
+    hint.textContent = HINT_DEFAULT;
+    close();
+    input.focus();
+  });
+
+  document.addEventListener('mousedown', (e) => {
+    if (isOpen() && !box.contains(e.target) && e.target !== input) close();
+  });
+
+  openBtn.addEventListener('click', show);
+  modal.addEventListener('click', (e) => { if (e.target.closest('[data-copy-close]')) hide(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden') && !isOpen()) hide();
+  });
+})();
+</script>
 
 
 

@@ -122,6 +122,11 @@
     </div>
 
     <!-- Missing Reports Table -->
+    <p class="px-1 mb-4 text-xs text-slate-500">
+      Liste calculée sur la copie locale de PBIRS
+      {% if permissions_synced_at %}(synchronisée le {{ permissions_synced_at|date:"d/m/Y H:i" }}){% else %}(aucune synchronisation pour cette personne){% endif %}.
+      Les ajouts, eux, sont écrits directement dans PBIRS.
+    </p>
     {% if missing_reports %}
     <form method="post" action="{% url 'powerbi_report:add_selected_permissions' selected_username %}" id="selectedReportsForm" class="m-0">
         {% csrf_token %}

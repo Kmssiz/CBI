@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -173,14 +174,35 @@ class TicketEmailTests(TestCase):
     def _to(self):
         return sorted(addr for m in self.mail.outbox for addr in m.to)
 
-    def test_creating_a_ticket_confirms_to_the_requester_and_alerts_every_admin(self):
+    def test_creating_a_ticket_alerts_every_admin_and_not_the_requester(self):
         self.client.login(username="requester", password="password")
         self.client.post(reverse("tickets:create_ticket"), {
             "title": "Nouveau", "description": "Desc", "ticket_type": "refresh", "category": "cbi", "priority": "medium",
         })
-        self.assertEqual(self._to(), ["admin1@example.com", "admin2@example.com", "requester@example.com"])
+        self.assertEqual(self._to(), ["admin1@example.com", "admin2@example.com"])   # no copy for the sender
         self.assertTrue(all("Nouveau" in m.subject for m in self.mail.outbox))
         self.assertTrue(all(len(m.to) == 1 for m in self.mail.outbox))  # nobody sees anybody's address
+
+    def test_an_admin_opening_a_ticket_is_not_mailed_about_it_but_the_other_admins_are(self):
+        self.client.login(username="admin1", password="password")
+        self.client.post(reverse("tickets:create_ticket"), {
+            "title": "Par un admin", "description": "Desc", "ticket_type": "bug", "category": "cbi", "priority": "low",
+        })
+        self.assertEqual(self._to(), ["admin2@example.com"])
+
+    def test_creating_a_ticket_notifies_every_admin_in_the_app_with_a_link(self):
+        from notifications.models import Notification
+        self.client.login(username="requester", password="password")
+        self.client.post(reverse("tickets:create_ticket"), {
+            "title": "Nouveau", "description": "Desc", "ticket_type": "refresh", "category": "cbi", "priority": "medium",
+        })
+        ticket = Ticket.objects.get(title="Nouveau")
+        link = reverse("tickets:ticket_detail", args=[ticket.id])
+        notified = set(Notification.objects.filter(link=link).values_list("user__username", flat=True))
+        self.assertEqual(notified, {"admin1", "admin2"})           # the requester is not notified
+        note = Notification.objects.filter(link=link).first()
+        self.assertIn("Nouveau", note.message)
+        self.assertIn(f"#{ticket.id}", note.message)
 
     def test_a_message_from_the_requester_goes_to_the_handlers_not_back_to_the_sender(self):
         self.client.login(username="requester", password="password")
@@ -285,3 +307,196 @@ class TicketEmailTests(TestCase):
         self.assertIn("<br>", html)  # line breaks of the message are kept
         self.assertIn("Dashboard ventes", html)
         self.assertIn("Deuxième ligne", message.body)  # plain-text version stays complete
+
+
+class TicketLabelTests(TestCase):
+    """The wording asked for: categories 'Bibliothèque' / 'Tableau de bord'; the dashboard request type."""
+
+    def test_categories_are_bibliotheque_and_tableau_de_bord(self):
+        self.assertEqual(
+            [label for _, label in Ticket.CATEGORY_CHOICES], ["Bibliothèque", "Tableau de bord"]
+        )
+        self.assertEqual(dict(Ticket.CATEGORY_CHOICES)["cbi"], "Tableau de bord")   # stored value unchanged
+
+    def test_the_dashboard_request_type_is_a_creation_request(self):
+        self.assertEqual(dict(Ticket.TICKET_TYPE_CHOICES)["dashboard"], "Demande de création de tableau de bord")
+
+    def test_the_create_form_shows_the_new_wording(self):
+        User.objects.create_user(username="someone", password="password")
+        self.client.login(username="someone", password="password")
+        html = self.client.get(reverse("tickets:create_ticket")).content.decode()
+        self.assertIn("Demande de création de tableau de bord", html)
+        self.assertIn(">Tableau de bord<", html)
+        self.assertNotIn("Demande de dashboard", html)
+
+
+def _zip_bytes(names):
+    import io
+    import zipfile
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        for name in names:
+            archive.writestr(name, "<x/>")
+    return buffer.getvalue()
+
+
+PNG_1PX = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+    b"\x00\x00\x00\rIDATx\x9cc\xf8\xff\xff?\x00\x05\xfe\x02\xfe\xa7\x1ba\xb0\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+SAMPLES = {
+    "rapport.pdf": b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF",
+    "note.docx": _zip_bytes(["[Content_Types].xml", "word/document.xml"]),
+    "budget.xlsx": _zip_bytes(["[Content_Types].xml", "xl/workbook.xml"]),
+    "ancien.doc": b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 64,
+    "ancien.xls": b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 64,
+    "donnees.csv": "nom;montant\nAlpha;10\nBêta;20\n".encode("utf-8"),
+    "capture.png": PNG_1PX,
+}
+
+
+class TicketAttachmentTests(TestCase):
+    """Excel, PDF and Word files can be attached, next to images, and anything else is refused."""
+
+    def setUp(self):
+        import shutil
+        import tempfile
+        from django.test import override_settings
+        self.media = tempfile.mkdtemp()
+        self.override = override_settings(MEDIA_ROOT=self.media)
+        self.override.enable()
+        self.addCleanup(self.override.disable)
+        self.addCleanup(shutil.rmtree, self.media, True)
+        self.user = User.objects.create_user(username="sender", password="password")
+        self.client.login(username="sender", password="password")
+
+    def _create(self, name, content, content_type="application/octet-stream"):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        return self.client.post(reverse("tickets:create_ticket"), {
+            "title": f"Avec {name}", "description": "Desc", "ticket_type": "bug", "category": "cbi",
+            "priority": "medium", "attachment": SimpleUploadedFile(name, content, content_type=content_type),
+        })
+
+    def test_each_accepted_format_can_be_attached(self):
+        for name, content in SAMPLES.items():
+            with self.subTest(name):
+                response = self._create(name, content)
+                self.assertEqual(response.status_code, 302, response.content.decode()[:300])
+                self.assertTrue(Ticket.objects.get(title=f"Avec {name}").attachment)
+
+    def test_refused_files_do_not_create_a_ticket(self):
+        refused = {
+            "virus.exe": b"MZ\x90\x00",
+            "page.html": b"<html><script>alert(1)</script></html>",
+            "dessin.svg": b"<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>",
+            "macro.docm": _zip_bytes(["[Content_Types].xml", "word/document.xml", "word/vbaProject.bin"]),
+            "macro.xlsm": _zip_bytes(["[Content_Types].xml", "xl/workbook.xml", "xl/vbaProject.bin"]),
+            "faux.pdf": b"this is not a pdf",
+            "faux.docx": b"not a zip at all",
+            "faux.xlsx": _zip_bytes(["random.txt"]),
+            "faux.png": b"GIF89a....",
+            "faux.xls": b"plain text",
+            "binaire.csv": b"a;b\x00\x01\x02",
+        }
+        for name, content in refused.items():
+            with self.subTest(name):
+                response = self._create(name, content)
+                self.assertEqual(response.status_code, 200)             # form shown again with an error
+                self.assertFalse(Ticket.objects.filter(title=f"Avec {name}").exists())
+        self.assertEqual(Ticket.objects.count(), 0)
+
+    def test_a_macro_enabled_document_is_refused_even_when_renamed_docx(self):
+        response = self._create("renomme.docx", _zip_bytes(["[Content_Types].xml", "word/document.xml", "word/vbaProject.bin"]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_files_over_10_mb_are_refused(self):
+        response = self._create("gros.pdf", b"%PDF-1.4" + b"0" * (10 * 1024 * 1024 + 1))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "10 Mo")
+
+    def test_the_form_tells_which_formats_are_accepted(self):
+        html = self.client.get(reverse("tickets:create_ticket")).content.decode()
+        for fragment in (".pdf", ".docx", ".xlsx", "PDF", "Word", "Excel"):
+            self.assertIn(fragment, html)
+        self.assertNotIn('accept="image/*"', html)
+
+    def test_a_pdf_shows_as_a_download_chip_and_an_image_as_a_preview(self):
+        self._create("rapport.pdf", SAMPLES["rapport.pdf"])
+        self._create("capture.png", SAMPLES["capture.png"])
+        pdf = Ticket.objects.get(title="Avec rapport.pdf")
+        img = Ticket.objects.get(title="Avec capture.png")
+        pdf_html = self.client.get(reverse("tickets:ticket_detail", args=[pdf.id])).content.decode()
+        self.assertIn("rapport.pdf", pdf_html)
+        self.assertIn("picture_as_pdf", pdf_html)
+        self.assertNotIn("Pièce jointe du ticket", pdf_html)          # no <img> preview for a PDF
+        img_html = self.client.get(reverse("tickets:ticket_detail", args=[img.id])).content.decode()
+        self.assertIn("Pièce jointe du ticket", img_html)
+
+    def test_a_reply_can_carry_an_excel_file(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        ticket = Ticket.objects.create(
+            title="T", description="D", ticket_type="bug", category="cbi", priority="low", created_by=self.user,
+        )
+        self.client.post(reverse("tickets:add_message", args=[ticket.id]), {
+            "content": "Voici le fichier",
+            "attachment": SimpleUploadedFile("budget.xlsx", SAMPLES["budget.xlsx"]),
+        })
+        message = TicketMessage.objects.get(ticket=ticket)
+        self.assertEqual(message.attachment_kind, "excel")
+        self.assertFalse(message.attachment_is_image)
+        html = self.client.get(reverse("tickets:ticket_detail", args=[ticket.id])).content.decode()
+        self.assertIn("budget.xlsx", html)
+
+
+class TicketAdminAndMailResilienceTests(TestCase):
+    """One definition of 'admin' for the whole app, and one refused address never stops the others."""
+
+    def setUp(self):
+        from django.core import mail
+        self.mail = mail
+        self.user = User.objects.create_user(username="req2", password="password", email="req2@example.com")
+        self.admin = User.objects.create_superuser(username="adm1", password="password", email="adm1@example.com")
+        self.ex_admin = User.objects.create_superuser(username="adm2", password="password", email="adm2@example.com")
+        self.ticket = Ticket.objects.create(
+            title="Ticket", description="d", ticket_type="bug", category="cbi",
+            priority="high", status="open", created_by=self.user,
+        )
+
+    def test_a_deactivated_admin_is_not_mailed_and_group_membership_is_not_admin(self):
+        from django.contrib.auth.models import Group
+        from tickets.views import _get_admin_users, _is_admin
+        User.objects.filter(pk=self.ex_admin.pk).update(is_active=False)
+        in_group = User.objects.create_user(username="grp", password="password", email="grp@example.com")
+        in_group.groups.add(Group.objects.create(name=settings.ADMIN_ROLE_NAME))
+        self.assertEqual(set(_get_admin_users().values_list("username", flat=True)), {"adm1"})
+        self.assertFalse(_is_admin(in_group))
+        self.assertTrue(_is_admin(self.admin))
+
+    def test_one_refused_address_does_not_stop_the_other_mails(self):
+        from unittest.mock import patch
+        from django.core.mail import EmailMultiAlternatives
+        from tickets import emails
+
+        real_send, calls = EmailMultiAlternatives.send, []
+
+        def flaky(message, *args, **kwargs):
+            calls.append(message.to[0])
+            if message.to[0] == "adm1@example.com":
+                raise OSError("recipient refused")
+            return real_send(message, *args, **kwargs)
+
+        with patch.object(EmailMultiAlternatives, "send", flaky):
+            emails.ticket_created(self.ticket)
+        self.assertEqual(sorted(calls), ["adm1@example.com", "adm2@example.com"])
+        self.assertEqual([m.to[0] for m in self.mail.outbox], ["adm2@example.com"])
+
+    def test_old_office_files_carrying_macros_are_refused(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.core.exceptions import ValidationError
+        from tickets.validators import validate_ticket_attachment
+        ole = bytes.fromhex("d0cf11e0a1b11ae1")
+        clean = SimpleUploadedFile("ok.doc", ole + bytes(64))
+        validate_ticket_attachment(clean)
+        macro = SimpleUploadedFile("macro.xls", ole + bytes(32) + "_VBA_PROJECT".encode("utf-16-le") + bytes(8))
+        with self.assertRaises(ValidationError):
+            validate_ticket_attachment(macro)

@@ -32,7 +32,16 @@ def _cache_key_for_group(group_name: str) -> str:
 def _group_members_url(group_name: str) -> str:
     """Build the LDAP API URL without leaving raw group names in the path."""
     encoded_group = urllib.parse.quote(group_name, safe="")
+    if getattr(settings, "LDAP_API_TOKEN_HEADER", ""):
+        return f"{LDAP_GROUP_MEMBERS_URL}/{encoded_group}"
     return f"{LDAP_GROUP_MEMBERS_URL}/{encoded_group}?token={LDAP_API_TOKEN}"
+
+
+def _api_get(url: str):
+    """GET on the group API; the token goes in a header when LDAP_API_TOKEN_HEADER is set."""
+    header = getattr(settings, "LDAP_API_TOKEN_HEADER", "")
+    headers = {header: LDAP_API_TOKEN} if header else None
+    return requests.get(url, headers=headers, timeout=10)
 
 
 def _log_group_fetch_error(group_name: str, exc: requests.RequestException) -> None:
@@ -62,7 +71,7 @@ def is_ldap_group(name: str) -> bool:
     if cached is not None:
         return cached
     try:
-        response = requests.get(_group_members_url(name), timeout=10)
+        response = _api_get(_group_members_url(name))
         result = response.status_code == 200 and "members" in response.json()
     except requests.RequestException as exc:
         _log_group_fetch_error(name, exc)
@@ -112,7 +121,7 @@ def get_group_members(
     url = _group_members_url(group_name)
 
     try:
-        response = requests.get(url, timeout=10)
+        response = _api_get(url)
         response.raise_for_status()
         data = response.json()
 
@@ -142,7 +151,7 @@ def get_group_members(
 
             sub_url = _group_members_url(cleaned_member)
             try:
-                sub_response = requests.get(sub_url, timeout=10)
+                sub_response = _api_get(sub_url)
                 if sub_response.status_code == 200 and "members" in sub_response.json():
                     sub_members = get_group_members(
                         cleaned_member,
@@ -190,7 +199,7 @@ def get_group_members(
 
                 sub_url = _group_members_url(member)
                 try:
-                    sub_response = requests.get(sub_url, timeout=10)
+                    sub_response = _api_get(sub_url)
                     if sub_response.status_code == 200 and "members" in sub_response.json():
                         groups_found = True
                         sub_members = get_group_members(

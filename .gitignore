@@ -49,3 +49,7 @@ UPGRADE_NOTES.md
 
 # Node tooling (the built static/assets/css/tailwind.css is committed)
 tools/tailwind/node_modules/
+
+# Container output: holds internal host and account names, never commit
+docker_logs.txt
+*.log

@@ -1,11 +1,21 @@
 from django.conf import settings
 from django.db import models
 
+from .validators import IMAGE_EXTENSIONS, extension_of, kind_of, validate_ticket_attachment
+
+
+def _is_image(file_field) -> bool:
+    return bool(file_field) and extension_of(file_field.name) in IMAGE_EXTENSIONS
+
+
+def _file_name(file_field) -> str:
+    return file_field.name.rsplit("/", 1)[-1] if file_field else ""
+
 
 class Ticket(models.Model):
     TICKET_TYPE_CHOICES = (
         ("bug", "Signalement de bug"),
-        ("dashboard", "Demande de dashboard"),
+        ("dashboard", "Demande de création de tableau de bord"),
         ("refresh", "Demande d'actualisation"),
         ("access", "Demande d'accès"),
         ("other", "Autre"),
@@ -20,7 +30,7 @@ class Ticket(models.Model):
 
     CATEGORY_CHOICES = (
         ("bibliotheque", "Bibliothèque"),
-        ("cbi", "CBI"),
+        ("cbi", "Tableau de bord"),
     )
 
     PRIORITY_CHOICES = (
@@ -35,7 +45,9 @@ class Ticket(models.Model):
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default="cbi")
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default="medium")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="open")
-    attachment = models.ImageField(upload_to="ticket_attachments/", null=True, blank=True)
+    attachment = models.FileField(
+        upload_to="ticket_attachments/", null=True, blank=True, validators=[validate_ticket_attachment]
+    )
 
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -56,6 +68,18 @@ class Ticket(models.Model):
     def __str__(self):
         return f"[{self.get_ticket_type_display()}] {self.title}"
 
+    @property
+    def attachment_is_image(self) -> bool:
+        return _is_image(self.attachment)
+
+    @property
+    def attachment_filename(self) -> str:
+        return _file_name(self.attachment)
+
+    @property
+    def attachment_kind(self) -> str:
+        return kind_of(self.attachment.name) if self.attachment else ""
+
     class Meta:
         ordering = ["-created_at"]
 
@@ -64,7 +88,9 @@ class TicketMessage(models.Model):
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="messages")
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     content = models.TextField()
-    attachment = models.ImageField(upload_to="ticket_messages_attachments/", null=True, blank=True)
+    attachment = models.FileField(
+        upload_to="ticket_messages_attachments/", null=True, blank=True, validators=[validate_ticket_attachment]
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -72,3 +98,15 @@ class TicketMessage(models.Model):
 
     def __str__(self):
         return f"Message de {self.sender} sur {self.ticket}"
+
+    @property
+    def attachment_is_image(self) -> bool:
+        return _is_image(self.attachment)
+
+    @property
+    def attachment_filename(self) -> str:
+        return _file_name(self.attachment)
+
+    @property
+    def attachment_kind(self) -> str:
+        return kind_of(self.attachment.name) if self.attachment else ""

@@ -133,3 +133,27 @@ class MobileApiSession(models.Model):
     def __str__(self):
         return f'Mobile session for {self.user_id} ({self.id})'
 
+
+
+class AdminAuditLog(models.Model):
+    """
+    What administrators did: one row per state-changing request they made (POST, PUT, PATCH, DELETE).
+
+    Kept apart from ``UserHistory`` on purpose: that table is a per-user timeline an admin can clear,
+    this one cannot be edited or deleted from the application.
+    """
+    admin = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='audit_entries')
+    admin_username = models.CharField(max_length=150)
+    method = models.CharField(max_length=8)
+    path = models.CharField(max_length=512)
+    view_name = models.CharField(max_length=200, blank=True)
+    status_code = models.PositiveSmallIntegerField(default=0)
+    ip_address = models.CharField(max_length=64, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [models.Index(fields=['-timestamp'], name='adminaudit_time_idx')]
+
+    def __str__(self):
+        return f"{self.timestamp:%Y-%m-%d %H:%M} {self.admin_username} {self.method} {self.path} → {self.status_code}"

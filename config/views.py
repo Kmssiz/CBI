@@ -29,6 +29,11 @@ def protected_media(request, path):
     """
     from tickets.models import Ticket
 
+    # The prefix checks below only mean something on a clean path: "profile_images/../ticket_attachments/x"
+    # starts with a public folder yet resolves into a private one.
+    if '\\' in path or '\x00' in path or any(part in ('', '.', '..') for part in path.split('/')):
+        raise Http404
+
     user = request.user
     if path.startswith('ticket_attachments/'):
         tickets = Ticket.objects.filter(attachment=path)
