@@ -8,6 +8,8 @@ unless --apply is given.
     python import_report_metadata.py changes.json --apply --user someadmin
     python import_report_metadata.py changes.json --only names      # only the app-side renames
     python import_report_metadata.py changes.json --only metadata   # only the metadata
+    python import_report_metadata.py changes.json --type bibliotheque   # only the rows typed "Bibliothèque" in Excel
+    python import_report_metadata.py changes.json --type bibliotheque --overwrite   # ... and also the ones edited on the platform
 
 Safety rules
   * Rows are matched on pbirs_id.
@@ -15,6 +17,9 @@ Safety rules
     the workbook was generated) AND the DB still equals that baseline. If the
     report was edited on the platform meanwhile, it is reported as a CONFLICT
     and left alone.
+  * --overwrite lifts the CONFLICT rule for the metadata: a row edited on the platform since the export
+    is written anyway (the preview shows what is replaced). Use it after checking the dry run.
+  * --type limits the run (metadata and renames) to the rows whose Excel type is that one.
   * Rows identical to their baseline are ignored; rows emptied in Excel are
     never cleared (clear them on the platform).
   * Unknown option names abort the whole run before anything is written.
@@ -90,11 +95,23 @@ def main() -> int:
     if "--user" in sys.argv:
         user = sys.argv[sys.argv.index("--user") + 1]
         args = [a for a in args if a != user]
+    only_type = None
+    if "--type" in sys.argv:
+        only_type = sys.argv[sys.argv.index("--type") + 1]
+        args = [a for a in args if a != only_type]
+        if only_type not in ("anomalie", "bibliotheque", "dashboard"):
+            print("--type must be anomalie, bibliotheque or dashboard")
+            return 2
+    overwrite = "--overwrite" in sys.argv
     if not args:
         print(__doc__)
         return 2
     with open(args[0], encoding="utf-8-sig") as fh:
         rows = json.load(fh)["rows"]
+    if only_type:
+        total = len(rows)
+        rows = [r for r in rows if r["selection"]["type"] == only_type]
+        print(f"--type {only_type}: {len(rows)} of {total} rows kept\n")
 
     options = {(o.option_type, o.name): o for o in MetadataOption.objects.select_related("parent")}
     societe_names = [n for (t, n) in options if t == "societe"]
@@ -182,7 +199,7 @@ def main() -> int:
         if current == wanted:
             unchanged += 1  # already applied (e.g. the same file imported twice)
             continue
-        if current != base:
+        if current != base and not overwrite:
             conflicts.append((row, base, current, wanted))
             continue
         todo.append((ref, row, current, wanted))
@@ -197,7 +214,9 @@ def main() -> int:
             ref.name_locked = True
             ref.save(update_fields=["name", "name_locked", "last_synced"])
         for ref, row, current, wanted in todo:
-            print(f"CHANGE {row['name']}\n   from: {describe(current)}\n   to:   {describe(wanted)}")
+            edited = current != norm_state(row["baseline"])
+            print(f"{'OVERWRITE (edited on the platform since the export)' if edited else 'CHANGE'} {row['name']}\n"
+                  f"   from: {describe(current)}\n   to:   {describe(wanted)}")
             if not apply_:
                 continue
             ref.report_type = wanted["type"]

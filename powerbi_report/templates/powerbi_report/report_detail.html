@@ -598,7 +598,7 @@
             <div id="metaOrgFields" class="space-y-5">
                 <div class="grid grid-cols-2 gap-4">
                     <!-- Directions -->
-                    <div class="space-y-1.5 col-span-2">
+                    <div id="metaDirectionContainer" class="space-y-1.5 col-span-2">
                         <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">Directions</label>
                         <div class="relative custom-multiselect w-full" data-name="directions">
                             <button type="button" class="multiselect-btn w-full input-theme flex justify-between items-center px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm transition-all text-slate-700 dark:text-slate-300">
@@ -774,13 +774,13 @@ async function showErrorDetails(planId) {
 </script>
 
 <script>
-// Bibliothèque reports are not organised by module: hide that field.
+// The library is organised by module, not by direction: a Bibliothèque report only shows the module.
 function syncMetaTypeFields() {
     const biblio = document.getElementById('meta_type_biblio');
-    const modules = document.getElementById('metaModuleContainer');
-    if (!biblio || !modules) return;
-    modules.classList.toggle('ar-collapsed', biblio.checked);
-    modules.querySelectorAll('input[name="modules"]').forEach(cb => { cb.disabled = biblio.checked; });
+    const directions = document.getElementById('metaDirectionContainer');
+    if (!biblio || !directions) return;
+    directions.classList.toggle('ar-collapsed', biblio.checked);
+    directions.querySelectorAll('input[name="directions"]').forEach(cb => { cb.disabled = biblio.checked; });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -900,12 +900,12 @@ html.dark .custom-multiselect .multiselect-checkbox {
     accent-color: #a5cf4b;
     color-scheme: dark;
 }
-#metaSocieteContainer, #metaModuleContainer {
+#metaSocieteContainer, #metaDirectionContainer {
     transition: opacity .2s, max-height .25s cubic-bezier(0.4,0,0.2,1), padding .2s, margin .2s; 
     max-height: 150px; 
     opacity: 1; 
 }
-#metaSocieteContainer.ar-collapsed, #metaModuleContainer.ar-collapsed { 
+#metaSocieteContainer.ar-collapsed, #metaDirectionContainer.ar-collapsed { 
     max-height: 0; 
     opacity: 0; 
     padding-top: 0;

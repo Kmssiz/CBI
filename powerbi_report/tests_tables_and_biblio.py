@@ -145,3 +145,44 @@ class BiblioBrowsingTests(BiblioBase):
             html = self.client.get(reverse("powerbi_report:custom_direction")).content.decode()
         self.assertIn(">folder<", html)
         self.assertNotIn(">local_library<", html)
+
+
+class LibraryMetadataFormTests(TestCase):
+    """Bibliothèque: the metadata window shows the module, not the direction."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(username="boss", password="x", ad2000="boss1")
+        self.client.force_login(self.admin)
+        self.direction = MetadataOption.objects.create(option_type="direction", name="Finance")
+        self.module = MetadataOption.objects.create(option_type="module", name="Comptabilité")
+        self.ref = ReportRef.objects.create(pbirs_id="r-1", name="Budget", path="/BI/Budget", report_type="bibliotheque")
+        self.ref.directions.set([self.direction])
+
+    def save(self, **data):
+        return self.client.post(reverse("powerbi_report:update_report_metadata", args=["r-1"]), data)
+
+    def test_the_direction_field_is_the_one_hidden_for_a_library_report(self):
+        html = self.client.get(reverse("powerbi_report:report_detail", args=["r-1"])).content.decode()
+        self.assertIn('id="metaDirectionContainer"', html)
+        self.assertIn("directions.classList.toggle('ar-collapsed', biblio.checked)", html)
+        self.assertNotIn("modules.classList.toggle('ar-collapsed'", html)         # the module is never hidden any more
+
+    def test_the_module_is_saved_for_a_library_report(self):
+        self.save(report_type="bibliotheque", modules=[self.module.id])
+        self.assertEqual(list(self.ref.modules.all()), [self.module])
+
+    def test_the_hidden_directions_of_a_library_report_are_kept(self):
+        self.save(report_type="bibliotheque", modules=[self.module.id])           # the browser does not post a hidden field
+        self.assertEqual(list(self.ref.directions.all()), [self.direction])
+
+    def test_other_types_still_save_their_directions(self):
+        self.save(report_type="dashboard", directions=[self.direction.id])
+        self.assertEqual(list(self.ref.directions.all()), [self.direction])
+        self.save(report_type="dashboard", directions=[])                           # emptied in the form: really emptied
+        self.assertEqual(list(self.ref.directions.all()), [])
+
+    def test_the_add_report_window_hides_the_direction_for_a_library_report_too(self):
+        with patch("powerbi_report.views_modules.report_listing.get_pbirs_server_name_map", return_value={}):
+            html = self.client.get(reverse("powerbi_report:report_list")).content.decode()
+        self.assertIn('id="arDirectionField"', html)
+        self.assertIn("function syncArTypeFields", html)

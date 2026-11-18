@@ -348,3 +348,37 @@ class ReplaceReportSyncTests(TestCase):
                              {'pbix_file': SimpleUploadedFile('a.pbix', b'x'), 'report_path': '/R9'})
         one.assert_called_once()
         full.assert_not_called()
+
+
+class ModuleViewDashboardsOnlyTests(TestCase):
+    def setUp(self):
+        self.admin = _admin('modadm')
+        self.user = CustomUser.objects.create_user(username='modu', ad2000='M1', status='Active', can_view_module=True)
+        module = MetadataOption.objects.create(option_type='module', name='Finance')
+        self.refs = {}
+        for kind in ('dashboard', 'bibliotheque', 'anomalie'):
+            ref = ReportRef.objects.create(pbirs_id=f'm-{kind}', name=kind, path=f'/{kind}', report_type=kind)
+            ref.modules.add(module)
+            UserReportPermission.objects.create(user=self.user, report=ref)
+            self.refs[kind] = ref
+        self.module = module
+
+    def _names(self, client_user):
+        self.client.force_login(client_user)
+        response = self.client.get(reverse('powerbi_report:custom_folder_detail', args=['module', self.module.id]))
+        return [r['name'] for r in response.context['reports']]
+
+    def test_only_dashboards_are_in_the_module_view(self):
+        self.assertEqual(self._names(self.user), ['dashboard'])
+        self.assertEqual(self._names(self.admin), ['dashboard'])
+
+    def test_a_module_holding_only_library_reports_is_not_listed(self):
+        ReportRef.objects.filter(report_type='dashboard').delete()
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('powerbi_report:custom_module'))
+        self.assertEqual(list(response.context['subfolders']), [])
+
+    def test_the_library_still_shows_its_reports_by_module(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('powerbi_report:custom_folder_detail', args=['biblio', self.module.id]))
+        self.assertEqual([r['name'] for r in response.context['reports']], ['bibliotheque'])

@@ -61,7 +61,7 @@ def get_allowed_report_types_for_view(view_type):
     elif view_type == 'anomalie':
         return (['anomalie'], None)
     elif view_type == 'module':
-        return ([], 'modules') # Required field 'modules'
+        return (['dashboard'], 'modules') # dashboards only; required field 'modules'
     return ([], None)
 
 

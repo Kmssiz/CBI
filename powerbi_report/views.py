@@ -1066,8 +1066,9 @@ def update_report_metadata_local(request, report_id: str):
     ).values_list('parent_id', flat=True).distinct()
     report_ref.poles.set(parent_pole_ids)
 
-    selected_directions = request.POST.getlist('directions')
-    report_ref.directions.set(selected_directions)
+    # A library report only shows the module in the form: its directions (hidden, so not posted) are kept.
+    if report_ref.report_type != 'bibliotheque':
+        report_ref.directions.set(request.POST.getlist('directions'))
 
     selected_modules = request.POST.getlist('modules')
     report_ref.modules.set(selected_modules)
@@ -3008,7 +3009,7 @@ def _get_allowed_report_types_for_view(view_type):
     elif view_type == 'anomalie':
         return (['anomalie'], None, None)
     elif view_type == 'module':
-        return ([], 'modules', True) # Required M2M field 'modules' (non-empty)
+        return (['dashboard'], 'modules', True) # dashboards only (the library has its own view); needs a module
     return ([], None, None)
 
 

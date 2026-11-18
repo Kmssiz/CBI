@@ -761,7 +761,7 @@
 
                     <div class="space-y-4">
                         <!-- Directions -->
-                        <div class="space-y-1.5">
+                        <div id="arDirectionField" class="space-y-1.5">
                             <label class="text-xs font-bold ar-label uppercase tracking-widest">Directions</label>
                             <div class="relative custom-multiselect w-full" data-name="directions">
                                 <button type="button" class="multiselect-btn w-full ar-input rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-sm flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
@@ -969,8 +969,8 @@ html.dark .ar-cancel:hover { color: #f1f5f9; }
 #arConsolideBadge > div { background: rgba(139,92,246,0.08); }
 
 /* Société & Module field collapse animation */
-#arSocieteField, #arModuleField { transition: opacity .2s, max-height .25s cubic-bezier(0.4,0,0.2,1); max-height: 200px; opacity: 1; }
-#arSocieteField.ar-collapsed, #arModuleField.ar-collapsed { max-height: 0; opacity: 0; pointer-events: none; overflow: hidden; }
+#arSocieteField, #arModuleField, #arDirectionField { transition: opacity .2s, max-height .25s cubic-bezier(0.4,0,0.2,1); max-height: 200px; opacity: 1; }
+#arSocieteField.ar-collapsed, #arModuleField.ar-collapsed, #arDirectionField.ar-collapsed { max-height: 0; opacity: 0; pointer-events: none; overflow: hidden; }
 
 /* Upload overlay */
 #arUploadOverlay.ar-overlay { background: rgba(255,255,255,0.92); }
@@ -994,8 +994,24 @@ function closeAddReportModal() {
     resetArForm();
 }
 
+// The library is organised by module, not by direction: a Bibliothèque report only shows the module.
+function syncArTypeFields() {
+    const biblio = document.getElementById('type_biblio_add');
+    const directions = document.getElementById('arDirectionField');
+    if (!biblio || !directions) return;
+    directions.classList.toggle('ar-collapsed', biblio.checked);
+    directions.querySelectorAll('input[name="directions"]').forEach(cb => { cb.disabled = biblio.checked; });
+}
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('#addReportModal input[name="report_type"]').forEach(radio => {
+        radio.addEventListener('change', syncArTypeFields);
+    });
+    syncArTypeFields();
+});
+
 function resetArForm() {
     document.getElementById('arUploadForm').reset();
+    syncArTypeFields();
     document.getElementById('dropZoneContent').classList.remove('hidden');
     document.getElementById('fileSelectedInfo').classList.add('hidden');
     hideFeedback();
