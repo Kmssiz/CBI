@@ -12,7 +12,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="px-6 lg:px-8 py-6 space-y-8">
+<div class="dash-root px-6 lg:px-8 py-6 space-y-8">
 
   {% if messages %}
   <div class="space-y-3">
@@ -26,7 +26,7 @@
   {% endif %}
 
   {% if permissions.view_dashboard %}
-  <div class="dashboard-kpi-grid">
+  <div class="dashboard-kpi-grid cards cards-sm cards-4" style="--cards-gap: 1.25rem">
     <a href="{% url 'users_view' %}" class="group block">
       <div class="dashboard-stat-card">
         <div class="dashboard-stat-icon bg-primary/10 text-primary"><span class="material-symbols-outlined">group</span></div>
@@ -245,36 +245,16 @@
     border-color: rgba(19, 127, 236, 0.3);
   }
 
-  .dashboard-kpi-grid {
-    display: grid;
-    gap: 1.25rem;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-
-  @media (min-width: 768px) {
-    .dashboard-kpi-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @media (min-width: 1280px) {
-    .dashboard-kpi-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-  }
+  /* The dashboard is laid out from the width of its own box, not the window: the sidebar takes 300 px. */
+  .dash-root { container-type: inline-size; }
 
   .dashboard-main-grid {
     display: grid;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 1.25rem;
     align-items: stretch;
   }
-
-  @media (min-width: 1024px) {
-    .dashboard-main-grid {
-      grid-template-columns: repeat(12, 1fr);
-    }
-  }
+  .dashboard-main-grid > * { grid-column: 1 / -1 !important; }
 
   .dashboard-secondary-grid {
     display: grid;
@@ -283,10 +263,11 @@
     align-items: stretch;
   }
 
-  @media (min-width: 1024px) {
-    .dashboard-secondary-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+  @container (min-width: 920px) {
+    .dashboard-main-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+    .dashboard-main-grid > .lg\:col-span-12 { grid-column: span 12 / span 12 !important; }
+    .dashboard-main-grid > .lg\:col-span-6 { grid-column: span 6 / span 6 !important; }
+    .dashboard-secondary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 
   .dark .dashboard-card {

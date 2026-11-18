@@ -27,6 +27,22 @@ def _attr(entry, name: str) -> str:
     return clean_directory_value(getattr(attribute, 'value', attribute))
 
 
+def parse_ad_time(value):
+    """AD time ('20261105083012.0Z', or already a datetime) as an aware datetime, None when unknown."""
+    from datetime import datetime, timezone as dt_timezone
+    if isinstance(value, list):
+        value = value[0] if value else None
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=dt_timezone.utc)
+    text = value.strip() if isinstance(value, str) else ''
+    if len(text) < 14 or not text[:14].isdigit():
+        return None
+    try:
+        return datetime.strptime(text[:14], '%Y%m%d%H%M%S').replace(tzinfo=dt_timezone.utc)
+    except ValueError:
+        return None
+
+
 def resolve_directory_username(identifier: str) -> str | None:
     """Turn what the user typed into an AD sAMAccountName so we can always NTLM-bind.
 
@@ -201,7 +217,7 @@ def connexion_ad2000(identifiant: str, password: str) -> dict | None:
                 search_scope=ldap3.SUBTREE,
                 attributes=[
                     'mail', 'company', 'department', 'name', 'title',
-                    'sAMAccountName', 'extensionAttribute1', 'employeeID', 'employeeNumber'
+                    'sAMAccountName', 'extensionAttribute1', 'employeeID', 'employeeNumber', 'whenCreated'
                 ]
             )
 
@@ -219,6 +235,7 @@ def connexion_ad2000(identifiant: str, password: str) -> dict | None:
                     'ad2000': ad2000_value,
                     'department': _attr(entry, 'department'),
                     'title': _attr(entry, 'title'),
+                    'created': parse_ad_time(getattr(getattr(entry, 'whenCreated', None), 'value', None)),
                 }
         return None
 
@@ -265,7 +282,7 @@ def get_ad_users(username: str, password: str) -> list[dict]:
             attributes=[
                 'mail', 'sAMAccountName', 'company', 'department', 'name',
                 'title', 'ipPhone', 'telephoneNumber', 'extensionAttribute1',
-                'memberOf', 'userAccountControl'
+                'memberOf', 'userAccountControl', 'whenCreated'
             ],
             paged_size=500,  
             generator=True   
@@ -326,6 +343,7 @@ def get_ad_users(username: str, password: str) -> list[dict]:
                         'title': get_attr('title'),
                         'ad2000': get_attr('extensionAttribute1'),
                         'ad_groups': ad_groups,
+                        'created': parse_ad_time(attrs.get('whenCreated')),
                     })
             except (KeyError, IndexError, TypeError):
                 continue

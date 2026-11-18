@@ -196,10 +196,27 @@
                                 </div>
                                 <div class="min-w-0">
                                     <span class="block break-words font-semibold text-slate-700 dark:text-slate-200">{{ report.Name }}</span>
-                                    {% if report.is_consolide %}
-                                    <span class="mt-1 inline-flex items-center gap-1 rounded border border-violet-500/20 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-500">
-                                        <span class="material-symbols-outlined text-[12px]">hub</span> Consolidé
-                                    </span>
+                                    {% if report.is_consolide or report.report_type %}
+                                    <div class="mt-1 flex flex-wrap items-center gap-1">
+                                        {% if report.is_consolide %}
+                                        <span class="inline-flex items-center gap-1 rounded border border-violet-500/20 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-500">
+                                            <span class="material-symbols-outlined text-[12px]">hub</span> Consolidé
+                                        </span>
+                                        {% endif %}
+                                        {% if report.report_type == 'dashboard' %}
+                                        <span class="inline-flex items-center gap-1 rounded border border-blue-500/20 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-500">
+                                            <span class="material-symbols-outlined text-[12px]">dashboard</span> Dashboard
+                                        </span>
+                                        {% elif report.report_type == 'anomalie' %}
+                                        <span class="inline-flex items-center gap-1 rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-500">
+                                            <span class="material-symbols-outlined text-[12px]">warning</span> Anomalie
+                                        </span>
+                                        {% elif report.report_type == 'bibliotheque' %}
+                                        <span class="inline-flex items-center gap-1 rounded border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-500">
+                                            <span class="material-symbols-outlined text-[12px]">menu_book</span> Bibliothèque
+                                        </span>
+                                        {% endif %}
+                                    </div>
                                     {% endif %}
                                 </div>
                             </div>

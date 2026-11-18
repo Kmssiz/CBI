@@ -26,6 +26,7 @@ class CustomUser(AbstractUser):
     can_view_module = models.BooleanField(default=True, help_text="Accès à la vue Module")
     can_use_slider = models.BooleanField(default=False, help_text="Peut créer et lancer des sliders de rapports")
     ad_groups = models.JSONField(default=list, blank=True, help_text="Cached list of AD groups") 
+    ldap_created_at = models.DateTimeField(null=True, blank=True, help_text="When the account was created in the directory (AD whenCreated)")
     has_seen_onboarding = models.BooleanField(default=False, help_text="Indicates if the user has completed the onboarding guide")
     tours_seen = models.JSONField(default=dict, blank=True, help_text="Interactive tours already seen: {tour key: version}")
 

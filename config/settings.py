@@ -87,6 +87,10 @@ MOBILE_SESSION_DAYS = config("MOBILE_SESSION_DAYS", default=30, cast=int)
 MOBILE_MIN_APP_VERSION = config("MOBILE_MIN_APP_VERSION", default="3.0.0").strip()
 MOBILE_LATEST_APP_VERSION = config("MOBILE_LATEST_APP_VERSION", default=MOBILE_MIN_APP_VERSION).strip()
 MOBILE_APP_DOWNLOAD_URL = config("MOBILE_APP_DOWNLOAD_URL", default="").strip()
+# A person is a "new user" only when BOTH their directory account and their Odoo employee record are
+# this recent (days). Older people who merely reached CBI recently are not new.
+NEW_USER_MAX_AGE_DAYS = config("NEW_USER_MAX_AGE_DAYS", default=30, cast=int)
+
 MOBILE_CONTACT_EMAIL = config("MOBILE_CONTACT_EMAIL", default="cbi@groupe-hasnaoui.com").strip()
 MOBILE_CONTACT_PHONE = config("MOBILE_CONTACT_PHONE", default="3004").strip()
 MOBILE_WEBSITE_URL = config("MOBILE_WEBSITE_URL", default="https://cbi.groupe-hasnaoui.com").strip()

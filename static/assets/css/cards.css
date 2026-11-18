@@ -1,0 +1,36 @@
+/*
+ * Fluid card grids, shared by every page.
+ *
+ * Window breakpoints (sm:, lg:, xl:) ignore the 300 px sidebar, so the same breakpoint gives a roomy
+ * grid on a 27" screen and cramped cards on a laptop. These grids look at the width they really
+ * have: they fit as many cards as possible, each at least --cards-min wide, and never more than
+ * --cards-max per row, so a large screen keeps the same card size as before.
+ *
+ *   <div class="cards cards-md cards-4"> ... </div>
+ *     cards-xs 12rem · cards-sm 14rem · cards-md 16rem (default 15rem) · cards-lg 20rem · cards-xl 24rem
+ *     cards-2 ... cards-6   maximum columns (default 4)
+ */
+.cards {
+  --cards-min: 15rem;
+  --cards-max: 4;
+  --cards-gap: clamp(.875rem, 1.4vw, 1.5rem);
+  display: grid;
+  gap: var(--cards-gap);
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, max(var(--cards-min), calc((100% - (var(--cards-max) - 1) * var(--cards-gap)) / var(--cards-max)))), 1fr)
+  );
+}
+.cards-xs { --cards-min: 12rem; }
+.cards-sm { --cards-min: 14rem; }
+.cards-md { --cards-min: 16rem; }
+.cards-lg { --cards-min: 20rem; }
+.cards-xl { --cards-min: 24rem; }
+.cards-2 { --cards-max: 2; }
+.cards-3 { --cards-max: 3; }
+.cards-4 { --cards-max: 4; }
+.cards-5 { --cards-max: 5; }
+.cards-6 { --cards-max: 6; }
+
+/* Children may shrink below their content width (long names), so a card never pushes the grid wider. */
+.cards > * { min-width: 0; }

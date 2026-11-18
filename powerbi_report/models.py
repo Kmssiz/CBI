@@ -423,6 +423,7 @@ class OdooProfile(models.Model):
     company = models.CharField(max_length=200, blank=True, default='')
     company_key = models.CharField(max_length=200, blank=True, default='', db_index=True)
     phone = models.CharField(max_length=60, blank=True, default='')
+    hire_date = models.DateField(null=True, blank=True, help_text="Hire date in Odoo (date_recruit)")
     synced_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -431,8 +432,9 @@ class OdooProfile(models.Model):
 
 class NewUserAlert(models.Model):
     """
-    A new person who exists in the directory (LDAP) AND in Odoo. Admins are told about
-    them once a day until someone marks them as seen. Nothing is granted automatically.
+    A new person: recently created in the directory (LDAP) AND recently hired in Odoo, which
+    also tells us who they are. Admins are told about them once a day until someone marks them
+    as seen. Nothing is granted automatically.
     """
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='new_user_alert')
     detected_at = models.DateTimeField(auto_now_add=True)

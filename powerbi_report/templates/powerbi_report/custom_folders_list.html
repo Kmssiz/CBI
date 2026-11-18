@@ -60,7 +60,7 @@
         </div>
 
         <!-- Subfolders and Reports Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" data-tour="folder-grid">
+        <div class="cards cards-4" data-tour="folder-grid">
             {% for folder in subfolders %}
             <!-- Subfolder Card -->
             <div data-search-card data-name="{{ folder.name|lower }}" class="group relative card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-6 hover:border-primary/30 transition-all duration-300">

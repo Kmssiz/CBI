@@ -126,19 +126,31 @@
                             </div>
                         </td>
                         <td class="px-6 py-4">
-                            <div class="flex items-center justify-end gap-2">
+                            <div class="flex items-center justify-end gap-1.5">
                                 {% if permissions.change_powerbireport and user.ad2000 %}
-                                <a href="{% url 'powerbi_report:user_permission' user.ad2000 %}" class="px-3 py-1.5 bg-pink-500/10 text-pink-600 dark:text-pink-400 hover:bg-pink-500/20 border border-pink-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Accès</a>
+                                <a href="{% url 'powerbi_report:user_permission' user.ad2000 %}" title="Accès" aria-label="Accès aux rapports de {{ user.get_full_name|default:user.username }}"
+                                   class="inline-flex size-9 items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 sm:size-8 border-pink-500/30 text-pink-500 hover:bg-pink-500 hover:text-white focus-visible:ring-pink-500/50">
+                                    <span class="material-symbols-outlined text-[18px]">vpn_key</span>
+                                </a>
                                 {% endif %}
                                 
-                                <a href="{% url 'user_details' %}?user_id={{ user.id }}" class="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Info</a>
+                                <a href="{% url 'user_details' %}?user_id={{ user.id }}" title="Informations" aria-label="Informations de {{ user.get_full_name|default:user.username }}"
+                                   class="inline-flex size-9 items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 sm:size-8 border-blue-500/30 text-blue-500 hover:bg-blue-500 hover:text-white focus-visible:ring-blue-500/50">
+                                    <span class="material-symbols-outlined text-[18px]">info</span>
+                                </a>
                                 
                                 {% if permissions.view_userhistory %}
-                                <a href="{% url 'user_history_user' user.id %}?source=users_view" class="px-3 py-1.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Activité</a>
+                                <a href="{% url 'user_history_user' user.id %}?source=users_view" title="Activité" aria-label="Activité de {{ user.get_full_name|default:user.username }}"
+                                   class="inline-flex size-9 items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 sm:size-8 border-slate-400/40 text-slate-500 hover:bg-slate-500 hover:text-white focus-visible:ring-slate-500/50 dark:border-slate-500/50 dark:text-slate-400">
+                                    <span class="material-symbols-outlined text-[18px]">history</span>
+                                </a>
                                 {% endif %}
  
                                 {% if permissions.change_customuser %}
-                                <button class="px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all" onclick="openEditModal({{ user.id }}, '{{ user.role.id }}', {{ user.can_view_anomalie|yesno:"true,false" }}, {{ user.can_view_consolide|yesno:"true,false" }}, {{ user.can_view_direction|yesno:"true,false" }}, {{ user.can_view_pole|yesno:"true,false" }}, {{ user.can_view_module|yesno:"true,false" }}, {{ user.can_use_slider|yesno:"true,false" }})">Modifier</button>
+                                <button type="button" title="Modifier" aria-label="Modifier {{ user.get_full_name|default:user.username }}"
+                                        class="inline-flex size-9 items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 sm:size-8 border-amber-500/30 text-amber-500 hover:bg-amber-500 hover:text-white focus-visible:ring-amber-500/50" onclick="openEditModal({{ user.id }}, '{{ user.role.id }}', {{ user.can_view_anomalie|yesno:"true,false" }}, {{ user.can_view_consolide|yesno:"true,false" }}, {{ user.can_view_direction|yesno:"true,false" }}, {{ user.can_view_pole|yesno:"true,false" }}, {{ user.can_view_module|yesno:"true,false" }}, {{ user.can_use_slider|yesno:"true,false" }})">
+                                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                                </button>
                                 {% endif %}
                             </div>
                         </td>

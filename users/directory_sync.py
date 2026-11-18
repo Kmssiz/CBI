@@ -36,7 +36,7 @@ def sync_directory_users(ldap_users: list[dict]) -> DirectorySyncResult:
     from .utils import clean_directory_value
 
     result = DirectorySyncResult()
-    all_db_users = CustomUser.objects.all().only('id', 'username', 'ad2000', 'pole', 'direction', 'societe', 'ad_groups')
+    all_db_users = CustomUser.objects.all().only('id', 'username', 'ad2000', 'pole', 'direction', 'societe', 'ad_groups', 'ldap_created_at')
     username_map = {u.username.lower(): u for u in all_db_users}
     ad2000_map = {u.ad2000.lower(): u for u in all_db_users if u.ad2000}
 
@@ -69,6 +69,7 @@ def sync_directory_users(ldap_users: list[dict]) -> DirectorySyncResult:
                     last_name=" ".join(full_name[1:]),
                     email=clean_directory_value(ldap_user.get("mail")),
                     ad_groups=ldap_groups,
+                    ldap_created_at=ldap_user.get("created"),
                     role=user_role,
                     status="Not Active",
                     can_view_direction=False,
@@ -90,6 +91,8 @@ def sync_directory_users(ldap_users: list[dict]) -> DirectorySyncResult:
             update_fields["direction"] = department
         if not user.societe and company:
             update_fields["societe"] = company
+        if ldap_user.get("created") and user.ldap_created_at != ldap_user["created"]:
+            update_fields["ldap_created_at"] = ldap_user["created"]
         if ldap_groups and set(normalize_ad_groups(user.ad_groups)) != set(ldap_groups):
             update_fields["ad_groups"] = ldap_groups
         if update_fields:

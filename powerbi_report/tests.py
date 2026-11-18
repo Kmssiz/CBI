@@ -336,9 +336,10 @@ class NewUserTests(TestCase):
         _cutoff_yesterday()
         self.admin = User.objects.create_superuser(username='nu_admin', password='x', email='admin@example.com')
 
-    def _emp(self, employee_id, name, title='Ingénieur', company='Giryad', phone='0661 00 00 00'):
+    def _emp(self, employee_id, name, title='Ingénieur', company='Giryad', phone='0661 00 00 00', hire_date=None):
         from powerbi_report.services.odoo_client import OdooEmployee
-        return OdooEmployee(employee_id=str(employee_id), full_name=name, post_title=title, hire_date=None,
+        from datetime import date
+        return OdooEmployee(employee_id=str(employee_id), full_name=name, post_title=title, hire_date=hire_date or date.today(),
                             company=company, phone=phone)
 
     def test_name_matching_ignores_accents_case_and_order(self):

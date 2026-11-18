@@ -22,5 +22,5 @@ class Command(BaseCommand):
         self.stdout.write(
             f"Odoo: {summary.employees} employees, {summary.matched} matched "
             f"({summary.ambiguous} ambiguous, {summary.unmatched} unmatched); "
-            f"{summary.new_users} new user(s) flagged."
+            f"{summary.new_users} new user(s) flagged, {summary.retired} waiting announcement(s) withdrawn (not new in both systems)."
         )

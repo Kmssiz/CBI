@@ -104,6 +104,8 @@ def login_view(request):
                 user.last_name = user_info.get("last_name", "")
                 user.email = email
                 user.ad2000 = ad2000
+                if user_info.get("created"):
+                    user.ldap_created_at = user_info["created"]
                 # The login lookup does not return AD groups (only the directory sync does): never wipe them here.
                 if "ad_groups" in user_info:
                     user.ad_groups = user_info["ad_groups"]
@@ -130,6 +132,7 @@ def login_view(request):
                     email=email,
                     ad2000=ad2000,
                     ad_groups=user_info.get("ad_groups", []),
+                    ldap_created_at=user_info.get("created"),
                     role=role,
                     status="Active",
                     can_view_direction=False
@@ -147,7 +150,8 @@ def login_view(request):
             user.save()
 
             # Save info to session
-            request.session['userinfo'] = user_info
+            # The session is JSON: keep the directory creation date (a datetime) out of it.
+            request.session['userinfo'] = {key: value for key, value in user_info.items() if key != 'created'}
             store_ldap_password(request, password)  # Kept (encrypted) for NTLM
             
             login(request, user)
