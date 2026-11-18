@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block title %}Gestion des Serveurs PBIRS{% endblock %}
+{% block title_full %}Config | PBI{% endblock %}
 
 {% block header_title %}Serveurs PBIRS{% endblock %}
 {% block header_subtitle %}Gérez les instances de Power BI Report Server{% endblock %}
@@ -98,7 +99,7 @@
     <!-- Metadata Management Section -->
     <div class="mt-12 mb-8">
         <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-1">Métadonnées des Rapports</h2>
-        <p class="text-sm text-slate-500 dark:text-slate-400">Gérez les options disponibles pour les pôles, directions et sociétés lors de l'ajout ou la modification de rapports.</p>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Gérez les options disponibles (pôles, directions, sociétés, modules) et leur image, lors de l'ajout ou la modification de rapports.</p>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -152,9 +153,9 @@
                 <ul class="space-y-1">
                     {% for option in directions %}
                     <li class="flex items-center justify-between px-3 py-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg group transition-colors">
-                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ option.name }}</span>
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{% if option.logo %}<img src="{% url 'powerbi_report:metadata_option_logo' option.id %}" alt="" class="size-7 rounded-md object-contain bg-white border border-slate-200 dark:border-slate-700 p-0.5 mr-2 inline-block align-middle">{% endif %}{{ option.name }}</span>
                         <div class="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                            <button type="button" onclick="editMetadataOption('{{ option.id }}', 'direction', '{{ option.name|escapejs }}', '')" class="text-slate-400 hover:text-blue-500 transition-colors p-1" title="Modifier">
+                            <button type="button" onclick="editMetadataOption('{{ option.id }}', 'direction', '{{ option.name|escapejs }}', '', '{% if option.logo %}{% url 'powerbi_report:metadata_option_logo' option.id %}{% endif %}')" class="text-slate-400 hover:text-blue-500 transition-colors p-1" title="Modifier">
                                 <span class="material-symbols-outlined text-[16px]">edit</span>
                             </button>
                             <form action="{% url 'powerbi_report:metadata_option_delete' option.id %}" method="POST" onsubmit="return confirm('Supprimer cette direction ?')">
@@ -227,9 +228,9 @@
                 <ul class="space-y-1">
                     {% for option in modules %}
                     <li class="flex items-center justify-between px-3 py-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg group transition-colors">
-                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ option.name }}</span>
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{% if option.logo %}<img src="{% url 'powerbi_report:metadata_option_logo' option.id %}" alt="" class="size-7 rounded-md object-contain bg-white border border-slate-200 dark:border-slate-700 p-0.5 mr-2 inline-block align-middle">{% endif %}{{ option.name }}</span>
                         <div class="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                            <button type="button" onclick="editMetadataOption('{{ option.id }}', 'module', '{{ option.name|escapejs }}', '')" class="text-slate-400 hover:text-blue-500 transition-colors p-1" title="Modifier">
+                            <button type="button" onclick="editMetadataOption('{{ option.id }}', 'module', '{{ option.name|escapejs }}', '', '{% if option.logo %}{% url 'powerbi_report:metadata_option_logo' option.id %}{% endif %}')" class="text-slate-400 hover:text-blue-500 transition-colors p-1" title="Modifier">
                                 <span class="material-symbols-outlined text-[16px]">edit</span>
                             </button>
                             <form action="{% url 'powerbi_report:metadata_option_delete' option.id %}" method="POST" onsubmit="return confirm('Supprimer ce module ?')">
@@ -282,6 +283,25 @@
                             <input type="url" name="base_url" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white" placeholder="ex: http://powerbi.mycompany.local">
                             <p class="text-[11px] text-slate-500 mt-1.5">L'URL racine du serveur (sans /reports ou /api/v2.0)</p>
                         </div>
+                        <div class="pt-2">
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <div class="relative flex items-center">
+                                    <input type="checkbox" name="is_active" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
+                                </div>
+                                <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Serveur Actif</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-white/5 flex justify-end gap-3">
+                        <button type="button" onclick="closeModal('addServerModal')" class="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">Annuler</button>
+                        <button type="submit" class="px-5 py-2.5 text-sm font-bold bg-primary text-white rounded-xl hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 transition-all">Ajouter le serveur</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Edit Server Modal -->
@@ -313,6 +333,25 @@
                             <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">URL de Base</label>
                             <input type="url" id="edit_base_url" name="base_url" required class="input-theme w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm transition-all text-slate-900 dark:text-white">
                         </div>
+                        <div class="pt-2">
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <div class="relative flex items-center">
+                                    <input type="checkbox" id="edit_is_active" name="is_active" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
+                                </div>
+                                <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Serveur Actif</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-white/5 flex justify-end gap-3">
+                        <button type="button" onclick="closeModal('editServerModal')" class="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">Annuler</button>
+                        <button type="submit" class="px-5 py-2.5 text-sm font-bold bg-blue-500 text-white rounded-xl hover:bg-blue-600 hover:shadow-lg hover:shadow-blue-500/30 transition-all">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Delete Server Modal -->
@@ -392,14 +431,14 @@
                                 {% endfor %}
                             </div>
                         </div>
-                        <!-- Logo (Pôle / Société): shown on the mobile app cards -->
+                        <!-- Image of the option: mobile app cards and web version -->
                         <div id="add_metadata_logo_container" class="hidden">
-                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Logo (application mobile)</label>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Image (application mobile et site web)</label>
                             <div class="flex items-center gap-3">
                                 <img id="add_metadata_logo_preview" alt="" class="hidden size-14 rounded-xl object-contain bg-white border border-slate-200 dark:border-slate-700 p-1">
                                 <input type="file" name="logo" id="add_metadata_logo" accept="image/png,image/jpeg,image/webp" class="block w-full text-sm text-slate-600 dark:text-slate-300 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer" onchange="previewMetadataLogo(this, 'add_metadata_logo_preview')">
                             </div>
-                            <p class="text-[11px] text-slate-500 mt-2">PNG, JPEG ou WEBP, 2 Mo max. Idéalement carré, fond transparent. Affiché avec le nom en dessous dans l'application mobile.</p>
+                            <p class="text-[11px] text-slate-500 mt-2">PNG, JPEG ou WEBP, 2 Mo max. Idéalement carré, fond transparent. Affichée avec le nom en dessous, dans l'application mobile et sur le site.</p>
                         </div>
                     </div>
                     
@@ -464,21 +503,21 @@
                                 {% endfor %}
                             </div>
                         </div>
-                        <!-- Logo (Pôle / Société): shown on the mobile app cards -->
+                        <!-- Image of the option: mobile app cards and web version -->
                         <div id="edit_metadata_logo_container" class="hidden">
-                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Logo (application mobile)</label>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">Image (application mobile et site web)</label>
                             <div id="edit_metadata_logo_current" class="hidden items-center gap-3 mb-3">
                                 <img id="edit_metadata_logo_img" alt="" class="size-14 rounded-xl object-contain bg-white border border-slate-200 dark:border-slate-700 p-1">
                                 <label class="flex items-center gap-2 cursor-pointer m-0">
                                     <input type="checkbox" name="remove_logo" id="edit_metadata_remove_logo" class="w-4 h-4 text-red-500 bg-slate-100 border-slate-300 rounded">
-                                    <span class="text-sm text-slate-600 dark:text-slate-300">Supprimer le logo</span>
+                                    <span class="text-sm text-slate-600 dark:text-slate-300">Supprimer l'image</span>
                                 </label>
                             </div>
                             <div class="flex items-center gap-3">
                                 <img id="edit_metadata_logo_preview" alt="" class="hidden size-14 rounded-xl object-contain bg-white border border-slate-200 dark:border-slate-700 p-1">
                                 <input type="file" name="logo" id="edit_metadata_logo" accept="image/png,image/jpeg,image/webp" class="block w-full text-sm text-slate-600 dark:text-slate-300 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer" onchange="previewMetadataLogo(this, 'edit_metadata_logo_preview')">
                             </div>
-                            <p class="text-[11px] text-slate-500 mt-2">PNG, JPEG ou WEBP, 2 Mo max. Idéalement carré, fond transparent. Affiché avec le nom en dessous dans l'application mobile.</p>
+                            <p class="text-[11px] text-slate-500 mt-2">PNG, JPEG ou WEBP, 2 Mo max. Idéalement carré, fond transparent. Affichée avec le nom en dessous, dans l'application mobile et sur le site.</p>
                         </div>
                     </div>
                     
@@ -537,7 +576,7 @@
         const container = document.getElementById(prefix + '_logo_container');
         document.getElementById(prefix + '_logo').value = '';
         document.getElementById(prefix + '_logo_preview').classList.add('hidden');
-        container.classList.toggle('hidden', !(type === 'pole' || type === 'societe'));
+        container.classList.remove('hidden');   // every section can have an image
         const current = document.getElementById(prefix + '_logo_current');
         if (!current) return;
         document.getElementById(prefix + '_remove_logo').checked = false;

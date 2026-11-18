@@ -870,7 +870,7 @@ class PageTitleTests(TestCase):
     def test_rendered_titles_carry_the_site_suffix(self):
         admin = User.objects.create_superuser(username='titleadmin', password='password')
         self.client.force_login(admin)
-        for name in ('tickets:ticket_list', 'tickets:create_ticket', 'powerbi_report:report_list'):
+        for name in ('tickets:create_ticket', 'notifications'):      # sidebar sections are titled "Section | PBI" (SidebarTitleTests)
             html = self.client.get(reverse(name)).content.decode()
             title = html.split('<title>')[1].split('</title>')[0]
             self.assertTrue(title.endswith(' | CBI') and len(title) > len(' | CBI'), (name, title))
@@ -919,6 +919,7 @@ class NavSectionTests(TestCase):
     @staticmethod
     def _classes(html, label, tag):
         import re
+        label = {'Module': 'Par Module'}.get(label, label)   # the sidebar calls the Module section "Par Module"
         match = re.search(r'class="([^"]*)">' + re.escape(label) + r'</' + tag + '>', html)
         assert match, f'{label!r} not found in the menu'
         return match.group(1)

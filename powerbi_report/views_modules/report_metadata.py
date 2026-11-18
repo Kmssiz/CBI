@@ -8,6 +8,7 @@ import requests
 from django.contrib import messages
 from django.core.cache import cache
 from django.shortcuts import redirect
+from django.utils import timezone
 
 from notifications.models import Notification
 from powerbi_report.models import ReportRef
@@ -52,81 +53,52 @@ def _clear_user_report_cache(request) -> None:
 def edit_powerbi_report_name_view(
     request,
     report_id: str,
-    auth_getter: Callable,
-    report_permissions_getter: Callable,
-    metadata_updater: Callable,
     history_logger: Callable,
 ):
-    """Update report name in PBIRS and notify admins."""
+    """
+    Rename a report in the app only. The name in PBIRS is never touched: the new name is stored in the
+    platform's database and flagged (name_locked) so the hourly PBIRS sync does not put the old one back.
+    """
     if request.method != "POST":
         return redirect("powerbi_report:report_detail", report_id=report_id)
 
-    new_name = request.POST.get("name")
+    new_name = " ".join((request.POST.get("name") or "").split())
     if not new_name:
-        messages.error(request, "Please provide a new report name.")
+        messages.error(request, "Veuillez saisir un nouveau nom pour le rapport.")
+        return redirect("powerbi_report:report_detail", report_id=report_id)
+    max_length = ReportRef._meta.get_field("name").max_length
+    if len(new_name) > max_length:
+        messages.error(request, f"Le nom du rapport ne peut pas dépasser {max_length} caractères.")
         return redirect("powerbi_report:report_detail", report_id=report_id)
 
-    update_url = f"{ReportRef.get_server_url(report_id)}/Reports/api/v2.0/PowerBIReports({report_id})"
-    auth = auth_getter(request)
-    if not auth:
-        messages.error(request, "Session expiree. Veuillez vous reconnecter.")
-        return redirect("login")
+    report_ref = ReportRef.objects.filter(pbirs_id=report_id).first()
+    if report_ref is None:
+        messages.error(request, "Rapport introuvable dans la base de données locale.")
+        return redirect("powerbi_report:report_list")
 
-    data = {"Name": new_name}
-    headers = {"Content-Type": "application/json"}
+    old_name = report_ref.name
+    if new_name == old_name and report_ref.name_locked:
+        messages.info(request, "Le nom du rapport est inchangé.")
+        return redirect("powerbi_report:report_detail", report_id=report_id)
 
-    try:
-        logger.info(
-            "[EDIT NAME] User %s attempting to rename report %s to '%s'",
-            request.user.username,
-            report_id,
-            new_name,
+    report_ref.name = new_name
+    report_ref.name_locked = True
+    report_ref.modified_by = request.user
+    report_ref.modified_at = timezone.now()
+    report_ref.save(update_fields=["name", "name_locked", "modified_by", "modified_at", "last_synced"])
+    logger.info("[EDIT NAME] %s renamed report %s in the app only: %r -> %r",
+                request.user.username, report_id, old_name, new_name)
+    messages.success(request, "Nom du rapport mis à jour dans CBI (le nom sur le serveur Power BI n'est pas modifié).")
+    history_logger(request.user, f"Nom du rapport (dans CBI) mis à jour à '{new_name}' pour l'ID '{report_id}'")
+
+    admin_users = CustomUser.objects.filter(is_superuser=True)
+    for admin in admin_users:
+        Notification.objects.create(
+            user=admin,
+            message=f"Le rapport '{old_name}' a été renommé '{new_name}' dans CBI par {person_label(request.user)}.",
         )
 
-
-        response = requests.patch(update_url, json=data, auth=auth, headers=headers, timeout=30)
-        response.raise_for_status()
-        messages.success(request, "Report name updated successfully!")
-        history_logger(
-            request.user,
-            f"Nom du rapport mis à jour à '{new_name}' pour l'ID '{report_id}'",
-        )
-
-        admin_users = CustomUser.objects.filter(is_superuser=True)
-        for admin in admin_users:
-            Notification.objects.create(
-                user=admin,
-                message=f"Le rapport '{new_name}' a été renommé par {person_label(request.user)}.",
-            )
-        logger.info(
-            "Sent rename notification for report %s to %s admins.",
-            report_id,
-            len(admin_users),
-        )
-
-        _clear_user_report_cache(request)
-        metadata_updater(report_id, request.user, name=new_name)
-
-    except requests.exceptions.HTTPError as exc:
-        if exc.response is not None and exc.response.status_code == 403:
-            logger.error(
-                "Edit name forbidden for report %s by user %s: %s",
-                report_id,
-                request.user.username,
-                exc.response.text,
-            )
-            messages.error(
-                request,
-                "Acces refuse. Vous n'avez pas les permissions necessaires "
-                "sur le serveur de rapports pour modifier ce rapport.",
-            )
-        else:
-            messages.error(request, f"Failed to update report name: {exc}")
-            logger.error("HTTP error updating report name %s: %s", report_id, exc)
-    except requests.exceptions.RequestException as exc:
-        messages.error(request, f"Failed to update report name: {exc}")
-        logger.error("Request error updating report name %s: %s", report_id, exc)
-
+    _clear_user_report_cache(request)
     return redirect("powerbi_report:report_detail", report_id=report_id)
 
 

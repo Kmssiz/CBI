@@ -546,11 +546,14 @@ class MetadataLogoTests(MobileTestCase):
         })
         self.assertFalse(MetadataOption.objects.filter(name='Pôle GIF').exists())
 
-    def test_directions_never_get_a_logo(self):
-        self.web_admin().post(reverse('powerbi_report:metadata_option_edit', args=[self.dco.pk]),
-                              {'name': 'Direction Commerce', 'logo': png_upload()})
-        self.dco.refresh_from_db()
-        self.assertFalse(self.dco.logo)
+    def test_directions_and_modules_get_images_like_poles_and_societes(self):
+        module = self.option('module', 'Ventes')
+        for option in (self.dco, module):
+            self.web_admin().post(reverse('powerbi_report:metadata_option_edit', args=[option.pk]),
+                                  {'name': option.name, 'logo': png_upload()})
+            option.refresh_from_db()
+            self.assertTrue(option.logo, option.option_type)
+            self.assertTrue(option.logo.name.startswith(f'metadata_logos/{option.option_type}-'))
 
     def test_catalog_exposes_versioned_logo_urls_served_to_the_app(self):
         self.mdm.logo = png_upload()
@@ -565,4 +568,4 @@ class MetadataLogoTests(MobileTestCase):
         self.assertEqual(logo['Content-Type'], 'image/png')
         self.assertIn('immutable', logo['Cache-Control'])
         self.assertEqual(self.client.get(group['logo_url']).status_code, 401)  # bearer required
-        self.assertEqual(self.client.get(url('metadata_logo', self.dco.pk), **self.auth).status_code, 404)
+        self.assertEqual(self.client.get(url('metadata_logo', self.dco.pk), **self.auth).status_code, 404)   # no image set

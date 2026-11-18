@@ -6,7 +6,7 @@ from users.models import CustomUser
 
 # Unused models removed for cleanup
 
-LOGO_OPTION_TYPES = ('pole', 'societe')
+LOGO_OPTION_TYPES = ('pole', 'direction', 'societe', 'module')
 
 
 def metadata_logo_path(instance, filename: str) -> str:
@@ -342,7 +342,7 @@ class MetadataOption(models.Model):
         related_name='children',
         help_text="Parent option (e.g. link Société to a Pôle)"
     )
-    # Card image shown by the mobile app for pôles and sociétés.
+    # Image of a pôle, direction, société or module: on its card in the mobile app and in the web version.
     logo = models.ImageField(upload_to=metadata_logo_path, null=True, blank=True)
     
     class Meta:

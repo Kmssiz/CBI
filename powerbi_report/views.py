@@ -561,16 +561,13 @@ def report_list(request):
 def get_powerbi_report_info(request, report_id):
     return get_powerbi_report_info_data(request, report_id, get_current_user_auth)
 #################################################################################################################
-#                    Updates the name of a Power BI report and notifies admin users                             #
+#                    Renames a report in the app only (PBIRS keeps its name) and notifies admin users           #
 #################################################################################################################
 @admin_required
 def edit_powerbi_report_name(request, report_id):
     return edit_powerbi_report_name_view(
         request=request,
         report_id=report_id,
-        auth_getter=get_current_user_auth,
-        report_permissions_getter=get_report_permissions,
-        metadata_updater=_update_report_metadata,
         history_logger=log_history,
     )
 #################################################################################################################

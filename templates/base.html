@@ -181,7 +181,7 @@
     body.legacy-shell .legacy-visual-nav summary { list-style: none; }
     body.legacy-shell .legacy-visual-nav summary::-webkit-details-marker { display: none; }
     body.legacy-shell .legacy-visual-nav .legacy-visual-submenu { width: 250px; padding: 0 0 8px 28px; }
-    body.legacy-shell .legacy-visual-nav .legacy-visual-submenu a { display: block; padding: 8px 18px; color: #8f9097; font-size: 12px; text-decoration: none; }
+    body.legacy-shell .legacy-visual-nav .legacy-visual-submenu a { display: block; padding: 8px 18px; color: #8f9097; font-size: 13px; text-decoration: none; }
     body.legacy-shell .legacy-visual-nav .legacy-visual-submenu a:hover { color: #d1d3d8; background: #25262d !important; }
     body.legacy-shell .legacy-visual-nav .legacy-visual-submenu a.is-current { color: #a5cf4b; background: transparent !important; }
 
@@ -809,19 +809,19 @@
           <details class="legacy-report-group" data-tour="nav-reports" {% if nav_section %}open{% endif %}>
             <summary class="{% if nav_section %}is-current{% endif %}">Tableau de bord</summary>
             <div class="legacy-visual-submenu">
-              {% if user.is_admin or permissions.can_view_direction %}
-                <a data-tour="space-direction" href="{% url 'powerbi_report:custom_direction' %}" class="{% if nav_section == 'direction' %}is-current{% endif %}">Direction</a>
+              {% if user.is_admin or permissions.can_view_consolide %}
+                <a data-tour="space-consolide" href="{% url 'powerbi_report:custom_consolide' %}" class="{% if nav_section == 'consolide' %}is-current{% endif %}">Consolidé</a>
               {% endif %}
               {% if user.is_admin or permissions.can_view_pole %}
                 <a data-tour="space-pole" href="{% url 'powerbi_report:custom_pole' %}" class="{% if nav_section == 'pole' %}is-current{% endif %}">Pôle</a>
               {% endif %}
-              {% if user.is_admin or permissions.can_view_consolide %}
-                <a data-tour="space-consolide" href="{% url 'powerbi_report:custom_consolide' %}" class="{% if nav_section == 'consolide' %}is-current{% endif %}">Consolidé</a>
+              {% if user.is_admin or permissions.can_view_direction %}
+                <a data-tour="space-direction" href="{% url 'powerbi_report:custom_direction' %}" class="{% if nav_section == 'direction' %}is-current{% endif %}">Direction</a>
+              {% endif %}
+              {% if user.is_admin or permissions.can_view_module %}
+                <a data-tour="space-module" href="{% url 'powerbi_report:custom_module' %}" class="{% if nav_section == 'module' %}is-current{% endif %}">Par Module</a>
               {% endif %}
               <a data-tour="space-biblio" href="{% url 'powerbi_report:custom_biblio' %}" class="{% if nav_section == 'biblio' %}is-current{% endif %}">Bibliothèque</a>
-              {% if user.is_admin or permissions.can_view_module %}
-                <a data-tour="space-module" href="{% url 'powerbi_report:custom_module' %}" class="{% if nav_section == 'module' %}is-current{% endif %}">Module</a>
-              {% endif %}
               {% if user.is_admin or permissions.can_view_anomalie %}
                 <a data-tour="space-anomalie" href="{% url 'powerbi_report:custom_anomalie' %}" class="{% if nav_section == 'anomalie' %}is-current{% endif %}">Anomalie</a>
               {% endif %}

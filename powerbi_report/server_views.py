@@ -57,9 +57,12 @@ def metadata_option_logo(request, option_id):
     if not option.logo:
         raise Http404
     try:
-        return FileResponse(option.logo.open('rb'))
+        response = FileResponse(option.logo.open('rb'))
     except (FileNotFoundError, OSError):
         raise Http404
+    # Every upload gets a new file name, and the pages ask for it with ?v=<file name>: a cached copy is never stale.
+    response['Cache-Control'] = 'private, max-age=31536000, immutable'
+    return response
 
 
 @login_required

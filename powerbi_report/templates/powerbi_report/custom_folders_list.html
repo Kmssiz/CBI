@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block title %}{{ view_title|default:"Rapports" }}{% endblock %}
+{% block title_full %}{{ nav_section_label|default:view_title }} | PBI{% endblock %}
 
 {% block header_title %}{{ view_title }}{% endblock %}
 {% block header_subtitle %}Gérez vos dossiers et rapports Power BI{% endblock %}
@@ -65,9 +66,15 @@
             <div data-search-card data-name="{{ folder.name|lower }}" class="group relative card-theme bg-white border border-slate-200 dark:border-slate-700 rounded-2xl p-6 hover:border-primary/30 transition-all duration-300">
                 <a href="{% url 'powerbi_report:custom_folder_detail' view_type=view_type folder_id=folder.id %}{{ folder.nav_query }}"
                     class="block">
+                    {% if folder.logo %}
+                    <div class="size-14 rounded-xl bg-white border border-slate-200 dark:border-slate-700 flex items-center justify-center mb-4 p-1 group-hover:scale-110 transition-transform">
+                        <img src="{% url 'powerbi_report:metadata_option_logo' folder.id %}?v={{ folder.logo.name|cut:'metadata_logos/' }}" alt="" loading="lazy" class="size-full object-contain">
+                    </div>
+                    {% else %}
                     <div class="size-14 rounded-xl bg-yellow-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                         <span class="material-symbols-outlined text-[32px] text-yellow-500">{% if view_type == 'biblio' %}local_library{% else %}folder{% endif %}</span>
                     </div>
+                    {% endif %}
                     <h3 class="text-base font-bold text-theme text-slate-900 mb-1 truncate">{{ folder.name }}</h3>
                     <p class="text-xs text-slate-500">{% if folder.option_type == 'societe' %}Société{% else %}Dossier de rapports{% endif %}</p>
                 </a>
@@ -331,7 +338,8 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="report_new_name" class="form-label">Nouveau nom</label>
-                        <input type="text" class="form-control" id="report_new_name" name="name" required>
+                        <input type="text" class="form-control" id="report_new_name" name="name" maxlength="255" required>
+                        <small class="text-muted">Le nom est modifié uniquement dans CBI : le rapport garde son nom sur le serveur Power BI.</small>
                     </div>
                 </div>
                 <div class="modal-footer border-t border-slate-200 dark:border-slate-800">

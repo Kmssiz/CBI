@@ -61,9 +61,9 @@
         },
         /* Un pas par espace : seuls ceux que l'utilisateur peut ouvrir sont présentés. */
         {
-          el: '[data-tour="space-direction"]', drawer: true, side: 'right',
-          title: 'Direction',
-          text: 'Les rapports de votre direction.'
+          el: '[data-tour="space-consolide"]', drawer: true, side: 'right',
+          title: 'Consolidé',
+          text: 'Les rapports consolidés.'
         },
         {
           el: '[data-tour="space-pole"]', drawer: true, side: 'right',
@@ -71,19 +71,19 @@
           text: 'Les rapports de votre pôle.'
         },
         {
-          el: '[data-tour="space-consolide"]', drawer: true, side: 'right',
-          title: 'Consolidé',
-          text: 'Les rapports consolidés.'
+          el: '[data-tour="space-direction"]', drawer: true, side: 'right',
+          title: 'Direction',
+          text: 'Les rapports de votre direction.'
+        },
+        {
+          el: '[data-tour="space-module"]', drawer: true, side: 'right',
+          title: 'Par Module',
+          text: 'Les rapports organisés par module.'
         },
         {
           el: '[data-tour="space-biblio"]', drawer: true, side: 'right',
           title: 'Bibliothèque',
           text: 'La bibliothèque : les rapports et extractions disponibles selon vos droits.'
-        },
-        {
-          el: '[data-tour="space-module"]', drawer: true, side: 'right',
-          title: 'Module',
-          text: 'Les rapports organisés par module.'
         },
         {
           el: '[data-tour="space-anomalie"]', drawer: true, side: 'right',
