@@ -30,6 +30,7 @@ KEYWORDS = (
     (('product',), 'production'),
     (('ressource', 'humain', ' rh', 'rh '), 'rh'),
     (('techni',), 'technique'),
+    (('qualit',), 'qualite'),
 )
 
 

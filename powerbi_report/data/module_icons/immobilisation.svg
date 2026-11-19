@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140" width="140" height="140" role="img">
+  <defs>
+    <clipPath id="tile"><rect width="140" height="140" rx="9"/></clipPath>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="fade" gradientUnits="userSpaceOnUse" x1="20" y1="20" x2="140" y2="140">
+      <stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/>
+    </linearGradient>
+    <mask id="shadowMask"><rect width="140" height="140" fill="url(#fade)"/></mask>
+    <path id="g" d="M4 10v7h3v-7H4zm6 0v7h3v-7h-3zM2 22h19v-3H2v3zm14-12v7h3v-7h-3zm-4.5-9L2 6v2h19V6l-9.5-5z"/>
+  </defs>
+  <rect width="140" height="140" rx="9" fill="#9A6B87"/>
+  <rect width="140" height="140" rx="9" fill="url(#sheen)"/>
+  <g clip-path="url(#tile)" mask="url(#shadowMask)" opacity=".24" fill="#000">
+    <use href="#g" transform="translate(20.8 20.8) scale(4.1)"/>
+    <use href="#g" transform="translate(22.0 22.0) scale(4.1)"/>
+    <use href="#g" transform="translate(23.2 23.2) scale(4.1)"/>
+    <use href="#g" transform="translate(24.4 24.4) scale(4.1)"/>
+    <use href="#g" transform="translate(25.6 25.6) scale(4.1)"/>
+    <use href="#g" transform="translate(26.8 26.8) scale(4.1)"/>
+    <use href="#g" transform="translate(28.0 28.0) scale(4.1)"/>
+    <use href="#g" transform="translate(29.2 29.2) scale(4.1)"/>
+    <use href="#g" transform="translate(30.4 30.4) scale(4.1)"/>
+    <use href="#g" transform="translate(31.6 31.6) scale(4.1)"/>
+    <use href="#g" transform="translate(32.8 32.8) scale(4.1)"/>
+    <use href="#g" transform="translate(34.0 34.0) scale(4.1)"/>
+    <use href="#g" transform="translate(35.2 35.2) scale(4.1)"/>
+    <use href="#g" transform="translate(36.4 36.4) scale(4.1)"/>
+    <use href="#g" transform="translate(37.6 37.6) scale(4.1)"/>
+    <use href="#g" transform="translate(38.8 38.8) scale(4.1)"/>
+    <use href="#g" transform="translate(40.0 40.0) scale(4.1)"/>
+    <use href="#g" transform="translate(41.2 41.2) scale(4.1)"/>
+    <use href="#g" transform="translate(42.4 42.4) scale(4.1)"/>
+    <use href="#g" transform="translate(43.6 43.6) scale(4.1)"/>
+    <use href="#g" transform="translate(44.8 44.8) scale(4.1)"/>
+    <use href="#g" transform="translate(46.0 46.0) scale(4.1)"/>
+    <use href="#g" transform="translate(47.2 47.2) scale(4.1)"/>
+    <use href="#g" transform="translate(48.4 48.4) scale(4.1)"/>
+    <use href="#g" transform="translate(49.6 49.6) scale(4.1)"/>
+    <use href="#g" transform="translate(50.8 50.8) scale(4.1)"/>
+    <use href="#g" transform="translate(52.0 52.0) scale(4.1)"/>
+    <use href="#g" transform="translate(53.2 53.2) scale(4.1)"/>
+    <use href="#g" transform="translate(54.4 54.4) scale(4.1)"/>
+    <use href="#g" transform="translate(55.6 55.6) scale(4.1)"/>
+    <use href="#g" transform="translate(56.8 56.8) scale(4.1)"/>
+    <use href="#g" transform="translate(58.0 58.0) scale(4.1)"/>
+    <use href="#g" transform="translate(59.2 59.2) scale(4.1)"/>
+    <use href="#g" transform="translate(60.4 60.4) scale(4.1)"/>
+    <use href="#g" transform="translate(61.6 61.6) scale(4.1)"/>
+    <use href="#g" transform="translate(62.8 62.8) scale(4.1)"/>
+    <use href="#g" transform="translate(64.0 64.0) scale(4.1)"/>
+    <use href="#g" transform="translate(65.2 65.2) scale(4.1)"/>
+    <use href="#g" transform="translate(66.4 66.4) scale(4.1)"/>
+    <use href="#g" transform="translate(67.6 67.6) scale(4.1)"/>
+    <use href="#g" transform="translate(68.8 68.8) scale(4.1)"/>
+    <use href="#g" transform="translate(70.0 70.0) scale(4.1)"/>
+    <use href="#g" transform="translate(71.2 71.2) scale(4.1)"/>
+    <use href="#g" transform="translate(72.4 72.4) scale(4.1)"/>
+    <use href="#g" transform="translate(73.6 73.6) scale(4.1)"/>
+    <use href="#g" transform="translate(74.8 74.8) scale(4.1)"/>
+    <use href="#g" transform="translate(76.0 76.0) scale(4.1)"/>
+    <use href="#g" transform="translate(77.2 77.2) scale(4.1)"/>
+    <use href="#g" transform="translate(78.4 78.4) scale(4.1)"/>
+    <use href="#g" transform="translate(79.6 79.6) scale(4.1)"/>
+    <use href="#g" transform="translate(80.8 80.8) scale(4.1)"/>
+    <use href="#g" transform="translate(82.0 82.0) scale(4.1)"/>
+    <use href="#g" transform="translate(83.2 83.2) scale(4.1)"/>
+    <use href="#g" transform="translate(84.4 84.4) scale(4.1)"/>
+    <use href="#g" transform="translate(85.6 85.6) scale(4.1)"/>
+    <use href="#g" transform="translate(86.8 86.8) scale(4.1)"/>
+    <use href="#g" transform="translate(88.0 88.0) scale(4.1)"/>
+    <use href="#g" transform="translate(89.2 89.2) scale(4.1)"/>
+    <use href="#g" transform="translate(90.4 90.4) scale(4.1)"/>
+    <use href="#g" transform="translate(91.6 91.6) scale(4.1)"/>
+    <use href="#g" transform="translate(92.8 92.8) scale(4.1)"/>
+    <use href="#g" transform="translate(94.0 94.0) scale(4.1)"/>
+    <use href="#g" transform="translate(95.2 95.2) scale(4.1)"/>
+    <use href="#g" transform="translate(96.4 96.4) scale(4.1)"/>
+    <use href="#g" transform="translate(97.6 97.6) scale(4.1)"/>
+    <use href="#g" transform="translate(98.8 98.8) scale(4.1)"/>
+    <use href="#g" transform="translate(100.0 100.0) scale(4.1)"/>
+    <use href="#g" transform="translate(101.2 101.2) scale(4.1)"/>
+    <use href="#g" transform="translate(102.4 102.4) scale(4.1)"/>
+    <use href="#g" transform="translate(103.6 103.6) scale(4.1)"/>
+    <use href="#g" transform="translate(104.8 104.8) scale(4.1)"/>
+    <use href="#g" transform="translate(106.0 106.0) scale(4.1)"/>
+    <use href="#g" transform="translate(107.2 107.2) scale(4.1)"/>
+    <use href="#g" transform="translate(108.4 108.4) scale(4.1)"/>
+    <use href="#g" transform="translate(109.6 109.6) scale(4.1)"/>
+    <use href="#g" transform="translate(110.8 110.8) scale(4.1)"/>
+    <use href="#g" transform="translate(112.0 112.0) scale(4.1)"/>
+    <use href="#g" transform="translate(113.2 113.2) scale(4.1)"/>
+    <use href="#g" transform="translate(114.4 114.4) scale(4.1)"/>
+    <use href="#g" transform="translate(115.6 115.6) scale(4.1)"/>
+    <use href="#g" transform="translate(116.8 116.8) scale(4.1)"/>
+    <use href="#g" transform="translate(118.0 118.0) scale(4.1)"/>
+    <use href="#g" transform="translate(119.2 119.2) scale(4.1)"/>
+    <use href="#g" transform="translate(120.4 120.4) scale(4.1)"/>
+    <use href="#g" transform="translate(121.6 121.6) scale(4.1)"/>
+    <use href="#g" transform="translate(122.8 122.8) scale(4.1)"/>
+    <use href="#g" transform="translate(124.0 124.0) scale(4.1)"/>
+    <use href="#g" transform="translate(125.2 125.2) scale(4.1)"/>
+    <use href="#g" transform="translate(126.4 126.4) scale(4.1)"/>
+    <use href="#g" transform="translate(127.6 127.6) scale(4.1)"/>
+  </g>
+  <use href="#g" transform="translate(20.8 20.8) scale(4.1)" fill="#fff"/>
+</svg>

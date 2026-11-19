@@ -78,6 +78,15 @@
                     <h3 class="text-base font-bold text-theme text-slate-900 mb-1 truncate">{{ folder.name }}</h3>
                     <p class="text-xs text-slate-500">{% if folder.option_type == 'societe' %}Société{% else %}Dossier de rapports{% endif %}</p>
                 </a>
+                {% if view_type == 'biblio' %}
+                <span class="pointer-events-none absolute top-4 right-4 inline-flex items-center gap-1 rounded border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-500" data-folder-kind="biblio">
+                    <span class="material-symbols-outlined text-[12px]">menu_book</span> Bibliothèque
+                </span>
+                {% elif view_type == 'module' %}
+                <span class="pointer-events-none absolute top-4 right-4 inline-flex items-center gap-1 rounded border border-blue-500/20 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-500" data-folder-kind="module">
+                    <span class="material-symbols-outlined text-[12px]">dashboard</span> Dashboard
+                </span>
+                {% endif %}
             </div>
             {% endfor %}
 

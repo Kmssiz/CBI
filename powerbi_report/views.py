@@ -3183,6 +3183,9 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
         # vanish from its view: it is listed next to the folders instead.
         if view_type == 'biblio':
             loose_qs, loose_label = permitted_reports.filter(modules__isnull=True), 'Sans module'
+        elif view_type == 'consolide':
+            # Consolidated reports span several sociétés: many carry no direction, and would be unreachable.
+            loose_qs, loose_label = permitted_reports.filter(directions__isnull=True), 'Sans direction'
         else:
             # Only reports with no classification at all: one that sits in another view is not "lost".
             unclassified = ReportRef.objects.filter(
@@ -3244,15 +3247,19 @@ def custom_folders_list(request, view_type='direction', folder_id=None):
                 else:
                     back_url = detail_url(pole_ctx) if pole_ctx else root_url
             else:
-                # The pôle itself: its sociétés, then the reports that have no société.
+                # The pôle itself: only the sociétés attached to this pôle (Administration > Serveurs).
+                # A société not attached to any pôle yet still shows under the pôle its reports name, so
+                # nothing disappears while the configuration is incomplete; one attached to ANOTHER pôle never does.
                 reports_qs = permitted_reports.filter(poles=current_folder)
                 subfolders = list(
                     MetadataOption.objects.filter(option_type='societe', societe_reports__in=reports_qs)
+                    .filter(Q(parent=current_folder) | Q(parent__isnull=True))
                     .distinct().order_by('name')
                 )
                 for folder in subfolders:
                     folder.nav_query = f'?pole={current_folder.id}'
-                reports_qs = reports_qs.filter(societes__isnull=True).distinct()
+                # What no société folder covers is listed right here, under the pôle.
+                reports_qs = reports_qs.exclude(societes__in=subfolders).distinct()
                 back_url = root_url
         else:
             # Direction (and consolidé, module): the reports come right after the

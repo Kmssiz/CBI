@@ -21,6 +21,7 @@ NAMES = {
     'Production': 'production',
     'Ressource Humaine': 'rh',
     'Technique': 'technique',
+    'Qualité': 'qualite',
 }
 
 
